@@ -8,6 +8,7 @@ import logging
 import sys
 
 from overpass.collectors.base import BaseCollector, CollectorItem
+from overpass.collectors.podcast import PodcastCollector
 from overpass.config import load_config
 
 logging.basicConfig(
@@ -17,8 +18,9 @@ logging.basicConfig(
 logger = logging.getLogger("overpass")
 
 # ── Collector registry ───────────────────────────────────────────
-# Add concrete collector instances here once implemented.
-COLLECTORS: list[BaseCollector] = []
+COLLECTORS: list[BaseCollector] = [
+    PodcastCollector(),
+]
 
 
 async def run_collectors() -> list[CollectorItem]:
