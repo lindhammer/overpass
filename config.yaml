@@ -1,0 +1,53 @@
+watchlist_teams:
+  - Vitality
+  - G2
+  - FaZe
+  - Spirit
+
+hltv_top_n: 30
+
+youtube_channels:
+  - id: "UC_SgBkrOEFVnJkBMKcpp5lg"
+    name: "HLTV"
+
+podcasts:
+  - name: "HLTV Confirmed"
+    feed_url: "https://feeds.simplecast.com/j_vFR3oS"
+  - name: "Dust2 Podcast"
+    feed_url: "https://example.com/dust2.xml"
+
+reddit:
+  subreddit: "GlobalOffensive"
+  sort: "top"
+  time_filter: "day"
+  limit: 10
+  flair_filter:
+    - "Highlight"
+    - "Clip"
+
+live_alerts:
+  watchlist_match_live: true
+  valve_patch: true
+  roster_moves: true
+  tournament_stage_change: true
+
+llm:
+  default_provider: "gemini"
+  providers:
+    gemini:
+      model: "gemini-2.0-flash"
+      api_key_env: "GEMINI_API_KEY"
+    claude:
+      model: "claude-sonnet-4-20250514"
+      api_key_env: "ANTHROPIC_API_KEY"
+
+telegram:
+  bot_token_env: "TELEGRAM_BOT_TOKEN"
+  chat_id_env: "TELEGRAM_CHAT_ID"
+
+schedule:
+  daily_digest: "07:00"
+  live_poll_interval_minutes: 5
+
+timezone: "Europe/Berlin"
+
