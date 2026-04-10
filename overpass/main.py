@@ -9,6 +9,7 @@ import sys
 
 from overpass.collectors.base import BaseCollector, CollectorItem
 from overpass.collectors.podcast import PodcastCollector
+from overpass.collectors.reddit import RedditCollector
 from overpass.collectors.steam import SteamCollector
 from overpass.config import load_config
 
@@ -21,6 +22,7 @@ logger = logging.getLogger("overpass")
 # ── Collector registry ───────────────────────────────────────────
 COLLECTORS: list[BaseCollector] = [
     PodcastCollector(),
+    RedditCollector(),
     SteamCollector(),
 ]
 
