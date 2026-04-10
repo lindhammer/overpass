@@ -6,9 +6,11 @@ watchlist_teams:
 
 hltv_top_n: 30
 
-youtube_channels:
-  - id: "UC_SgBkrOEFVnJkBMKcpp5lg"
-    name: "HLTV"
+youtube:
+  api_key_env: "YOUTUBE_API_KEY"
+  channels:
+    - id: "UC_SgBkrOEFVnJkBMKcpp5lg"
+      name: "HLTV"
 
 podcasts:
   - name: "HLTV Confirmed"

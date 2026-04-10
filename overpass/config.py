@@ -24,6 +24,11 @@ class YoutubeChannel(BaseModel):
     name: str
 
 
+class YouTubeConfig(BaseModel):
+    api_key_env: str = "YOUTUBE_API_KEY"
+    channels: list[YoutubeChannel] = []
+
+
 class Podcast(BaseModel):
     name: str
     feed_url: str
@@ -70,7 +75,7 @@ class ScheduleConfig(BaseModel):
 class AppConfig(BaseModel):
     watchlist_teams: list[str] = []
     hltv_top_n: int = 30
-    youtube_channels: list[YoutubeChannel] = []
+    youtube: YouTubeConfig = YouTubeConfig()
     podcasts: list[Podcast] = []
     reddit: RedditConfig = RedditConfig(subreddit="GlobalOffensive")
     live_alerts: LiveAlertsConfig = LiveAlertsConfig()
