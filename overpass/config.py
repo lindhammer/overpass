@@ -78,6 +78,7 @@ class AppConfig(BaseModel):
     youtube: YouTubeConfig = YouTubeConfig()
     podcasts: list[Podcast] = []
     reddit: RedditConfig = RedditConfig(subreddit="GlobalOffensive")
+    web_base_url: str = "http://localhost:8000"
     live_alerts: LiveAlertsConfig = LiveAlertsConfig()
     llm: LLMConfig = LLMConfig()
     telegram: TelegramConfig = TelegramConfig(bot_token_env="TELEGRAM_BOT_TOKEN", chat_id_env="TELEGRAM_CHAT_ID")
