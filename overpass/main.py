@@ -13,6 +13,8 @@ from overpass.collectors.reddit import RedditCollector
 from overpass.collectors.steam import SteamCollector
 from overpass.collectors.youtube import YouTubeCollector
 from overpass.config import load_config
+from overpass.editorial.digest import generate_digest
+from overpass.editorial.gemini import GeminiProvider
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,8 +58,23 @@ async def run_collectors() -> list[CollectorItem]:
 
 
 async def async_main() -> None:
+    config = load_config()
     items = await run_collectors()
-    output = [item.model_dump(mode="json") for item in items]
+
+    # ── Editorial layer ──────────────────────────────────────────
+    llm_cfg = config.llm
+    provider_cfg = llm_cfg.providers.get(llm_cfg.default_provider)
+    if provider_cfg:
+        provider = GeminiProvider(
+            model=provider_cfg.model,
+            api_key=provider_cfg.api_key_env,  # resolved to actual key by config loader
+        )
+        digest = await generate_digest(items, provider)
+        output = digest.model_dump(mode="json")
+    else:
+        logger.warning("No LLM provider configured – dumping raw items")
+        output = [item.model_dump(mode="json") for item in items]
+
     json.dump(output, sys.stdout, indent=2, ensure_ascii=False)
     print()  # trailing newline
 
