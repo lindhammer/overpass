@@ -9,11 +9,12 @@ from zoneinfo import ZoneInfo
 
 import yaml
 from dotenv import load_dotenv
-from pydantic import BaseModel, model_validator
+from pydantic import AnyHttpUrl, BaseModel, Field, TypeAdapter, ValidationError, field_validator
 
 load_dotenv()
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
+HTTP_URL_ADAPTER = TypeAdapter(AnyHttpUrl)
 
 
 # ── Pydantic models ──────────────────────────────────────────────
@@ -72,9 +73,29 @@ class ScheduleConfig(BaseModel):
     live_poll_interval_minutes: int = 5
 
 
+class HLTVConfig(BaseModel):
+    base_url: str = "https://www.hltv.org"
+    headless: bool = True
+    news_limit: int = Field(default=20, ge=0)
+    results_pages: int = Field(default=1, ge=1)
+    request_timeout_seconds: int = Field(default=30, gt=0)
+    min_request_interval_seconds: float = Field(default=2.0, ge=0)
+    watchlist_only_matches: bool = False
+
+    @field_validator("base_url")
+    @classmethod
+    def validate_base_url(cls, value: str) -> str:
+        try:
+            HTTP_URL_ADAPTER.validate_python(value)
+        except ValidationError as exc:
+            raise ValueError("base_url must be a valid http or https URL")
+        return value
+
+
 class AppConfig(BaseModel):
     watchlist_teams: list[str] = []
     hltv_top_n: int = 30
+    hltv: HLTVConfig = HLTVConfig()
     youtube: YouTubeConfig = YouTubeConfig()
     podcasts: list[Podcast] = []
     reddit: RedditConfig = RedditConfig(subreddit="GlobalOffensive")

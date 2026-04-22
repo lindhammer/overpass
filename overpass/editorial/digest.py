@@ -28,9 +28,11 @@ class DigestOutput(BaseModel):
 
 # ── Section display names ────────────────────────────────────────
 
-_SECTION_NAMES: dict[str, str] = {
+SECTION_NAMES: dict[str, str] = {
+    "article": "News",
     "clip": "Clips",
     "episode": "Podcasts",
+    "match": "Matches",
     "patch": "Patches",
     "video": "Videos",
 }
@@ -89,7 +91,7 @@ def _build_items_json(groups: dict[str, list[CollectorItem]]) -> str:
     """Serialise grouped items to a compact JSON string for the prompt."""
     out: dict[str, list[dict]] = {}
     for type_key, items in groups.items():
-        section = _SECTION_NAMES.get(type_key, type_key.title())
+        section = SECTION_NAMES.get(type_key, type_key.title())
         out[section] = [
             {
                 "title": i.title,
@@ -127,7 +129,7 @@ def _parse_llm_response(
 
     sections: dict[str, SectionOutput] = {}
     for type_key, items in groups.items():
-        section_name = _SECTION_NAMES.get(type_key, type_key.title())
+        section_name = SECTION_NAMES.get(type_key, type_key.title())
         section_data = llm_sections.get(section_name, {})
         intro = section_data.get("intro", "") if isinstance(section_data, dict) else ""
         sections[section_name] = SectionOutput(intro=intro, items=items)
@@ -145,7 +147,7 @@ async def generate_digest(
 
     groups = _group_items(items)
 
-    section_keys = [_SECTION_NAMES.get(k, k.title()) for k in groups]
+    section_keys = [SECTION_NAMES.get(k, k.title()) for k in groups]
     items_json = _build_items_json(groups)
 
     prompt = _USER_PROMPT.format(

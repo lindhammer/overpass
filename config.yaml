@@ -6,6 +6,15 @@ watchlist_teams:
 
 hltv_top_n: 30
 
+hltv:
+  base_url: "https://www.hltv.org"
+  headless: true
+  news_limit: 20
+  results_pages: 1
+  request_timeout_seconds: 30
+  min_request_interval_seconds: 2.0
+  watchlist_only_matches: false
+
 youtube:
   api_key_env: "YOUTUBE_API_KEY"
   channels:

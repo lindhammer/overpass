@@ -17,6 +17,9 @@ python -m venv .venv
 # Install
 pip install -e .
 
+# HLTV scraping browser
+python -m playwright install chromium
+
 # Configure
 cp .env.example .env
 # Fill in API keys in .env
@@ -24,6 +27,8 @@ cp .env.example .env
 # Run
 overpass
 ```
+
+HLTV scraping uses Playwright and requires a local Chromium install. Run `python -m playwright install chromium` after installing Python dependencies, or the HLTV collectors will fail when they try to launch the browser.
 
 ## Configuration
 

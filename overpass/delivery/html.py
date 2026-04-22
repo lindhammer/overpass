@@ -13,8 +13,8 @@ from overpass.editorial.digest import DigestOutput
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 _OUTPUT_DIR = Path(__file__).resolve().parent.parent.parent / "output" / "briefings"
 
-# Section render order per SPEC: Clips → Podcasts/Content → Patches
-SECTION_ORDER = ["Clips", "Videos", "Podcasts", "Patches"]
+# Section render order: HLTV match/news coverage ahead of the older media sections.
+SECTION_ORDER = ["Matches", "News", "Clips", "Videos", "Podcasts", "Patches"]
 
 # Matches BBCode tags like [b], [/b], [h1], [list], [*], [url=...], etc.
 _BBCODE_RE = re.compile(r"\[/?[a-zA-Z0-9]+(?:=[^\]]+)?\]")

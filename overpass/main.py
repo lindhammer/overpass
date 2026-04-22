@@ -8,6 +8,8 @@ import time
 from datetime import date
 
 from overpass.collectors.base import BaseCollector, CollectorItem
+from overpass.collectors.hltv_matches import HLTVMatchesCollector
+from overpass.collectors.hltv_news import HLTVNewsCollector
 from overpass.collectors.podcast import PodcastCollector
 from overpass.collectors.reddit import RedditCollector
 from overpass.collectors.steam import SteamCollector
@@ -17,6 +19,7 @@ from overpass.delivery.html import render_briefing, save_briefing
 from overpass.delivery.telegram import send_digest_notification
 from overpass.editorial.digest import generate_digest
 from overpass.editorial.gemini import GeminiProvider
+from overpass.hltv.browser import HLTVBrowserClient
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,37 +28,57 @@ logging.basicConfig(
 logger = logging.getLogger("overpass")
 
 # ── Collector registry ───────────────────────────────────────────
-COLLECTORS: list[BaseCollector] = [
-    PodcastCollector(),
-    RedditCollector(),
-    SteamCollector(),
-    YouTubeCollector(),
-]
+def _build_collectors_with_shared_hltv_client() -> tuple[list[BaseCollector], HLTVBrowserClient]:
+    config = load_config()
+    hltv_browser_client = HLTVBrowserClient.from_config(config.hltv)
+    return (
+        [
+            HLTVMatchesCollector(browser_client=hltv_browser_client),
+            HLTVNewsCollector(browser_client=hltv_browser_client),
+            PodcastCollector(),
+            RedditCollector(),
+            SteamCollector(),
+            YouTubeCollector(),
+        ],
+        hltv_browser_client,
+    )
+
+
+def build_collectors() -> list[BaseCollector]:
+    collectors, _ = _build_collectors_with_shared_hltv_client()
+    return collectors
+
+
+COLLECTORS: list[BaseCollector] = build_collectors()
 
 
 async def run_collectors() -> list[CollectorItem]:
     """Run every registered collector concurrently; log per-collector counts."""
     config = load_config()
+    collectors, hltv_browser_client = _build_collectors_with_shared_hltv_client()
     logger.info("Timezone: %s", config.tz)
-    logger.info("Running %d collectors", len(COLLECTORS))
+    logger.info("Running %d collectors", len(collectors))
 
     t0 = time.monotonic()
-    results = await asyncio.gather(
-        *(c.collect() for c in COLLECTORS),
-        return_exceptions=True,
-    )
-    logger.info("Collectors finished in %.1fs", time.monotonic() - t0)
+    try:
+        results = await asyncio.gather(
+            *(collector.collect() for collector in collectors),
+            return_exceptions=True,
+        )
+        logger.info("Collectors finished in %.1fs", time.monotonic() - t0)
 
-    items: list[CollectorItem] = []
-    for collector, result in zip(COLLECTORS, results):
-        if isinstance(result, BaseException):
-            logger.error("Collector %s failed: %s", collector.name, result)
-        else:
-            logger.info("  %-10s → %d items", collector.name, len(result))
-            items.extend(result)
+        items: list[CollectorItem] = []
+        for collector, result in zip(collectors, results):
+            if isinstance(result, BaseException):
+                logger.error("Collector %s failed: %s", collector.name, result)
+            else:
+                logger.info("  %-10s → %d items", collector.name, len(result))
+                items.extend(result)
 
-    logger.info("Total items collected: %d", len(items))
-    return items
+        logger.info("Total items collected: %d", len(items))
+        return items
+    finally:
+        await hltv_browser_client.close()
 
 
 async def async_main() -> None:

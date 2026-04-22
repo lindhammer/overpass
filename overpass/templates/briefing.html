@@ -192,6 +192,20 @@
         border-top: 1px solid #1a1a26;
       }
 
+      .card-detail-group + .card-detail-group {
+        margin-top: 10px;
+      }
+
+      .card-detail-label {
+        color: #d2d2df;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .card-detail-line + .card-detail-line {
+        margin-top: 4px;
+      }
+
       /* ── Footer ─────────────────────────────────────────────── */
       .footer {
         border-top: 1px solid #1a1a26;
@@ -313,6 +327,104 @@
               >
             </div>
           </div>
+        </div>
+      </div>
+
+      {# ── HLTV article card ───────────────────────────────────── #} {% elif
+      item.type == 'article' %}
+      <div class="card">
+        <div class="card-row">
+          <div class="card-thumb">
+            {% if item.thumbnail_url %}
+            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">
+              <img src="{{ item.thumbnail_url }}" alt="" loading="lazy" />
+            </a>
+            {% else %}
+            <div class="card-thumb-placeholder"></div>
+            {% endif %}
+          </div>
+          <div class="card-content">
+            <div class="card-source">
+              {{ item.metadata.get('author', 'HLTV') }}
+            </div>
+            <div class="card-title">
+              <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer"
+                >{{ item.title }}</a
+              >
+            </div>
+            <div class="card-meta">
+              <span>{{ item.timestamp.strftime('%d %b') }}</span>
+              {% if item.metadata.get('tags') %}
+              <span>{{ item.metadata.get('tags', []) | join(' / ') }}</span>
+              {% endif %}
+            </div>
+            {% set teaser = item.metadata.get('teaser', '') %} {% set
+            body_excerpt = item.metadata.get('body_text', '') | first_paragraph
+            %} {% if teaser or body_excerpt %}
+            <div class="card-excerpt">
+              {% if teaser %}
+              <div class="card-detail-line">{{ teaser }}</div>
+              {% endif %} {% if body_excerpt and body_excerpt != teaser %}
+              <div class="card-detail-line">{{ body_excerpt }}</div>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {# ── HLTV match card ─────────────────────────────────────── #} {% elif
+      item.type == 'match' %}
+      <div class="card">
+        <div class="card-body">
+          <div class="card-source">
+            {{ item.metadata.get('event_name', item.source) }}
+          </div>
+          <div class="card-title">
+            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer"
+              >{{ item.title }}</a
+            >
+          </div>
+          <div class="card-meta">
+            <span
+              >{{ item.metadata.get('team1_score', 0) }}-{{
+              item.metadata.get('team2_score', 0) }}</span
+            >
+            <span>{{ item.metadata.get('event_name', '') }}</span>
+            {% if item.metadata.get('format') %}
+            <span>{{ item.metadata.get('format', '') | upper }}</span>
+            {% endif %}
+          </div>
+          {% set maps = item.metadata.get('maps', []) %} {% set veto =
+          item.metadata.get('veto', []) %} {% if maps or veto %}
+          <div class="card-excerpt">
+            {% if maps %}
+            <div class="card-detail-group">
+              <div class="card-detail-label">Maps</div>
+              {% for map_result in maps %}
+              <div class="card-detail-line">
+                {{ map_result.get('name', 'Map') }} {{
+                map_result.get('team1_score', 0) }}-{{
+                map_result.get('team2_score', 0) }}
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %} {% if veto %}
+            <div class="card-detail-group">
+              <div class="card-detail-label">Veto</div>
+              {% for veto_entry in veto %}
+              <div class="card-detail-line">
+                {% if veto_entry.get('team_name') %} {{
+                veto_entry.get('team_name') }} {{ veto_entry.get('action', '') |
+                replace('_', ' ') }} {{ veto_entry.get('map_name') }} {% else %}
+                {{ veto_entry.get('map_name') }} {{ veto_entry.get('action', '')
+                | replace('_', ' ') }} {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
         </div>
       </div>
 
