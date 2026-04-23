@@ -12,7 +12,7 @@ cd overpass
 # Create venv
 python -m venv .venv
 .venv/Scripts/activate  # Windows
-# source .venv/bin/activate  # Linux/macOS
+source .venv/bin/activate  # Linux/macOS
 
 # Install
 pip install -e .
@@ -38,4 +38,3 @@ All secrets are loaded from environment variables (see `.env.example`).
 ## Project Status
 
 **Phase 1 (MVP)** – Collector skeleton in place. Pipeline under construction.
-
