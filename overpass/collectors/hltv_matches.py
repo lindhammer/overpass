@@ -9,7 +9,11 @@ from overpass.config import load_config
 from overpass.collectors.base import BaseCollector, CollectorItem
 from overpass.hltv.browser import HLTVBrowserClient
 from overpass.hltv.matches import parse_match_detail, parse_ranked_team_names, parse_results_listing
-from overpass.hltv.models import HLTVMatchDetail, HLTVMatchResult
+from overpass.hltv.models import HLTVMatchDetail, HLTVMatchMapResult, HLTVMatchResult
+from overpass.liquipedia.client import LiquipediaClient
+from overpass.liquipedia.matches import parse_match_from_tournament_page
+from overpass.liquipedia.models import LiquipediaMatch
+from overpass.liquipedia.pages import find_match_page
 
 
 class HLTVMatchesCollector(BaseCollector):
@@ -27,6 +31,7 @@ class HLTVMatchesCollector(BaseCollector):
         browser_client: HLTVBrowserClient | None = None,
         now: Callable[[], datetime] | None = None,
         base_url: str = "https://www.hltv.org",
+        liquipedia_client: LiquipediaClient | None = None,
     ) -> None:
         config = load_config()
         self._hltv_config = config.hltv
@@ -42,6 +47,7 @@ class HLTVMatchesCollector(BaseCollector):
         self._results_pages = self._hltv_config.results_pages
         self._top_n = max(config.hltv_top_n, 0)
         self._now = now or (lambda: datetime.now(tz=timezone.utc))
+        self._liquipedia_client = liquipedia_client
         super().__init__()
 
     async def collect(self) -> list[CollectorItem]:
@@ -126,8 +132,10 @@ class HLTVMatchesCollector(BaseCollector):
                 base_url=self._base_url,
             )
         except ValueError as first_error:
-            headless_detail_html = await self._fetch_with_load_fallback(self._browser_client, listing_item.url)
             try:
+                headless_detail_html = await self._fetch_with_load_fallback(
+                    self._browser_client, listing_item.url
+                )
                 return parse_match_detail(
                     headless_detail_html,
                     listing_item=listing_item,
@@ -135,7 +143,7 @@ class HLTVMatchesCollector(BaseCollector):
                 )
             except ValueError:
                 if not getattr(self._browser_client, "headless", False):
-                    raise first_error
+                    return await self._maybe_fallback_or_raise(listing_item, first_error)
 
         headful_client = HLTVBrowserClient(
             base_url=self._base_url,
@@ -144,14 +152,81 @@ class HLTVMatchesCollector(BaseCollector):
             min_request_interval_seconds=self._hltv_config.min_request_interval_seconds,
         )
         try:
-            headful_detail_html = await self._fetch_with_load_fallback(headful_client, listing_item.url)
-            return parse_match_detail(
-                headful_detail_html,
-                listing_item=listing_item,
-                base_url=self._base_url,
-            )
+            try:
+                headful_detail_html = await self._fetch_with_load_fallback(headful_client, listing_item.url)
+                return parse_match_detail(
+                    headful_detail_html,
+                    listing_item=listing_item,
+                    base_url=self._base_url,
+                )
+            except ValueError as headful_error:
+                return await self._maybe_fallback_or_raise(listing_item, headful_error)
         finally:
             await headful_client.close()
+
+    async def _maybe_fallback_or_raise(
+        self,
+        listing_item: HLTVMatchResult,
+        original_error: BaseException,
+    ) -> HLTVMatchDetail:
+        if self._liquipedia_client is None:
+            raise original_error
+
+        try:
+            page_title = await find_match_page(self._liquipedia_client, listing_item.event_name or "")
+            if page_title is None:
+                raise original_error
+
+            html = await self._liquipedia_client.parse_page(page_title)
+            if not html:
+                raise original_error
+
+            liq_match = parse_match_from_tournament_page(
+                html, listing_item.team1_name, listing_item.team2_name
+            )
+            if liq_match is None:
+                raise original_error
+
+            return self._liquipedia_match_to_hltv_detail(listing_item, liq_match)
+        except Exception:
+            self.logger.exception(
+                "Liquipedia fallback failed for %s; dropping match",
+                listing_item.url,
+            )
+            raise original_error from None
+
+    @staticmethod
+    def _liquipedia_match_to_hltv_detail(
+        listing_item: HLTVMatchResult,
+        liq_match: LiquipediaMatch,
+    ) -> HLTVMatchDetail:
+        return HLTVMatchDetail(
+            external_id=listing_item.external_id,
+            url=listing_item.url,
+            team1_name=listing_item.team1_name,
+            team2_name=listing_item.team2_name,
+            team1_rank=listing_item.team1_rank,
+            team2_rank=listing_item.team2_rank,
+            team1_score=liq_match.team1_score,
+            team2_score=liq_match.team2_score,
+            winner_name=liq_match.winner_name,
+            event_name=listing_item.event_name,
+            format=listing_item.format,
+            played_at=listing_item.played_at,
+            maps=[
+                HLTVMatchMapResult(
+                    name=m.name,
+                    team1_score=m.team1_score,
+                    team2_score=m.team2_score,
+                    winner_name=(
+                        listing_item.team1_name if m.team1_score > m.team2_score
+                        else listing_item.team2_name if m.team2_score > m.team1_score
+                        else None
+                    ),
+                )
+                for m in liq_match.maps
+            ],
+        )
 
     async def _relevant_team_names(self, listing_items: list[HLTVMatchResult]) -> set[str]:
         if self._watchlist_only_matches:
