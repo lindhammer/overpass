@@ -58,6 +58,8 @@ def test_parse_news_listing_supports_archive_entries_with_date_only() -> None:
 
         items = parse_news_listing(html, base_url="https://www.hltv.org")
 
+        # Country flag sprites are explicitly skipped as thumbnails because
+        # they're tiny GIFs that look bad as press photos.
         assert items == [
                 HLTVNewsListingItem(
                         external_id="44424",
@@ -65,7 +67,7 @@ def test_parse_news_listing_supports_archive_entries_with_date_only() -> None:
                         url="https://www.hltv.org/news/44424/short-news-week-16",
                         published_at=datetime(2026, 4, 22, 0, 0, tzinfo=timezone.utc),
                         teaser=None,
-                        thumbnail_url="https://www.hltv.org/img/static/flags/30x20/WORLD.gif",
+                        thumbnail_url=None,
                 )
         ]
 

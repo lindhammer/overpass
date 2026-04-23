@@ -1961,6 +1961,15 @@ endfor -%}
             </div>
             {%- endfor %}
           </div>
+          {%- elif md.body_text %}
+          <div class="patch-list">
+            {%- for line in md.body_text.split("\n") %}{%- if line.strip() %}
+            <div class="patch-row">
+              <span class="tag misc">—</span>
+              <div class="body">{{ line }}</div>
+            </div>
+            {%- endif %}{%- endfor %}
+          </div>
           {%- endif %}
         </div>
         {%- endfor %}
@@ -1973,9 +1982,7 @@ endfor -%}
           · {{ date | fmt_date("%-d %B %Y") }}
         </div>
         <div>Compiled at {{ generated_at.strftime("%H:%M") }} CET</div>
-        <div>
-          Sources: HLTV · r/GlobalOffensive · YouTube · Steam News · Liquipedia
-        </div>
+        <div>Sources: {{ sources | join(" · ") }}</div>
         <div class="colophon-end">— End of briefing · See you tomorrow —</div>
       </footer>
     </article>

@@ -184,23 +184,27 @@ def _extract_listing_teaser(link: Tag) -> str | None:
 
 
 def _extract_thumbnail_url(node: BeautifulSoup, base_url: str) -> str | None:
-    thumbnail_node = node.select_one(
+    # Prefer high-quality previews (og:image, image_src) before falling back
+    # to <img> tags. Skip the small country flag sprites that HLTV embeds in
+    # listing rows – they're 30x20 px GIFs and look terrible as press photos.
+    candidates = node.select(
         "meta[property='og:image'][content], "
         "meta[name='og:image'][content], "
         "link[rel='image_src'][href], "
         "img[src], "
         "img[data-src]"
     )
-    if thumbnail_node is None:
-        return None
+    for candidate in candidates:
+        thumbnail_value = (
+            candidate.get("content")
+            or candidate.get("href")
+            or candidate.get("data-src")
+            or candidate.get("src")
+        )
+        if not thumbnail_value:
+            continue
+        if "/flags/" in thumbnail_value:
+            continue
+        return urljoin(base_url, thumbnail_value)
 
-    thumbnail_value = (
-        thumbnail_node.get("content")
-        or thumbnail_node.get("href")
-        or thumbnail_node.get("data-src")
-        or thumbnail_node.get("src")
-    )
-    if not thumbnail_value:
-        return None
-
-    return urljoin(base_url, thumbnail_value)
+    return None

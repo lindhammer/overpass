@@ -348,18 +348,27 @@ def test_team_code_handles_empty():
     assert _team_code("123") == "??"
 
 
-def test_compute_issue_number_is_one_for_epoch():
-    from overpass.delivery.html import _ISSUE_EPOCH
+def test_compute_issue_number_starts_at_one_for_empty_output(tmp_path, monkeypatch):
+    from datetime import date as _date
 
-    assert _compute_issue_number(_ISSUE_EPOCH) == 1
+    from overpass.delivery import html as html_module
+
+    monkeypatch.setattr(html_module, "_OUTPUT_DIR", tmp_path)
+    assert html_module._compute_issue_number(_date(2026, 4, 23)) == 1
 
 
-def test_compute_issue_number_advances_daily():
-    from datetime import timedelta
+def test_compute_issue_number_counts_distinct_briefing_files(tmp_path, monkeypatch):
+    from datetime import date as _date
 
-    from overpass.delivery.html import _ISSUE_EPOCH
+    from overpass.delivery import html as html_module
 
-    assert _compute_issue_number(_ISSUE_EPOCH + timedelta(days=10)) == 11
+    monkeypatch.setattr(html_module, "_OUTPUT_DIR", tmp_path)
+    for name in ("2026-04-20.html", "2026-04-21.html", "2026-04-22.html"):
+        (tmp_path / name).write_text("<html></html>", encoding="utf-8")
+    # Today doesn't yet have a file; it still counts as the next issue.
+    assert html_module._compute_issue_number(_date(2026, 4, 23)) == 4
+    # Re-rendering an existing date doesn't double-count.
+    assert html_module._compute_issue_number(_date(2026, 4, 22)) == 3
 
 
 def test_ticker_chips_empty_without_matches():

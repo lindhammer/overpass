@@ -15,8 +15,14 @@ from overpass.editorial.digest import DigestOutput
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 _OUTPUT_DIR = Path(__file__).resolve().parent.parent.parent / "output" / "briefings"
 
-# Issue numbering anchors at the project's first daily briefing date.
-_ISSUE_EPOCH = date(2025, 12, 17)
+# Map collector source ids to the human-readable labels shown in the colophon.
+_SOURCE_LABELS: dict[str, str] = {
+    "hltv": "HLTV",
+    "reddit": "r/GlobalOffensive",
+    "youtube": "YouTube",
+    "steam": "Steam News",
+    "podcast": "Podcasts",
+}
 
 # Matches BBCode tags like [b], [/b], [h1], [list], [*], [url=...], etc.
 _BBCODE_RE = re.compile(r"\[/?[a-zA-Z0-9]+(?:=[^\]]+)?\]")
@@ -91,9 +97,35 @@ def _fmt_date(value: date | datetime, fmt: str) -> str:
 
 
 def _compute_issue_number(briefing_date: date) -> int:
-    """Return the 1-indexed issue number for a given briefing date."""
-    delta = (briefing_date - _ISSUE_EPOCH).days
-    return max(1, delta + 1)
+    """Return the 1-indexed issue number based on briefings already on disk.
+
+    Counts every distinct YYYY-MM-DD HTML file currently in the output folder
+    plus the briefing being rendered (if it doesn't exist yet). This stays
+    stable as long as old briefings are kept, and never invents issues for
+    days the project wasn't actually run.
+    """
+    target_name = f"{briefing_date.isoformat()}.html"
+    if not _OUTPUT_DIR.exists():
+        return 1
+
+    existing_dates: set[str] = set()
+    for path in _OUTPUT_DIR.glob("*.html"):
+        stem = path.stem
+        if len(stem) == 10 and stem[4] == "-" and stem[7] == "-":
+            existing_dates.add(stem)
+    existing_dates.add(briefing_date.isoformat())
+    return len(existing_dates)
+
+
+def _collect_sources(digest: DigestOutput) -> list[str]:
+    """Return colophon-ready list of source labels actually represented in the digest."""
+    seen: list[str] = []
+    for section in digest.sections.values():
+        for item in section.items:
+            label = _SOURCE_LABELS.get(item.source, item.source.title())
+            if label not in seen:
+                seen.append(label)
+    return seen
 
 
 def _build_ticker_chips(digest: DigestOutput) -> list[dict[str, str]]:
@@ -145,6 +177,7 @@ def render_briefing(digest: DigestOutput, briefing_date: date) -> str:
         "generated_at": datetime.now(),
         "issue_no": _compute_issue_number(briefing_date),
         "ticker_chips": _build_ticker_chips(digest),
+        "sources": _collect_sources(digest),
     }
     return template.render(**context)
 
