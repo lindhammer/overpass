@@ -713,8 +713,13 @@ async def test_run_collectors_shares_one_hltv_browser_client_and_closes_it(monke
     class FakeHLTVMatchesCollector:
         name = "hltv_matches"
 
-        def __init__(self, browser_client: SharedBrowserClient) -> None:
+        def __init__(
+            self,
+            browser_client: SharedBrowserClient,
+            liquipedia_client: object | None = None,
+        ) -> None:
             self.browser_client = browser_client
+            self.liquipedia_client = liquipedia_client
 
         async def collect(self) -> list[object]:
             return []

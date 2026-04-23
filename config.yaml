@@ -64,3 +64,20 @@ schedule:
   live_poll_interval_minutes: 5
 
 timezone: "Europe/Berlin"
+
+liquipedia:
+  base_url: "https://liquipedia.net/counterstrike"
+  api_url: "https://liquipedia.net/counterstrike/api.php"
+  contact: "63104033+lindhammer@users.noreply.github.com"
+  user_agent: "overpass/0.1.0 (+https://github.com/lindhammer/overpass; {contact})"
+  min_request_interval_seconds: 2.0
+  request_timeout_seconds: 30
+  cache_dir: ".cache/liquipedia"
+  cache_ttl_minutes: 30
+  hltv_fallback: true
+  upcoming_matches:
+    enabled: false
+    lookahead_hours: 36
+  transfers:
+    enabled: false
+    lookback_hours: 48

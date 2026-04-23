@@ -25,3 +25,5 @@ env/
 output/
 
 .worktrees/
+
+.cache/

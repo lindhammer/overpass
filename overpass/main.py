@@ -20,6 +20,7 @@ from overpass.delivery.telegram import send_digest_notification
 from overpass.editorial.digest import generate_digest
 from overpass.editorial.gemini import GeminiProvider
 from overpass.hltv.browser import HLTVBrowserClient
+from overpass.liquipedia.client import LiquipediaClient
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,12 +29,26 @@ logging.basicConfig(
 logger = logging.getLogger("overpass")
 
 # ── Collector registry ───────────────────────────────────────────
-def _build_collectors_with_shared_hltv_client() -> tuple[list[BaseCollector], HLTVBrowserClient]:
+def _build_collectors_with_shared_hltv_client() -> tuple[
+    list[BaseCollector], HLTVBrowserClient, LiquipediaClient | None
+]:
     config = load_config()
     hltv_browser_client = HLTVBrowserClient.from_config(config.hltv)
+
+    liq_cfg = config.liquipedia
+    needs_liquipedia = (
+        liq_cfg.hltv_fallback
+        or liq_cfg.upcoming_matches.enabled
+        or liq_cfg.transfers.enabled
+    )
+    liquipedia_client = LiquipediaClient.from_config(liq_cfg) if needs_liquipedia else None
+
     return (
         [
-            HLTVMatchesCollector(browser_client=hltv_browser_client),
+            HLTVMatchesCollector(
+                browser_client=hltv_browser_client,
+                liquipedia_client=liquipedia_client if liq_cfg.hltv_fallback else None,
+            ),
             HLTVNewsCollector(browser_client=hltv_browser_client),
             PodcastCollector(),
             RedditCollector(),
@@ -41,11 +56,12 @@ def _build_collectors_with_shared_hltv_client() -> tuple[list[BaseCollector], HL
             YouTubeCollector(),
         ],
         hltv_browser_client,
+        liquipedia_client,
     )
 
 
 def build_collectors() -> list[BaseCollector]:
-    collectors, _ = _build_collectors_with_shared_hltv_client()
+    collectors, _, _ = _build_collectors_with_shared_hltv_client()
     return collectors
 
 
@@ -55,7 +71,7 @@ COLLECTORS: list[BaseCollector] = build_collectors()
 async def run_collectors() -> list[CollectorItem]:
     """Run every registered collector concurrently; log per-collector counts."""
     config = load_config()
-    collectors, hltv_browser_client = _build_collectors_with_shared_hltv_client()
+    collectors, hltv_browser_client, liquipedia_client = _build_collectors_with_shared_hltv_client()
     logger.info("Timezone: %s", config.tz)
     logger.info("Running %d collectors", len(collectors))
 
@@ -79,6 +95,8 @@ async def run_collectors() -> list[CollectorItem]:
         return items
     finally:
         await hltv_browser_client.close()
+        if liquipedia_client is not None:
+            await liquipedia_client.close()
 
 
 async def async_main() -> None:
