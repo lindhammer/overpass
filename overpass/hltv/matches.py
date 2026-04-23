@@ -173,8 +173,14 @@ def _parse_maps(soup: BeautifulSoup, team1_name: str, team2_name: str) -> list[H
         if map_name is None or len(score_nodes) < 2:
             continue
 
-        team1_score = _parse_int(score_nodes[0].get_text(" ", strip=True))
-        team2_score = _parse_int(score_nodes[1].get_text(" ", strip=True))
+        team1_score_text = _clean_text(score_nodes[0].get_text(" ", strip=True))
+        team2_score_text = _clean_text(score_nodes[1].get_text(" ", strip=True))
+        # Unplayed maps in a BO3/BO5 series render as "-"; skip them.
+        if not team1_score_text.isdigit() or not team2_score_text.isdigit():
+            continue
+
+        team1_score = int(team1_score_text)
+        team2_score = int(team2_score_text)
         maps.append(
             HLTVMatchMapResult(
                 name=map_name,

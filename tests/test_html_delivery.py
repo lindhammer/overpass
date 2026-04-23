@@ -5,10 +5,14 @@ from __future__ import annotations
 import html as html_lib
 from datetime import date, datetime, timezone
 
-import pytest
-
 from overpass.collectors.base import CollectorItem
-from overpass.delivery.html import _first_paragraph, render_briefing
+from overpass.delivery.html import (
+    _build_ticker_chips,
+    _compute_issue_number,
+    _first_paragraph,
+    _team_code,
+    render_briefing,
+)
 from overpass.editorial.digest import DigestOutput, SectionOutput
 
 # ── Fixtures ─────────────────────────────────────────────────────
@@ -25,7 +29,14 @@ def _clip() -> CollectorItem:
         url="https://www.reddit.com/r/GlobalOffensive/comments/abc123/",
         timestamp=_NOW,
         thumbnail_url="https://example.com/thumb.jpg",
-        metadata={"score": 4200, "num_comments": 87, "author": "clipper123", "flair": "Highlight"},
+        metadata={
+            "score": 4200,
+            "num_comments": 87,
+            "duration": "0:38",
+            "rank": 1,
+            "author": "clipper123",
+            "flair": "Highlight",
+        },
     )
 
 
@@ -49,7 +60,13 @@ def _video() -> CollectorItem:
         url="https://www.youtube.com/watch?v=xyz",
         timestamp=_NOW,
         thumbnail_url="https://img.youtube.com/vi/xyz/maxresdefault.jpg",
-        metadata={"channel_name": "HLTV", "channel_id": "UC_SgBkrOEFVnJkBMKcpp5lg", "video_id": "xyz"},
+        metadata={
+            "channel_name": "HLTV",
+            "channel_id": "UC_SgBkrOEFVnJkBMKcpp5lg",
+            "video_id": "xyz",
+            "duration": "12:34",
+            "is_new": True,
+        },
     )
 
 
@@ -63,13 +80,9 @@ def _article() -> CollectorItem:
         thumbnail_url="https://www.hltv.org/gallery/12345/cover.jpg",
         metadata={
             "teaser": "Finn \"karrigan\" Andersen's side opened the event with a comfortable series win.",
-            "body_text": (
-                "FaZe opened their Cologne run with a composed 2-0 win over GamerLegion.\n\n"
-                "Finn \"karrigan\" Andersen said the team kept its early-game protocols simple and trusted the calling in late rounds.\n\n"
-                "\"We knew the veto gave us room to play our own game,\" karrigan said."
-            ),
             "author": "Striker",
             "tags": ["CS2", "IEM Cologne"],
+            "flag": "confirmed",
         },
     )
 
@@ -89,17 +102,11 @@ def _match() -> CollectorItem:
             "winner_name": "Spirit",
             "event_name": "BLAST Open Lisbon 2026",
             "format": "bo3",
+            "flags": ["watch", "final"],
             "maps": [
-                {"name": "Mirage", "team1_score": 13, "team2_score": 9, "winner_name": "Spirit"},
-                {"name": "Ancient", "team1_score": 11, "team2_score": 13, "winner_name": "FaZe"},
-                {"name": "Anubis", "team1_score": 13, "team2_score": 8, "winner_name": "Spirit"},
-            ],
-            "veto": [
-                {"team_name": "Spirit", "action": "removed", "map_name": "Inferno"},
-                {"team_name": "FaZe", "action": "removed", "map_name": "Nuke"},
-                {"team_name": "Spirit", "action": "picked", "map_name": "Mirage"},
-                {"team_name": "FaZe", "action": "picked", "map_name": "Ancient"},
-                {"team_name": None, "action": "left_over", "map_name": "Anubis"},
+                {"name": "Mirage", "team1_score": 13, "team2_score": 9},
+                {"name": "Ancient", "team1_score": 11, "team2_score": 13},
+                {"name": "Anubis", "team1_score": 13, "team2_score": 8},
             ],
         },
     )
@@ -113,8 +120,11 @@ def _patch() -> CollectorItem:
         url="https://store.steampowered.com/news/app/730/view/1234",
         timestamp=_NOW,
         metadata={
-            "contents": "Fixed a bug with the AWP scope.\n\n[b]Gameplay[/b]\nImproved server performance.",
-            "feedname": "steam_community_announcements",
+            "version": "1.40.1.9",
+            "entries": [
+                {"tag": "Maps", "body": "Fixed a pixel walk on Inferno banana."},
+                {"tag": "Weapons", "body": "XM1014 rate of fire reduced by 6%."},
+            ],
         },
     )
 
@@ -145,7 +155,7 @@ def _digest_with_hltv_sections() -> DigestOutput:
     )
 
 
-# ── Tests ─────────────────────────────────────────────────────────
+# ── Smoke tests ──────────────────────────────────────────────────
 
 
 def test_summary_line_appears_in_html():
@@ -154,11 +164,11 @@ def test_summary_line_appears_in_html():
     assert digest.summary_line in html
 
 
-def test_all_section_headings_appear():
+def test_section_labels_appear():
     digest = _full_digest()
     html = render_briefing(digest, _DATE)
-    for section in ["Clips", "Podcasts", "Videos", "Patches"]:
-        assert section in html, f"Section '{section}' missing from HTML"
+    for label in ["Top Clips", "Patch Notes", "Podcasts &amp; Content"]:
+        assert label in html, f"Section label {label!r} missing from HTML"
 
 
 def test_all_item_titles_appear():
@@ -170,14 +180,14 @@ def test_all_item_titles_appear():
         "Top 10 Plays This Week",
         "CS2 Update – April 10",
     ]:
-        assert title in html, f"Item title '{title}' missing from HTML"
+        assert title in html, f"Item title {title!r} missing from HTML"
 
 
 def test_clip_score_and_comments_appear():
     digest = _full_digest()
     html = render_briefing(digest, _DATE)
-    assert "4200" in html
-    assert "87" in html
+    assert "4.2k" in html
+    assert "87 comments" in html
 
 
 def test_podcast_name_and_duration_appear():
@@ -187,20 +197,18 @@ def test_podcast_name_and_duration_appear():
     assert "1:42:10" in html
 
 
-def test_video_channel_name_appears():
+def test_video_hero_renders():
     digest = _full_digest()
     html = render_briefing(digest, _DATE)
-    assert "HLTV" in html
+    assert "Top 10 Plays This Week" in html
 
 
-def test_patch_excerpt_strips_bbcode():
+def test_patch_entries_render():
     digest = _full_digest()
     html = render_briefing(digest, _DATE)
-    # BBCode tags must be stripped in the rendered output
-    assert "[b]" not in html
-    assert "[/b]" not in html
-    # First paragraph text should be present
-    assert "Fixed a bug with the AWP scope" in html
+    assert "Build 1.40.1.9 · Valve" in html
+    assert "Fixed a pixel walk on Inferno banana." in html
+    assert "XM1014 rate of fire reduced by 6%." in html
 
 
 def test_section_intros_appear():
@@ -210,31 +218,24 @@ def test_section_intros_appear():
     assert "Valve shipped an update overnight." in html
 
 
-def test_empty_sections_not_rendered():
-    digest = DigestOutput(
-        summary_line="Quiet day in CS2.",
-        sections={},
-    )
+def test_empty_digest_renders_only_lede_and_chrome():
+    digest = DigestOutput(summary_line="Quiet day in CS2.", sections={})
     html = render_briefing(digest, _DATE)
     assert "Quiet day in CS2." in html
-    # None of the section headings should appear
-    for section in ["Clips", "Podcasts", "Videos", "Patches"]:
-        assert f">{section}<" not in html
+    assert "Overpass" in html
+    for label in ["Top Clips", "Match Results", "Patch Notes"]:
+        assert label not in html
 
 
-def test_missing_sections_not_rendered():
-    """Sections absent from the digest don't produce empty headings."""
+def test_only_patches_section_renders():
     digest = DigestOutput(
         summary_line="Only patches today.",
-        sections={
-            "Patches": SectionOutput(intro="", items=[_patch()]),
-        },
+        sections={"Patches": SectionOutput(intro="", items=[_patch()])},
     )
     html = render_briefing(digest, _DATE)
-    assert "CS2 Update" in html
-    # No Clips / Podcasts / Videos sections
-    assert "class=\"section-heading\">Clips<" not in html
-    assert "class=\"section-heading\">Podcasts<" not in html
+    assert "CS2 Update – April 10" in html
+    assert "Top Clips" not in html
+    assert "Match Results" not in html
 
 
 def test_date_appears_in_html():
@@ -258,58 +259,126 @@ def test_item_urls_are_linked():
     assert "https://www.youtube.com/watch?v=xyz" in html
 
 
-def test_matches_and_news_sections_render_ahead_of_older_media_sections():
-    digest = _digest_with_hltv_sections()
-    html = render_briefing(digest, _DATE)
-
-    matches_heading = html.index('class="section-heading">Matches<')
-    news_heading = html.index('class="section-heading">News<')
-    clips_heading = html.index('class="section-heading">Clips<')
-    videos_heading = html.index('class="section-heading">Videos<')
-
-    assert matches_heading < clips_heading
-    assert news_heading < clips_heading
-    assert news_heading < videos_heading
-
-
-def test_news_and_match_cards_render_digest_details():
+def test_match_section_renders_teams_score_and_event():
     digest = _digest_with_hltv_sections()
     html = html_lib.unescape(render_briefing(digest, _DATE))
 
-    assert "FaZe win Cologne opener" in html
-    assert "Finn \"karrigan\" Andersen's side opened the event with a comfortable series win." in html
-    assert "FaZe opened their Cologne run with a composed 2-0 win over GamerLegion." in html
-    assert "Spirit vs FaZe" in html
+    assert "Match Results" in html
+    assert "Spirit" in html
+    assert "FaZe" in html
     assert "BLAST Open Lisbon 2026" in html
-    assert "2-1" in html
-    assert "Mirage 13-9" in html
-    assert "Ancient 11-13" in html
-    assert "Anubis 13-8" in html
-    assert "Spirit removed Inferno" in html
-    assert "FaZe picked Ancient" in html
-    assert "Anubis left over" in html
+    assert "Mirage" in html
 
 
-# ── Unit tests for _first_paragraph ──────────────────────────────
+def test_news_section_renders_article():
+    digest = _digest_with_hltv_sections()
+    html = html_lib.unescape(render_briefing(digest, _DATE))
+
+    assert "Roster & News" in html
+    assert "FaZe win Cologne opener" in html
+    assert "Striker" in html
+    assert (
+        "Finn \"karrigan\" Andersen's side opened the event with a comfortable series win."
+        in html
+    )
+
+
+def test_match_section_renders_before_clips():
+    digest = _digest_with_hltv_sections()
+    html = render_briefing(digest, _DATE)
+    assert html.index("Match Results") < html.index("Top Clips")
+
+
+def test_lede_bold_markdown_wraps_in_highlight_span():
+    digest = DigestOutput(
+        summary_line="ropz **MVP run** continues at PGL Bucharest.",
+        sections={},
+    )
+    html = render_briefing(digest, _DATE)
+    collapsed = " ".join(html.split())
+    assert 'class="hl"' in collapsed
+    assert "MVP run</span" in collapsed
+    assert "**" not in html
+
+
+def test_issue_number_appears_in_masthead_and_colophon():
+    digest = _full_digest()
+    html = render_briefing(digest, _DATE)
+    expected = _compute_issue_number(_DATE)
+    assert f"No. {expected}" in html
+    assert f"Issue No. {expected}" in html
+
+
+# ── Unit tests ────────────────────────────────────────────────────
 
 
 def test_first_paragraph_strips_bbcode():
-    result = _first_paragraph("[b]Hello[/b] world")
-    assert result == "Hello world"
+    assert _first_paragraph("[b]Hello[/b] world") == "Hello world"
 
 
 def test_first_paragraph_returns_first_block():
-    result = _first_paragraph("First paragraph.\n\nSecond paragraph.")
-    assert result == "First paragraph."
+    assert _first_paragraph("First paragraph.\n\nSecond paragraph.") == "First paragraph."
 
 
 def test_first_paragraph_truncates():
     long_text = "A" * 400
     result = _first_paragraph(long_text, max_chars=300)
-    assert len(result) <= 304  # 300 chars + possible "…"
+    assert len(result) <= 304
     assert result.endswith("…")
 
 
 def test_first_paragraph_empty_input():
-    result = _first_paragraph("")
-    assert result == ""
+    assert _first_paragraph("") == ""
+
+
+def test_team_code_known_aliases():
+    assert _team_code("Vitality") == "VIT"
+    assert _team_code("Natus Vincere") == "NAVI"
+    assert _team_code("The MongolZ") == "MZ"
+    assert _team_code("FaZe Clan") == "FAZE"
+
+
+def test_team_code_unknown_team_uses_first_letters():
+    assert _team_code("Random Esports") == "RAN"
+
+
+def test_team_code_handles_empty():
+    assert _team_code(None) == "??"
+    assert _team_code("") == "??"
+    assert _team_code("123") == "??"
+
+
+def test_compute_issue_number_is_one_for_epoch():
+    from overpass.delivery.html import _ISSUE_EPOCH
+
+    assert _compute_issue_number(_ISSUE_EPOCH) == 1
+
+
+def test_compute_issue_number_advances_daily():
+    from datetime import timedelta
+
+    from overpass.delivery.html import _ISSUE_EPOCH
+
+    assert _compute_issue_number(_ISSUE_EPOCH + timedelta(days=10)) == 11
+
+
+def test_ticker_chips_empty_without_matches():
+    digest = DigestOutput(summary_line="x", sections={})
+    assert _build_ticker_chips(digest) == []
+
+
+def test_ticker_chips_count_live_upset_and_watch():
+    live_match = _match()
+    live_match.metadata["flags"] = ["live", "watch"]
+    upset_match = _match()
+    upset_match.metadata["flags"] = ["upset", "final"]
+
+    digest = DigestOutput(
+        summary_line="x",
+        sections={"Matches": SectionOutput(intro="", items=[live_match, upset_match])},
+    )
+    chips = _build_ticker_chips(digest)
+    kinds = [c["kind"] for c in chips]
+    assert "live" in kinds
+    assert "amber" in kinds
+    assert "up" in kinds

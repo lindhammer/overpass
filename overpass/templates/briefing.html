@@ -1,459 +1,1984 @@
+{#- Overpass — CS2 Daily Briefing Jinja2 template. Render once per day to a
+static HTML file. Context: digest DigestOutput .summary_line, .sections
+(dict[str, SectionOutput]) date date generated_at datetime issue_no int
+ticker_chips list[{kind: "live"|"up"|"amber"|"plain", text: str}] Filter:
+team_code(name) -> 2-letter code used as crest label + data-team attr. -#} {%-
+set section_order = ["Matches", "Clips", "News", "Videos", "Podcasts",
+"Patches"] -%} {%- set present_sections = [] -%} {%- for key in section_order
+-%} {%- if key in digest.sections -%} {%- set _ = present_sections.append(key)
+-%} {%- endif -%} {%- endfor -%} {#- Merge Videos + Podcasts into a single
+rendered section when both exist -#} {%- set videos_and_podcasts_both =
+("Videos" in digest.sections) and ("Podcasts" in digest.sections) -%} {%- set
+render_keys = [] -%} {%- set merge_ns = namespace(seen=false) -%} {%- for key in
+present_sections -%} {%- if videos_and_podcasts_both and key in ["Videos",
+"Podcasts"] -%} {%- if not merge_ns.seen -%} {%- set _ =
+render_keys.append("VideosPodcasts") -%} {%- set merge_ns.seen = true -%} {%-
+endif -%} {%- else -%} {%- set _ = render_keys.append(key) -%} {%- endif -%} {%-
+endfor -%}
 <!doctype html>
-<html lang="en">
+<html lang="en" data-palette="dark">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CS2 Briefing – {{ date.strftime('%B %d, %Y') }}</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Overpass — CS2 Daily · {{ date | fmt_date("%a %-d %b %Y") }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
     <style>
-      *,
-      *::before,
-      *::after {
+      /* ---------- Palette ---------- */
+      :root[data-palette="dark"] {
+        --bg: #0b0c0e;
+        --surface-1: #131519;
+        --surface-2: #1b1e24;
+        --surface-3: #242830;
+        --rule: #262a32;
+        --rule-strong: #353a45;
+        --ink: #f1f2f4;
+        --ink-2: #c6c9d0;
+        --ink-mute: #8b8f99;
+        --ink-dim: #5b5f69;
+        --accent: #e8894f; /* warm terracotta - brand */
+        --accent-ink: #0b0c0e;
+        --live: #e5484d; /* live/alert */
+        --win: #3fb950; /* watchlist win / positive */
+        --loss: #5b5f69;
+        --upset: #f5b84a; /* upset flag */
+        color-scheme: dark;
+      }
+
+      * {
         box-sizing: border-box;
+      }
+      html,
+      body {
         margin: 0;
         padding: 0;
       }
-
+      html {
+        background: var(--bg);
+        -webkit-text-size-adjust: 100%;
+      }
       body {
-        background: #0a0a0f;
-        color: #b8b8c8;
+        background: var(--bg);
+        color: var(--ink);
         font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          "Helvetica Neue", sans-serif;
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Helvetica Neue",
+          Arial,
+          sans-serif;
         font-size: 15px;
         line-height: 1.5;
-        max-width: 680px;
-        margin: 0 auto;
-        padding: 0 16px 56px;
+        font-feature-settings: "ss01", "cv11", "cv05";
+        letter-spacing: -0.005em;
       }
-
       a {
         color: inherit;
         text-decoration: none;
       }
-      a:hover {
-        color: #de9b35;
+      ::selection {
+        background: color-mix(in oklab, var(--accent) 40%, transparent);
       }
 
-      /* ── Header ─────────────────────────────────────────────── */
-      .header {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 20px 0 14px;
-        border-bottom: 1px solid #1a1a26;
+      :root {
+        --f-display:
+          "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial,
+          sans-serif;
+        --f-sans:
+          "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial,
+          sans-serif;
+        --f-mono:
+          "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       }
 
-      .header-logo {
-        font-size: 13px;
-        font-weight: 800;
-        color: #de9b35;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        flex-shrink: 0;
-      }
-
-      .header-meta {
-        font-size: 11px;
-        color: #44445a;
-        text-align: right;
-        line-height: 1.4;
-      }
-
-      /* ── Hero summary ────────────────────────────────────────── */
-      .summary {
-        padding: 24px 0 20px;
-        border-bottom: 1px solid #1a1a26;
-        margin-bottom: 36px;
-      }
-
-      .summary-label {
-        font-size: 10px;
+      .display {
+        font-family: var(--f-display);
         font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: #de9b35;
-        margin-bottom: 10px;
+        letter-spacing: -0.04em;
+        font-feature-settings: "ss01", "ss03", "cv11";
       }
 
-      .summary-text {
-        font-size: 19px;
-        font-weight: 600;
-        color: #e4e4f0;
-        line-height: 1.35;
+      /* ---------- Page ---------- */
+      .page {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 28px 20px 120px;
+      }
+      @media (min-width: 720px) {
+        .page {
+          padding: 40px 28px 140px;
+        }
       }
 
-      /* ── Section ─────────────────────────────────────────────── */
-      .section {
-        margin-bottom: 44px;
+      /* ---------- Masthead ---------- */
+      .masthead {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 12px;
+        align-items: center;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--rule);
+        margin-bottom: 16px;
+      }
+      .wm {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .wm-glyph {
+        width: 28px;
+        height: 28px;
+        background: var(--accent);
+        color: var(--accent-ink);
+        display: grid;
+        place-items: center;
+        font-family: var(--f-mono);
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: -0.04em;
+        border-radius: 4px;
+      }
+      .wm-title {
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: 22px;
+        letter-spacing: -0.035em;
+        color: var(--ink);
+      }
+      .wm-sub {
+        font-family: var(--f-mono);
+        font-size: 11px;
+        color: var(--ink-mute);
+        letter-spacing: 0;
+        justify-self: center;
+      }
+      .wm-date {
+        font-family: var(--f-mono);
+        font-size: 11px;
+        color: var(--ink-2);
+        text-align: right;
+        justify-self: end;
+      }
+      .wm-date .day {
+        color: var(--ink);
+      }
+      .wm-date .time {
+        color: var(--ink-mute);
       }
 
-      .section-heading {
-        font-size: 10px;
-        font-weight: 800;
-        text-transform: uppercase;
+      /* status strip under masthead */
+      .ticker {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 10px 0 18px;
+        font-family: var(--f-mono);
+        font-size: 11.5px;
+        color: var(--ink-mute);
+        border-bottom: 1px solid var(--rule);
+        margin-bottom: 32px;
+      }
+      .ticker .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--ink-2);
+      }
+      .ticker .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--ink-dim);
+        display: inline-block;
+      }
+      .ticker .dot.live {
+        background: var(--live);
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--live) 20%, transparent);
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      .ticker .dot.up {
+        background: var(--win);
+      }
+      .ticker .dot.amber {
+        background: var(--upset);
+      }
+      .ticker .sep {
+        color: var(--ink-dim);
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 3px
+            color-mix(in oklab, var(--live) 22%, transparent);
+        }
+        50% {
+          box-shadow: 0 0 0 6px color-mix(in oklab, var(--live) 0%, transparent);
+        }
+      }
+
+      /* ---------- Lede ---------- */
+      .lede-wrap {
+        padding: 8px 0 36px;
+        border-bottom: 1px solid var(--rule);
+        margin-bottom: 40px;
+      }
+      .lede-kicker {
+        font-family: var(--f-mono);
+        font-size: 10.5px;
         letter-spacing: 0.12em;
-        color: #de9b35;
-        margin-bottom: 6px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #1a1a26;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .lede-kicker::before {
+        content: "";
+        width: 18px;
+        height: 1px;
+        background: var(--accent);
+        display: inline-block;
+      }
+      .lede {
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: clamp(28px, 5.2vw, 40px);
+        line-height: 1.05;
+        letter-spacing: -0.035em;
+        margin: 0;
+        color: var(--ink);
+        text-wrap: balance;
+      }
+      .lede .hl {
+        background: linear-gradient(
+          180deg,
+          transparent 62%,
+          color-mix(in oklab, var(--accent) 40%, transparent) 62% 92%,
+          transparent 92%
+        );
+        padding: 0 2px;
       }
 
+      /* ---------- Section header ---------- */
+      .section {
+        margin: 56px 0 0;
+      }
+      .section:first-of-type {
+        margin-top: 0;
+      }
+      .section-head {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        column-gap: 18px;
+        row-gap: 6px;
+        align-items: end;
+        padding-bottom: 14px;
+        border-bottom: 2px solid var(--rule-strong);
+        margin-bottom: 22px;
+      }
+      .section-idx {
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: 44px;
+        line-height: 0.9;
+        letter-spacing: -0.06em;
+        color: var(--ink-dim);
+        font-variant-numeric: tabular-nums;
+      }
+      .section-labels {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .section-label {
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: 22px;
+        line-height: 1;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+      }
       .section-intro {
         font-size: 13px;
-        color: #6a6a88;
-        font-style: italic;
-        margin-bottom: 16px;
-        margin-top: 10px;
-      }
-
-      /* ── Cards (base) ────────────────────────────────────────── */
-      .card {
-        background: #111119;
-        border: 1px solid #1e1e2e;
-        border-radius: 6px;
-        margin-bottom: 10px;
-        overflow: hidden;
-      }
-
-      .card-body {
-        padding: 14px 16px;
-      }
-
-      /* ── Thumbnail card layout ───────────────────────────────── */
-      .card-row {
-        display: flex;
-        align-items: stretch;
-      }
-
-      .card-thumb {
-        flex: 0 0 112px;
-        width: 112px;
-        background: #16161f;
-      }
-
-      .card-thumb img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-        min-height: 68px;
-      }
-
-      .card-thumb-placeholder {
-        width: 100%;
-        min-height: 68px;
-        height: 100%;
-        background: #16161f;
-      }
-
-      .card-content {
-        flex: 1;
-        padding: 12px 14px;
-        min-width: 0;
-      }
-
-      /* ── Card elements ───────────────────────────────────────── */
-      .card-source {
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: #de9b35;
-        margin-bottom: 5px;
-      }
-
-      .card-title {
-        font-size: 14px;
-        font-weight: 600;
-        color: #dcdce8;
-        line-height: 1.35;
-        margin-bottom: 8px;
-      }
-
-      .card-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        font-size: 12px;
-        color: #4a4a62;
-      }
-
-      .card-meta-score::before {
-        content: "▲ ";
-      }
-
-      .card-excerpt {
-        font-size: 13px;
-        color: #707085;
-        margin-top: 10px;
+        color: var(--ink-mute);
         line-height: 1.45;
-        padding-top: 10px;
-        border-top: 1px solid #1a1a26;
+        text-wrap: pretty;
       }
-
-      .card-detail-group + .card-detail-group {
-        margin-top: 10px;
-      }
-
-      .card-detail-label {
-        color: #d2d2df;
-        font-weight: 600;
-        margin-bottom: 4px;
-      }
-
-      .card-detail-line + .card-detail-line {
-        margin-top: 4px;
-      }
-
-      /* ── Footer ─────────────────────────────────────────────── */
-      .footer {
-        border-top: 1px solid #1a1a26;
-        padding-top: 14px;
-        margin-top: 40px;
+      .section-count {
+        font-family: var(--f-mono);
         font-size: 11px;
-        color: #35354a;
+        color: var(--ink-mute);
+        letter-spacing: 0;
+        padding: 3px 8px;
+        background: var(--surface-2);
+        border-radius: 3px;
+        white-space: nowrap;
+        align-self: start;
+      }
+      @media (max-width: 520px) {
+        .section-idx {
+          font-size: 34px;
+        }
+        .section-label {
+          font-size: 18px;
+        }
+        .section-head {
+          column-gap: 12px;
+        }
+      }
+
+      /* ---------- Team crest (placeholder) ---------- */
+      .crest {
+        display: inline-grid;
+        place-items: center;
+        background: var(--surface-3);
+        color: var(--ink);
+        font-family: var(--f-display);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        border-radius: 6px;
+        position: relative;
+        overflow: hidden;
+        flex: none;
+      }
+      .crest::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.07),
+          transparent 60%
+        );
+        pointer-events: none;
+      }
+      .crest span {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* specific team tints (subtle, desaturated) */
+      .crest[data-team="VIT"] {
+        background: #2a1a0a;
+        color: #ffcf66;
+      }
+      .crest[data-team="MZ"] {
+        background: #0f1a2a;
+        color: #e8d27a;
+      }
+      .crest[data-team="PV"] {
+        background: #1a0f1f;
+        color: #d9a8ff;
+      }
+      .crest[data-team="SP"] {
+        background: #1a0d0d;
+        color: #ff8c8c;
+      }
+      .crest[data-team="NAVI"] {
+        background: #0f1a14;
+        color: #ffd84a;
+      }
+      .crest[data-team="FAZE"] {
+        background: #0f141f;
+        color: #ff3a3a;
+      }
+      .crest[data-team="G2"] {
+        background: #1a1610;
+        color: #f4d35e;
+      }
+      .crest[data-team="FUR"] {
+        background: #0d1410;
+        color: #4fd181;
+      }
+      .crest[data-team="AST"] {
+        background: #101820;
+        color: #e0443b;
+      }
+      .crest[data-team="LIQ"] {
+        background: #0c1118;
+        color: #4aa8ff;
+      }
+      .crest[data-team="HER"] {
+        background: #12100f;
+        color: #e9e4d7;
+      }
+      .crest[data-team="PAI"] {
+        background: #1f0e0e;
+        color: #e84141;
+      }
+      .crest[data-team="ENC"] {
+        background: #0f1320;
+        color: #ff8a3c;
+      }
+      .crest[data-team="NIP"] {
+        background: #141a12;
+        color: #ffe74a;
+      }
+
+      /* ---------- MATCH HERO (lead card) ---------- */
+      .match-hero {
+        background: var(--surface-1);
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 14px;
+        position: relative;
+      }
+      .mh-flags {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        display: flex;
+        gap: 6px;
+        z-index: 2;
+      }
+      .flag {
+        font-family: var(--f-mono);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        padding: 4px 7px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+      .flag.upset {
+        background: color-mix(in oklab, var(--upset) 20%, var(--bg));
+        color: var(--upset);
+        border: 1px solid color-mix(in oklab, var(--upset) 40%, transparent);
+      }
+      .flag.watch {
+        background: color-mix(in oklab, var(--win) 18%, var(--bg));
+        color: var(--win);
+        border: 1px solid color-mix(in oklab, var(--win) 40%, transparent);
+      }
+      .flag.final {
+        background: var(--surface-3);
+        color: var(--ink-2);
+      }
+      .flag.live {
+        background: color-mix(in oklab, var(--live) 20%, var(--bg));
+        color: var(--live);
+        border: 1px solid color-mix(in oklab, var(--live) 40%, transparent);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .flag.live::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--live);
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+
+      .mh-event {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--rule);
+        font-family: var(--f-mono);
+        font-size: 11px;
+        color: var(--ink-mute);
+        position: relative;
+      }
+      /* When flags float over the event bar (no keyart), reserve space on the left */
+      .match-hero > .mh-flags + .mh-event {
+        padding-left: 18px;
+        padding-top: 36px;
+      }
+      .mh-event .name {
+        color: var(--ink-2);
+      }
+      .mh-event .fmt {
+        color: var(--ink-mute);
+      }
+
+      .mh-board {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 18px;
+        padding: 22px 18px 20px;
+      }
+      .mh-team {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
         text-align: center;
       }
+      .mh-team .crest {
+        width: 72px;
+        height: 72px;
+        font-size: 24px;
+        border-radius: 10px;
+      }
+      .mh-team .tname {
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      .mh-team .rank {
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        color: var(--ink-mute);
+        letter-spacing: 0;
+      }
+      .mh-score {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: clamp(56px, 13vw, 88px);
+        line-height: 1;
+        letter-spacing: -0.06em;
+        font-variant-numeric: tabular-nums;
+      }
+      .mh-score .w {
+        color: var(--ink);
+      }
+      .mh-score .w.accent {
+        color: var(--accent);
+      }
+      .mh-score .l {
+        color: var(--ink-dim);
+      }
+      .mh-score .sep {
+        font-size: 0.4em;
+        color: var(--ink-dim);
+        font-weight: 500;
+        transform: translateY(-0.4em);
+      }
+      @media (max-width: 520px) {
+        .mh-board {
+          padding: 18px 14px 16px;
+          gap: 10px;
+        }
+        .mh-team .crest {
+          width: 56px;
+          height: 56px;
+          font-size: 19px;
+          border-radius: 8px;
+        }
+        .mh-team .tname {
+          font-size: 14px;
+        }
+      }
 
-      /* ── Responsive ─────────────────────────────────────────── */
-      @media (max-width: 440px) {
-        .card-thumb {
-          flex: 0 0 88px;
-          width: 88px;
+      .mh-maps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: var(--rule);
+        border-top: 1px solid var(--rule);
+      }
+      .mh-map {
+        background: var(--surface-1);
+        padding: 12px 14px;
+        display: grid;
+        grid-template-rows: auto auto;
+        gap: 4px;
+        min-height: 58px;
+      }
+      .mh-map .mname {
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        color: var(--ink-mute);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .mh-map .mscore {
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+        display: flex;
+        gap: 4px;
+        align-items: baseline;
+      }
+      .mh-map .mscore .w {
+        color: var(--ink);
+      }
+      .mh-map .mscore .l {
+        color: var(--ink-dim);
+      }
+      .mh-map .mscore .d {
+        color: var(--ink-dim);
+        font-weight: 500;
+      }
+      .mh-map.ot::after {
+        content: "OT";
+        font-family: var(--f-mono);
+        font-size: 9.5px;
+        color: var(--upset);
+        letter-spacing: 0.08em;
+        margin-top: -2px;
+      }
+      @media (max-width: 520px) {
+        .mh-maps {
+          grid-template-columns: 1fr 1fr;
         }
-        .summary-text {
-          font-size: 16px;
+      }
+
+      .mh-note {
+        padding: 14px 18px 16px;
+        border-top: 1px solid var(--rule);
+        font-size: 13.5px;
+        color: var(--ink-2);
+        line-height: 1.5;
+        display: grid;
+        grid-template-columns: 20px 1fr;
+        gap: 10px;
+        align-items: start;
+      }
+      .mh-note .q {
+        font-family: var(--f-display);
+        font-size: 28px;
+        line-height: 0.7;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .mh-note b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      /* ---------- Match grid (secondary matches) ---------- */
+      .match-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 560px) {
+        .match-grid {
+          grid-template-columns: 1fr;
         }
-        .card-title {
-          font-size: 13px;
+      }
+
+      .mc {
+        background: var(--surface-1);
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .mc-event {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--rule);
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        color: var(--ink-mute);
+      }
+      .mc-event .flag-slot {
+        display: flex;
+        gap: 5px;
+      }
+      .mc-board {
+        display: block;
+        padding: 10px 12px 10px;
+      }
+      .mc-row {
+        display: grid;
+        grid-template-columns: 32px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 0;
+      }
+      .mc-row + .mc-row {
+        border-top: 1px solid var(--rule);
+      }
+      .mc-row .crest {
+        width: 28px;
+        height: 28px;
+        font-size: 10px;
+        border-radius: 5px;
+      }
+      .mc-row .name {
+        font-family: var(--f-display);
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--ink);
+        letter-spacing: -0.015em;
+      }
+      .mc-row .name.l {
+        color: var(--ink-mute);
+      }
+      .mc-row .name .rank-inline {
+        color: var(--ink-dim);
+        font-weight: 500;
+        font-size: 11px;
+        font-family: var(--f-mono);
+        margin-left: 6px;
+      }
+      .mc-row .score {
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: 22px;
+        letter-spacing: -0.03em;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+      .mc-row .score.l {
+        color: var(--ink-dim);
+      }
+      .mc-row .score.w.accent {
+        color: var(--accent);
+      }
+      .mc-maps {
+        padding: 8px 12px 12px;
+        border-top: 1px solid var(--rule);
+        background: var(--bg);
+        display: flex;
+        gap: 14px;
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        color: var(--ink-mute);
+        flex-wrap: wrap;
+      }
+      .mc-maps .m span.w {
+        color: var(--ink);
+      }
+      .mc-maps .m span.l {
+        color: var(--ink-dim);
+      }
+      .mc-maps .m .mn {
+        color: var(--ink-dim);
+      }
+
+      /* ---------- CLIP panel grid ---------- */
+      .clip-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 560px) {
+        .clip-grid {
+          grid-template-columns: 1fr;
         }
+      }
+      .clip-card {
+        background: var(--surface-1);
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .clip-card:hover .ct-title {
+        color: var(--accent);
+      }
+      .ct-thumb {
+        aspect-ratio: 16/10;
+        position: relative;
+        overflow: hidden;
+        background: var(--surface-2);
+      }
+      .ct-thumb.c1 {
+        background:
+          radial-gradient(
+            circle at 30% 35%,
+            color-mix(in oklab, var(--accent) 50%, var(--surface-2)),
+            var(--surface-2) 55%
+          ),
+          var(--surface-2);
+      }
+      .ct-thumb.c2 {
+        background: radial-gradient(
+          circle at 70% 60%,
+          #3a3a2a,
+          var(--surface-2) 55%
+        );
+      }
+      .ct-thumb.c3 {
+        background: radial-gradient(
+          circle at 50% 40%,
+          #2a2130,
+          var(--surface-2) 60%
+        );
+      }
+      .ct-thumb::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.55) 100%),
+          repeating-linear-gradient(
+            45deg,
+            transparent 0 12px,
+            rgba(255, 255, 255, 0.02) 12px 13px
+          );
+      }
+      .ct-thumb .badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        font-family: var(--f-mono);
+        font-size: 10px;
+        padding: 3px 6px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        color: var(--ink);
+        border-radius: 3px;
+        letter-spacing: 0.04em;
+      }
+      .ct-thumb .dur {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        padding: 2px 5px;
+        background: rgba(0, 0, 0, 0.7);
+        color: var(--ink);
+        border-radius: 2px;
+        letter-spacing: 0;
+      }
+      .ct-thumb .play {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: var(--ink);
+      }
+      .ct-thumb .play::before {
+        content: "";
+        width: 0;
+        height: 0;
+        border-left: 16px solid rgba(255, 255, 255, 0.9);
+        border-top: 10px solid transparent;
+        border-bottom: 10px solid transparent;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+      }
+      .ct-body {
+        padding: 12px 14px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+      }
+      .ct-rank {
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        color: var(--ink-mute);
+        display: flex;
+        justify-content: space-between;
+        letter-spacing: 0;
+      }
+      .ct-rank .up {
+        color: var(--win);
+        font-weight: 500;
+      }
+      .ct-title {
+        font-family: var(--f-display);
+        font-weight: 600;
+        font-size: 15px;
+        line-height: 1.3;
+        letter-spacing: -0.015em;
+        color: var(--ink);
+        margin: 0;
+        text-wrap: balance;
+        transition: color 120ms ease;
+      }
+      .ct-foot {
+        margin-top: auto;
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        color: var(--ink-mute);
+        display: flex;
+        gap: 12px;
+      }
+
+      /* ---------- VIDEO hero ---------- */
+      .video-hero {
+        background: var(--surface-1);
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        overflow: hidden;
+        display: block;
+      }
+      .vh-thumb {
+        aspect-ratio: 16/9;
+        position: relative;
+        background:
+          radial-gradient(ellipse at 50% 100%, #2a1810, var(--surface-2) 70%),
+          repeating-linear-gradient(
+            -35deg,
+            transparent 0 18px,
+            rgba(255, 255, 255, 0.025) 18px 19px
+          );
+      }
+      .vh-thumb::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          transparent 45%,
+          rgba(0, 0, 0, 0.7)
+        );
+      }
+      .vh-thumb .label {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        color: var(--ink);
+        letter-spacing: 0.08em;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        padding: 5px 9px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        z-index: 1;
+      }
+      .vh-thumb .label::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        background: var(--live);
+        border-radius: 50%;
+      }
+      .vh-thumb .dur {
+        position: absolute;
+        bottom: 14px;
+        right: 14px;
+        font-family: var(--f-mono);
+        font-size: 12px;
+        color: var(--ink);
+        background: rgba(0, 0, 0, 0.75);
+        padding: 4px 8px;
+        border-radius: 3px;
+        z-index: 1;
+      }
+      .vh-thumb .play-big {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+      }
+      .vh-thumb .play-big::before {
+        content: "";
+        width: 0;
+        height: 0;
+        border-left: 28px solid rgba(255, 255, 255, 0.95);
+        border-top: 17px solid transparent;
+        border-bottom: 17px solid transparent;
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+      }
+      .vh-body {
+        padding: 16px 18px 18px;
+      }
+      .vh-channel {
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .vh-channel::before {
+        content: "";
+        width: 16px;
+        height: 16px;
+        background: var(--accent);
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .vh-title {
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: 20px;
+        line-height: 1.2;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+        margin: 0 0 8px;
+        text-wrap: balance;
+      }
+      .vh-meta {
+        font-family: var(--f-mono);
+        font-size: 11px;
+        color: var(--ink-mute);
+        display: flex;
+        gap: 14px;
+      }
+
+      /* ---------- EPISODES (compact rows) ---------- */
+      .episodes {
+        margin-top: 14px;
+        background: var(--surface-1);
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .ep {
+        display: grid;
+        grid-template-columns: 44px 1fr auto;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 14px;
+        border-top: 1px solid var(--rule);
+      }
+      .ep:first-child {
+        border-top: none;
+      }
+      .ep-art {
+        width: 44px;
+        height: 44px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, var(--surface-3), var(--surface-2));
+        display: grid;
+        place-items: center;
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: 16px;
+        color: var(--ink);
+        letter-spacing: -0.03em;
+      }
+      .ep-art.c1 {
+        background: linear-gradient(135deg, #3a2a1a, #1a1410);
+        color: #f0c878;
+      }
+      .ep-art.c2 {
+        background: linear-gradient(135deg, #1a2a3a, #101820);
+        color: #8acbf0;
+      }
+      .ep-art.c3 {
+        background: linear-gradient(135deg, #2a1a2a, #180f18);
+        color: #e8a8f0;
+      }
+      .ep-body .show {
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin-bottom: 3px;
+      }
+      .ep-body .title {
+        font-family: var(--f-display);
+        font-weight: 600;
+        font-size: 14.5px;
+        line-height: 1.3;
+        letter-spacing: -0.012em;
+        color: var(--ink);
+      }
+      .ep-dur {
+        font-family: var(--f-mono);
+        font-size: 11px;
+        color: var(--ink-2);
+        white-space: nowrap;
+        padding: 4px 9px;
+        background: var(--surface-3);
+        border-radius: 3px;
+      }
+
+      /* ---------- ROSTER / ARTICLES ---------- */
+      .articles {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 560px) {
+        .articles {
+          grid-template-columns: 1fr;
+        }
+      }
+      .art {
+        background: var(--surface-1);
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .art-img {
+        aspect-ratio: 16/10;
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(circle at 30% 60%, #1a2030, #0f1218 70%);
+      }
+      .art-img.portrait {
+        background:
+          radial-gradient(circle at 50% 45%, #3a2a1e, #14110e 70%),
+          linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.4));
+      }
+      .art-img.team {
+        background: radial-gradient(circle at 30% 60%, #1a2030, #0f1218 70%);
+      }
+      .art-img::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          transparent 55%,
+          rgba(0, 0, 0, 0.6)
+        );
+      }
+      .art-img .caption {
+        position: absolute;
+        bottom: 8px;
+        left: 10px;
+        font-family: var(--f-mono);
+        font-size: 9.5px;
+        letter-spacing: 0.08em;
+        color: var(--ink-dim);
+        text-transform: uppercase;
+        z-index: 1;
+      }
+      .art-img .tag {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-family: var(--f-mono);
+        font-size: 10px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 3px 7px;
+        border-radius: 3px;
+        z-index: 1;
+      }
+      .art-img .tag.confirmed {
+        background: color-mix(in oklab, var(--win) 20%, var(--bg));
+        color: var(--win);
+        border: 1px solid color-mix(in oklab, var(--win) 40%, transparent);
+      }
+      .art-img .tag.rumor {
+        background: color-mix(in oklab, var(--upset) 20%, var(--bg));
+        color: var(--upset);
+        border: 1px solid color-mix(in oklab, var(--upset) 40%, transparent);
+      }
+
+      .art-body {
+        padding: 14px 16px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+      }
+      .art-byline {
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        letter-spacing: 0.04em;
+        color: var(--ink-mute);
+      }
+      .art-byline .author {
+        color: var(--accent);
+      }
+      .art-title {
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: 17px;
+        line-height: 1.22;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+        margin: 0;
+        text-wrap: balance;
+      }
+      .art-teaser {
+        font-size: 13.5px;
+        line-height: 1.5;
+        color: var(--ink-2);
+        margin: 0;
+      }
+      .art-tags {
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        color: var(--ink-mute);
+        letter-spacing: 0.02em;
+        margin-top: auto;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .art-tags .tag::before {
+        content: "#";
+        color: var(--ink-dim);
+      }
+
+      /* ---------- PATCH ---------- */
+      .patch {
+        background: var(--surface-1);
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .patch-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .patch-title-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .patch-ver {
+        font-family: var(--f-mono);
+        font-size: 11px;
+        color: var(--accent);
+        letter-spacing: 0.02em;
+      }
+      .patch-title {
+        font-family: var(--f-display);
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+        margin: 0;
+      }
+      .patch-date {
+        font-family: var(--f-mono);
+        font-size: 11px;
+        color: var(--ink-mute);
+      }
+      .patch-list {
+        padding: 6px 0;
+      }
+      .patch-row {
+        display: grid;
+        grid-template-columns: 80px 1fr;
+        gap: 14px;
+        padding: 10px 16px;
+        border-top: 1px solid var(--rule);
+        align-items: baseline;
+      }
+      .patch-row:first-child {
+        border-top: none;
+      }
+      .patch-row .tag {
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--ink-mute);
+        padding-top: 1px;
+      }
+      .patch-row .tag.maps {
+        color: var(--win);
+      }
+      .patch-row .tag.weapons {
+        color: var(--upset);
+      }
+      .patch-row .tag.audio {
+        color: var(--accent);
+      }
+      .patch-row .tag.misc {
+        color: var(--ink-mute);
+      }
+      .patch-row .body {
+        font-family: var(--f-mono);
+        font-size: 12.5px;
+        line-height: 1.55;
+        color: var(--ink-2);
+      }
+
+      /* ---------- Colophon ---------- */
+      .colophon {
+        margin-top: 72px;
+        padding-top: 24px;
+        border-top: 1px solid var(--rule);
+        font-family: var(--f-mono);
+        font-size: 11px;
+        color: var(--ink-mute);
+        line-height: 1.7;
+        letter-spacing: 0;
+      }
+      .colophon .wm-glyph-sm {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+        margin-right: 6px;
+        display: inline-grid;
+        place-items: center;
+        background: var(--accent);
+        color: var(--accent-ink);
+        font-family: var(--f-mono);
+        font-weight: 700;
+        border-radius: 3px;
+        vertical-align: -5px;
+      }
+      .colophon-end {
+        margin-top: 24px;
+        padding: 18px 0 4px;
+        text-align: center;
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        letter-spacing: 0.24em;
+        color: var(--ink-dim);
+        text-transform: uppercase;
+        border-top: 1px solid var(--rule);
       }
     </style>
   </head>
+
   <body>
-    <header class="header">
-      <div class="header-logo">Overpass</div>
-      <div class="header-meta">
-        {{ date.strftime('%A, %d %B %Y') }}<br />
-        Generated {{ generated_at.strftime('%H:%M') }}
+    <article class="page">
+      {# ============ MASTHEAD ============ #}
+      <header class="masthead">
+        <div class="wm">
+          <div class="wm-glyph">OP</div>
+          <div class="wm-title">Overpass</div>
+        </div>
+        <div class="wm-sub">CS2 DAILY · No. {{ issue_no }}</div>
+        <div class="wm-date">
+          <div class="day">{{ date | fmt_date("%a %-d %b %Y") }}</div>
+          <div class="time">{{ generated_at.strftime("%H:%M") }} CET</div>
+        </div>
+      </header>
+
+      {# ============ TICKER ============ #} {%- if ticker_chips %}
+      <div class="ticker">
+        {%- for chip in ticker_chips %} {%- if not loop.first %}<span
+          class="sep"
+          >·</span
+        >{% endif %}
+        <span class="chip">
+          {%- if chip.kind != "plain" %}<span class="dot {{ chip.kind }}"></span
+          >{% endif -%} {{ chip.text }}
+        </span>
+        {%- endfor %}
       </div>
-    </header>
+      {%- endif %} {# ============ LEDE ============ #}
+      <div class="lede-wrap">
+        <div class="lede-kicker">The Morning Line</div>
+        <h2 class="lede">
+          {%- set s = digest.summary_line -%} {%- if "**" in s -%} {%- set parts
+          = s.split("**") -%} {#- parts alternate plain, bold, plain, bold, ...
+          -#} {%- for p in parts -%} {%- if loop.index0 is odd -%}<span
+            class="hl"
+            >{{ p }}</span
+          >{%- else -%}{{ p }}{%- endif -%} {%- endfor -%} {%- else -%} {{ s }}
+          {%- endif -%}
+        </h2>
+      </div>
 
-    <div class="summary">
-      <div class="summary-label">Today's Briefing</div>
-      <div class="summary-text">{{ digest.summary_line }}</div>
-    </div>
+      {# ============ SECTIONS ============ #} {%- for key in render_keys %} {%-
+      set idx = "%02d" | format(loop.index) %} {%- if key == "Matches" %} {%-
+      set section = digest.sections["Matches"] %} {%- set items = section.items
+      %} {#- pick lead: upset > watch > items[0] -#} {%- set ns =
+      namespace(lead=none, lead_idx=-1) %} {%- for it in items %} {%- if ns.lead
+      is none and "upset" in (it.metadata.flags or []) %} {%- set ns.lead = it
+      %}{% set ns.lead_idx = loop.index0 %} {%- endif %} {%- endfor %} {%- if
+      ns.lead is none %} {%- for it in items %} {%- if ns.lead is none and
+      "watch" in (it.metadata.flags or []) %} {%- set ns.lead = it %}{% set
+      ns.lead_idx = loop.index0 %} {%- endif %} {%- endfor %} {%- endif %} {%-
+      if ns.lead is none and items %} {%- set ns.lead = items[0] %}{% set
+      ns.lead_idx = 0 %} {%- endif %}
 
-    {% for section_name in section_order %} {% if section_name in
-    digest.sections %} {% set section = digest.sections[section_name] %}
-    <div class="section">
-      <div class="section-heading">{{ section_name }}</div>
-      {% if section.intro %}
-      <div class="section-intro">{{ section.intro }}</div>
-      {% endif %} {% for item in section.items %} {# ── Clip card
-      ───────────────────────────────────────────── #} {% if item.type == 'clip'
-      %}
-      <div class="card">
-        <div class="card-row">
-          <div class="card-thumb">
-            {% if item.thumbnail_url %}
-            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">
-              <img src="{{ item.thumbnail_url }}" alt="" loading="lazy" />
-            </a>
-            {% else %}
-            <div class="card-thumb-placeholder"></div>
+      <section class="section">
+        <div class="section-head">
+          <div class="section-idx">{{ idx }}</div>
+          <div class="section-labels">
+            <div class="section-label">Match Results</div>
+            {%- if section.intro %}
+            <div class="section-intro">{{ section.intro }}</div>
             {% endif %}
           </div>
-          <div class="card-content">
-            <div class="card-title">
-              <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer"
-                >{{ item.title }}</a
+          <div class="section-count">
+            {{ "%02d"|format(items|length) }} · 24h
+          </div>
+        </div>
+
+        {%- if ns.lead is not none %} {%- set lead = ns.lead %} {%- set m =
+        lead.metadata %} {%- set has_keyart = lead.thumbnail_url %}
+        <a href="{{ lead.url }}" class="match-hero" style="display: block">
+          {%- if has_keyart %}
+          <div
+            class="mh-art"
+            style="aspect-ratio:16/7;background:
+                  linear-gradient(180deg, transparent 20%, color-mix(in oklab, var(--surface-1) 92%, black) 100%),
+                  url('{{ lead.thumbnail_url }}') center/cover no-repeat,
+                  var(--surface-2);
+                  position:relative;"
+          >
+            <div class="mh-flags">
+              {%- for f in (m.flags or []) %}<span class="flag {{ f }}"
+                >{{ f | capitalize }}</span
+              >{% endfor %}
+            </div>
+          </div>
+          <div class="mh-event">
+            <span class="name">{{ m.event_name }}</span>
+            <span class="fmt"
+              >{{ (m.format or "") | upper }} · {{
+              lead.timestamp.strftime("%H:%M") }} CET</span
+            >
+          </div>
+          {%- else %} {%- if m.flags %}
+          <div class="mh-flags">
+            {%- for f in m.flags %}<span class="flag {{ f }}"
+              >{{ f | capitalize }}</span
+            >{% endfor %}
+          </div>
+          {%- endif %}
+          <div class="mh-event">
+            <span class="name">{{ m.event_name }}</span>
+            <span class="fmt"
+              >{{ (m.format or "") | upper }} · {{
+              lead.timestamp.strftime("%H:%M") }} CET</span
+            >
+          </div>
+          {%- endif %}
+
+          <div class="mh-board">
+            {%- set t1_win = (m.team1_score or 0) > (m.team2_score or 0) %} {%-
+            set t2_win = (m.team2_score or 0) > (m.team1_score or 0) %}
+            <div class="mh-team">
+              <div class="crest" data-team="{{ m.team1_name | team_code }}">
+                <span>{{ m.team1_name | team_code }}</span>
+              </div>
+              <div class="tname">{{ m.team1_name }}</div>
+              {%- if m.team1_rank %}
+              <div class="rank">#{{ "%02d"|format(m.team1_rank) }}</div>
+              {% endif %}
+            </div>
+            <div class="mh-score">
+              <span class="{{ 'w accent' if t1_win else 'l' }}"
+                >{{ m.team1_score }}</span
+              >
+              <span class="sep">–</span>
+              <span class="{{ 'w accent' if t2_win else 'l' }}"
+                >{{ m.team2_score }}</span
               >
             </div>
-            <div class="card-meta">
-              <span class="card-meta-score"
-                >{{ item.metadata.get('score', 0) | int }}</span
-              >
+            <div class="mh-team">
+              <div class="crest" data-team="{{ m.team2_name | team_code }}">
+                <span>{{ m.team2_name | team_code }}</span>
+              </div>
+              <div class="tname">{{ m.team2_name }}</div>
+              {%- if m.team2_rank %}
+              <div class="rank">#{{ "%02d"|format(m.team2_rank) }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          {%- if m.maps %}
+          <div class="mh-maps">
+            {%- for mp in m.maps %} {%- set w1 = (mp.team1_score or 0) >
+            (mp.team2_score or 0) %}
+            <div class="mh-map{% if mp.ot %} ot{% endif %}">
+              <div class="mname">{{ mp.name }}</div>
+              <div class="mscore">
+                <span class="{{ 'w' if w1 else 'l' }}"
+                  >{{ mp.team1_score }}</span
+                >
+                <span class="d">–</span>
+                <span class="{{ 'w' if not w1 else 'l' }}"
+                  >{{ mp.team2_score }}</span
+                >
+              </div>
+            </div>
+            {%- endfor %}
+          </div>
+          {%- endif %} {%- if m.note %}
+          <div class="mh-note">
+            <span class="q">&ldquo;</span>
+            <div>{{ m.note | safe }}</div>
+          </div>
+          {%- endif %}
+        </a>
+        {%- endif %} {%- set secondaries = [] %} {%- for it in items %} {%- if
+        loop.index0 != ns.lead_idx %}{% set _ = secondaries.append(it) %}{%
+        endif %} {%- endfor %} {%- if secondaries %}
+        <div class="match-grid">
+          {%- for it in secondaries %} {%- set m = it.metadata %} {%- set t1_win
+          = (m.team1_score or 0) > (m.team2_score or 0) %} {%- set t2_win =
+          (m.team2_score or 0) > (m.team1_score or 0) %}
+          <a
+            href="{{ it.url }}"
+            class="mc"
+            {%
+            if
+            loop.last
+            and
+            secondaries|length
+            is
+            odd
+            and
+            loop.index
+          >
+            1 %} style="grid-column: 1 / -1;"{% endif %}>
+            <div class="mc-event">
               <span
-                >{{ item.metadata.get('num_comments', 0) | int }} comments</span
+                >{{ m.event_name }} · {{ it.timestamp.strftime("%H:%M") }}</span
               >
+              <span class="flag-slot">
+                {%- for f in (m.flags or []) %}<span class="flag {{ f }}"
+                  >{{ f | capitalize }}</span
+                >{% endfor %}
+              </span>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {# ── Podcast / Episode card ───────────────────────────────── #} {% elif
-      item.type == 'episode' %}
-      <div class="card">
-        <div class="card-body">
-          <div class="card-source">
-            {{ item.metadata.get('podcast_name', item.source) }}
-          </div>
-          <div class="card-title">
-            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer"
-              >{{ item.title }}</a
-            >
-          </div>
-          <div class="card-meta">
-            {% if item.metadata.get('duration') %}
-            <span>{{ item.metadata.get('duration') }}</span>
-            {% endif %}
-            <span>{{ item.timestamp.strftime('%d %b') }}</span>
-          </div>
-        </div>
-      </div>
-
-      {# ── Video card ──────────────────────────────────────────── #} {% elif
-      item.type == 'video' %}
-      <div class="card">
-        <div class="card-row">
-          <div class="card-thumb">
-            {% if item.thumbnail_url %}
-            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">
-              <img src="{{ item.thumbnail_url }}" alt="" loading="lazy" />
-            </a>
-            {% else %}
-            <div class="card-thumb-placeholder"></div>
-            {% endif %}
-          </div>
-          <div class="card-content">
-            <div class="card-source">
-              {{ item.metadata.get('channel_name', '') }}
-            </div>
-            <div class="card-title">
-              <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer"
-                >{{ item.title }}</a
-              >
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {# ── HLTV article card ───────────────────────────────────── #} {% elif
-      item.type == 'article' %}
-      <div class="card">
-        <div class="card-row">
-          <div class="card-thumb">
-            {% if item.thumbnail_url %}
-            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">
-              <img src="{{ item.thumbnail_url }}" alt="" loading="lazy" />
-            </a>
-            {% else %}
-            <div class="card-thumb-placeholder"></div>
-            {% endif %}
-          </div>
-          <div class="card-content">
-            <div class="card-source">
-              {{ item.metadata.get('author', 'HLTV') }}
-            </div>
-            <div class="card-title">
-              <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer"
-                >{{ item.title }}</a
-              >
-            </div>
-            <div class="card-meta">
-              <span>{{ item.timestamp.strftime('%d %b') }}</span>
-              {% if item.metadata.get('tags') %}
-              <span>{{ item.metadata.get('tags', []) | join(' / ') }}</span>
-              {% endif %}
-            </div>
-            {% set teaser = item.metadata.get('teaser', '') %} {% set
-            body_excerpt = item.metadata.get('body_text', '') | first_paragraph
-            %} {% if teaser or body_excerpt %}
-            <div class="card-excerpt">
-              {% if teaser %}
-              <div class="card-detail-line">{{ teaser }}</div>
-              {% endif %} {% if body_excerpt and body_excerpt != teaser %}
-              <div class="card-detail-line">{{ body_excerpt }}</div>
-              {% endif %}
-            </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      {# ── HLTV match card ─────────────────────────────────────── #} {% elif
-      item.type == 'match' %}
-      <div class="card">
-        <div class="card-body">
-          <div class="card-source">
-            {{ item.metadata.get('event_name', item.source) }}
-          </div>
-          <div class="card-title">
-            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer"
-              >{{ item.title }}</a
-            >
-          </div>
-          <div class="card-meta">
-            <span
-              >{{ item.metadata.get('team1_score', 0) }}-{{
-              item.metadata.get('team2_score', 0) }}</span
-            >
-            <span>{{ item.metadata.get('event_name', '') }}</span>
-            {% if item.metadata.get('format') %}
-            <span>{{ item.metadata.get('format', '') | upper }}</span>
-            {% endif %}
-          </div>
-          {% set maps = item.metadata.get('maps', []) %} {% set veto =
-          item.metadata.get('veto', []) %} {% if maps or veto %}
-          <div class="card-excerpt">
-            {% if maps %}
-            <div class="card-detail-group">
-              <div class="card-detail-label">Maps</div>
-              {% for map_result in maps %}
-              <div class="card-detail-line">
-                {{ map_result.get('name', 'Map') }} {{
-                map_result.get('team1_score', 0) }}-{{
-                map_result.get('team2_score', 0) }}
+            <div class="mc-board">
+              <div class="mc-row">
+                <div class="crest" data-team="{{ m.team1_name | team_code }}">
+                  <span>{{ m.team1_name | team_code }}</span>
+                </div>
+                <div class="name{% if not t1_win %} l{% endif %}">
+                  {{ m.team1_name }}{% if m.team1_rank %}<span
+                    class="rank-inline"
+                    >#{{ "%02d"|format(m.team1_rank) }}</span
+                  >{% endif %}
+                </div>
+                <div class="score {{ 'w accent' if t1_win else 'l' }}">
+                  {{ m.team1_score }}
+                </div>
               </div>
-              {% endfor %}
-            </div>
-            {% endif %} {% if veto %}
-            <div class="card-detail-group">
-              <div class="card-detail-label">Veto</div>
-              {% for veto_entry in veto %}
-              <div class="card-detail-line">
-                {% if veto_entry.get('team_name') %} {{
-                veto_entry.get('team_name') }} {{ veto_entry.get('action', '') |
-                replace('_', ' ') }} {{ veto_entry.get('map_name') }} {% else %}
-                {{ veto_entry.get('map_name') }} {{ veto_entry.get('action', '')
-                | replace('_', ' ') }} {% endif %}
+              <div class="mc-row">
+                <div class="crest" data-team="{{ m.team2_name | team_code }}">
+                  <span>{{ m.team2_name | team_code }}</span>
+                </div>
+                <div class="name{% if not t2_win %} l{% endif %}">
+                  {{ m.team2_name }}{% if m.team2_rank %}<span
+                    class="rank-inline"
+                    >#{{ "%02d"|format(m.team2_rank) }}</span
+                  >{% endif %}
+                </div>
+                <div class="score {{ 'w accent' if t2_win else 'l' }}">
+                  {{ m.team2_score }}
+                </div>
               </div>
-              {% endfor %}
             </div>
+            {%- if m.maps %}
+            <div class="mc-maps">
+              {%- for mp in m.maps %} {%- set w1 = (mp.team1_score or 0) >
+              (mp.team2_score or 0) %}
+              <div class="m">
+                <span class="mn">{{ mp.name[:3] | upper }}</span>
+                <span class="{{ 'w' if w1 else 'l' }}"
+                  >{{ mp.team1_score }}</span
+                >–<span class="{{ 'l' if w1 else 'w' }}"
+                  >{{ mp.team2_score }}</span
+                >
+              </div>
+              {%- endfor %}
+            </div>
+            {%- endif %}
+          </a>
+          {%- endfor %}
+        </div>
+        {%- endif %}
+      </section>
+
+      {%- elif key == "Clips" %} {%- set section = digest.sections["Clips"] %}
+      <section class="section">
+        <div class="section-head">
+          <div class="section-idx">{{ idx }}</div>
+          <div class="section-labels">
+            <div class="section-label">Top Clips</div>
+            {%- if section.intro %}
+            <div class="section-intro">{{ section.intro }}</div>
             {% endif %}
           </div>
-          {% endif %}
+          <div class="section-count">
+            {{ "%02d"|format(section.items|length) }} · reddit
+          </div>
         </div>
-      </div>
 
-      {# ── Patch card ──────────────────────────────────────────── #} {% elif
-      item.type == 'patch' %}
-      <div class="card">
-        <div class="card-body">
-          <div class="card-title">
-            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer"
-              >{{ item.title }}</a
+        <div class="clip-grid">
+          {%- for it in section.items %} {%- set md = it.metadata %} {%- set
+          tone = ["c1","c2","c3"][loop.index0 % 3] %}
+          <a
+            href="{{ it.url }}"
+            class="clip-card"
+            {%
+            if
+            loop.last
+            and
+            section.items|length
+            is
+            odd
+            and
+            loop.index
+          >
+            1 %} style="grid-column: 1 / -1;"{% endif %}>
+            <div
+              class="ct-thumb {{ tone }}"
+              {%
+              if
+              it.thumbnail_url
+              %}
+              style="background-image:url('{{ it.thumbnail_url }}');background-size:cover;background-position:center;"
+              {%
+              endif
+              %}
             >
-          </div>
-          <div class="card-meta">
-            <span>{{ item.timestamp.strftime('%d %b %Y') }}</span>
-          </div>
-          {% set excerpt = item.metadata.get('contents', '') | first_paragraph
-          %} {% if excerpt %}
-          <div class="card-excerpt">{{ excerpt }}</div>
-          {% endif %}
+              <span class="badge">r/GlobalOffensive</span>
+              {%- if md.duration %}<span class="dur">{{ md.duration }}</span>{%
+              endif %}
+              <div class="play"></div>
+            </div>
+            <div class="ct-body">
+              <div class="ct-rank">
+                <span
+                  >{%- if md.rank %}#{{ "%02d"|format(md.rank) }} · {% endif
+                  %}Highlight</span
+                >
+                {%- if md.score %}<span class="up"
+                  >↑ {{ "%.1f"|format(md.score / 1000) }}k</span
+                >{% endif %}
+              </div>
+              <h4 class="ct-title">{{ it.title }}</h4>
+              <div class="ct-foot">
+                {%- if md.num_comments is defined %}<span
+                  >{{ md.num_comments }} comments</span
+                >{% endif %}
+                <span>{{ it.timestamp.strftime("%Hh ago") }}</span>
+              </div>
+            </div>
+          </a>
+          {%- endfor %}
         </div>
-      </div>
+      </section>
 
-      {% endif %} {% endfor %}
-    </div>
-    {% endif %} {% endfor %}
+      {%- elif key == "News" %} {%- set section = digest.sections["News"] %}
+      <section class="section">
+        <div class="section-head">
+          <div class="section-idx">{{ idx }}</div>
+          <div class="section-labels">
+            <div class="section-label">Roster &amp; News</div>
+            {%- if section.intro %}
+            <div class="section-intro">{{ section.intro }}</div>
+            {% endif %}
+          </div>
+          <div class="section-count">
+            {{ "%02d"|format(section.items|length) }} · HLTV
+          </div>
+        </div>
+        <div class="articles">
+          {%- for it in section.items %} {%- set md = it.metadata %}
+          <a href="{{ it.url }}" class="art">
+            <div
+              class="art-img{% if md.flag == 'confirmed' %} portrait{% elif md.flag == 'rumor' %} team{% endif %}"
+              {%
+              if
+              it.thumbnail_url
+              %}
+              style="background-image:url('{{ it.thumbnail_url }}');background-size:cover;background-position:center;"
+              {%
+              endif
+              %}
+            >
+              {%- if md.flag %}<span class="tag {{ md.flag }}"
+                >{{ md.flag | capitalize }}</span
+              >{% endif %}
+              <span class="caption">Press photo</span>
+            </div>
+            <div class="art-body">
+              <div class="art-byline">
+                HLTV{% if md.author %} · by
+                <span class="author">{{ md.author }}</span>{% endif %}
+              </div>
+              <h3 class="art-title">{{ it.title }}</h3>
+              {%- if md.teaser %}
+              <p class="art-teaser">{{ md.teaser }}</p>
+              {% endif %} {%- if md.tags %}
+              <div class="art-tags">
+                {%- for t in md.tags %}<span class="tag">{{ t }}</span>{% endfor
+                %}
+              </div>
+              {%- endif %}
+            </div>
+          </a>
+          {%- endfor %}
+        </div>
+      </section>
 
-    <div class="footer">
-      Overpass CS2 Briefing &middot; {{ date.strftime('%Y-%m-%d') }}
-    </div>
+      {%- elif key == "VideosPodcasts" %} {%- set videos =
+      digest.sections["Videos"].items %} {%- set podcasts =
+      digest.sections["Podcasts"].items %} {%- set hero = videos[0] if videos
+      else none %} {%- set extra_videos = videos[1:] if videos else [] %}
+      <section class="section">
+        <div class="section-head">
+          <div class="section-idx">{{ idx }}</div>
+          <div class="section-labels">
+            <div class="section-label">Podcasts &amp; Content</div>
+            {%- set intro = digest.sections["Videos"].intro or
+            digest.sections["Podcasts"].intro %} {%- if intro %}
+            <div class="section-intro">{{ intro }}</div>
+            {% endif %}
+          </div>
+          <div class="section-count">
+            {{ "%02d"|format((videos|length) + (podcasts|length)) }}
+          </div>
+        </div>
+
+        {%- if hero %} {%- set hm = hero.metadata %}
+        <a href="{{ hero.url }}" class="video-hero">
+          <div
+            class="vh-thumb"
+            {%
+            if
+            hero.thumbnail_url
+            %}
+            style="background-image:url('{{ hero.thumbnail_url }}');background-size:cover;background-position:center;"
+            {%
+            endif
+            %}
+          >
+            <span class="label"
+              >YouTube{% if hm.is_new %} · New{% endif %}</span
+            >
+            <div class="play-big"></div>
+            {%- if hm.duration %}<span class="dur">{{ hm.duration }}</span>{%
+            endif %}
+          </div>
+          <div class="vh-body">
+            {%- if hm.channel_name %}
+            <div class="vh-channel">{{ hm.channel_name }}</div>
+            {% endif %}
+            <h3 class="vh-title">{{ hero.title }}</h3>
+            <div class="vh-meta">
+              <span>Posted {{ hero.timestamp.strftime("%Hh ago") }}</span>
+              {%- if hm.views %}<span>{{ hm.views }} views</span>{% endif %}
+            </div>
+          </div>
+        </a>
+        {%- endif %} {%- if extra_videos or podcasts %}
+        <div class="episodes">
+          {%- for it in extra_videos %} {%- set md = it.metadata %} {%- set tone
+          = ["c1","c2","c3"][loop.index0 % 3] %}
+          <a href="{{ it.url }}" class="ep">
+            <div class="ep-art {{ tone }}">
+              {{ (md.channel_name or "YT")[:2] | upper }}
+            </div>
+            <div class="ep-body">
+              <div class="show">
+                {{ md.channel_name or "YouTube" }}{% if md.duration %} · {{
+                md.duration }}{% endif %}
+              </div>
+              <div class="title">{{ it.title }}</div>
+            </div>
+            {%- if md.duration %}
+            <div class="ep-dur">{{ md.duration }}</div>
+            {% endif %}
+          </a>
+          {%- endfor %} {%- for it in podcasts %} {%- set md = it.metadata %}
+          {%- set tone = ["c1","c2","c3"][loop.index0 % 3] %}
+          <a href="{{ it.url }}" class="ep">
+            <div class="ep-art {{ tone }}">
+              {{ (md.podcast_name or "PC")[:2] | upper }}
+            </div>
+            <div class="ep-body">
+              <div class="show">
+                {{ md.podcast_name or "Podcast" }}{% if md.episode_number %} ·
+                Ep. {{ md.episode_number }}{% endif %}
+              </div>
+              <div class="title">{{ it.title }}</div>
+            </div>
+            {%- if md.duration %}
+            <div class="ep-dur">{{ md.duration }}</div>
+            {% endif %}
+          </a>
+          {%- endfor %}
+        </div>
+        {%- endif %}
+      </section>
+
+      {%- elif key == "Videos" %} {%- set section = digest.sections["Videos"] %}
+      {%- set hero = section.items[0] if section.items else none %} {%- set
+      extra_videos = section.items[1:] if section.items else [] %}
+      <section class="section">
+        <div class="section-head">
+          <div class="section-idx">{{ idx }}</div>
+          <div class="section-labels">
+            <div class="section-label">Videos</div>
+            {%- if section.intro %}
+            <div class="section-intro">{{ section.intro }}</div>
+            {% endif %}
+          </div>
+          <div class="section-count">
+            {{ "%02d"|format(section.items|length) }}
+          </div>
+        </div>
+
+        {%- if hero %} {%- set hm = hero.metadata %}
+        <a href="{{ hero.url }}" class="video-hero">
+          <div
+            class="vh-thumb"
+            {%
+            if
+            hero.thumbnail_url
+            %}
+            style="background-image:url('{{ hero.thumbnail_url }}');background-size:cover;background-position:center;"
+            {%
+            endif
+            %}
+          >
+            <span class="label"
+              >YouTube{% if hm.is_new %} · New{% endif %}</span
+            >
+            <div class="play-big"></div>
+            {%- if hm.duration %}<span class="dur">{{ hm.duration }}</span>{%
+            endif %}
+          </div>
+          <div class="vh-body">
+            {%- if hm.channel_name %}
+            <div class="vh-channel">{{ hm.channel_name }}</div>
+            {% endif %}
+            <h3 class="vh-title">{{ hero.title }}</h3>
+            <div class="vh-meta">
+              <span>Posted {{ hero.timestamp.strftime("%Hh ago") }}</span>
+              {%- if hm.views %}<span>{{ hm.views }} views</span>{% endif %}
+            </div>
+          </div>
+        </a>
+        {%- endif %} {%- if extra_videos %}
+        <div class="episodes">
+          {%- for it in extra_videos %} {%- set md = it.metadata %} {%- set tone
+          = ["c1","c2","c3"][loop.index0 % 3] %}
+          <a href="{{ it.url }}" class="ep">
+            <div class="ep-art {{ tone }}">
+              {{ (md.channel_name or "YT")[:2] | upper }}
+            </div>
+            <div class="ep-body">
+              <div class="show">{{ md.channel_name or "YouTube" }}</div>
+              <div class="title">{{ it.title }}</div>
+            </div>
+            {%- if md.duration %}
+            <div class="ep-dur">{{ md.duration }}</div>
+            {% endif %}
+          </a>
+          {%- endfor %}
+        </div>
+        {%- endif %}
+      </section>
+
+      {%- elif key == "Podcasts" %} {%- set section =
+      digest.sections["Podcasts"] %}
+      <section class="section">
+        <div class="section-head">
+          <div class="section-idx">{{ idx }}</div>
+          <div class="section-labels">
+            <div class="section-label">Podcasts</div>
+            {%- if section.intro %}
+            <div class="section-intro">{{ section.intro }}</div>
+            {% endif %}
+          </div>
+          <div class="section-count">
+            {{ "%02d"|format(section.items|length) }}
+          </div>
+        </div>
+
+        <div class="episodes">
+          {%- for it in section.items %} {%- set md = it.metadata %} {%- set
+          tone = ["c1","c2","c3"][loop.index0 % 3] %}
+          <a href="{{ it.url }}" class="ep">
+            <div class="ep-art {{ tone }}">
+              {{ (md.podcast_name or "PC")[:2] | upper }}
+            </div>
+            <div class="ep-body">
+              <div class="show">
+                {{ md.podcast_name or "Podcast" }}{% if md.episode_number %} ·
+                Ep. {{ md.episode_number }}{% endif %}
+              </div>
+              <div class="title">{{ it.title }}</div>
+            </div>
+            {%- if md.duration %}
+            <div class="ep-dur">{{ md.duration }}</div>
+            {% endif %}
+          </a>
+          {%- endfor %}
+        </div>
+      </section>
+
+      {%- elif key == "Patches" %} {%- set section = digest.sections["Patches"]
+      %}
+      <section class="section">
+        <div class="section-head">
+          <div class="section-idx">{{ idx }}</div>
+          <div class="section-labels">
+            <div class="section-label">Patch Notes</div>
+            {%- if section.intro %}
+            <div class="section-intro">{{ section.intro }}</div>
+            {% endif %}
+          </div>
+          <div class="section-count">
+            {{ "%02d"|format(section.items|length) }} · Steam
+          </div>
+        </div>
+
+        {%- for it in section.items %} {%- set md = it.metadata %}
+        <div
+          class="patch"
+          {%
+          if
+          not
+          loop.first
+          %}
+          style="margin-top: 14px"
+          {%
+          endif
+          %}
+        >
+          <div class="patch-header">
+            <div class="patch-title-wrap">
+              {%- if md.version %}
+              <div class="patch-ver">Build {{ md.version }} · Valve</div>
+              {% endif %}
+              <h3 class="patch-title">{{ it.title }}</h3>
+            </div>
+            <div class="patch-date">
+              {{ it.timestamp.strftime("%H:%M") }} CET
+            </div>
+          </div>
+          {%- if md.entries %}
+          <div class="patch-list">
+            {%- for entry in md.entries %}
+            <div class="patch-row">
+              <span class="tag {{ entry.tag | lower }}">{{ entry.tag }}</span>
+              <div class="body">{{ entry.body }}</div>
+            </div>
+            {%- endfor %}
+          </div>
+          {%- endif %}
+        </div>
+        {%- endfor %}
+      </section>
+
+      {%- endif %} {%- endfor %} {# ============ COLOPHON ============ #}
+      <footer class="colophon">
+        <div>
+          <span class="wm-glyph-sm">OP</span>Overpass · Issue No. {{ issue_no }}
+          · {{ date | fmt_date("%-d %B %Y") }}
+        </div>
+        <div>Compiled at {{ generated_at.strftime("%H:%M") }} CET</div>
+        <div>
+          Sources: HLTV · r/GlobalOffensive · YouTube · Steam News · Liquipedia
+        </div>
+        <div class="colophon-end">— End of briefing · See you tomorrow —</div>
+      </footer>
+    </article>
   </body>
 </html>
 

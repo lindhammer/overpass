@@ -102,8 +102,28 @@ async def async_main() -> None:
         model=provider_cfg.model,
         api_key=provider_cfg.api_key_env,
     )
-    digest = await generate_digest(items, provider)
-    logger.info("Editorial done in %.1fs – summary: %s", time.monotonic() - t0, digest.summary_line)
+    try:
+        digest = await generate_digest(items, provider)
+        logger.info(
+            "Editorial done in %.1fs – summary: %s",
+            time.monotonic() - t0,
+            digest.summary_line,
+        )
+    except Exception:
+        logger.exception(
+            "Editorial step failed – falling back to unannotated digest so HTML still renders"
+        )
+        from overpass.editorial.digest import _group_items, DigestOutput, SectionOutput, SECTION_NAMES
+
+        groups = _group_items(items)
+        sections = {
+            SECTION_NAMES.get(k, k.title()): SectionOutput(intro="", items=v)
+            for k, v in groups.items()
+        }
+        digest = DigestOutput(
+            summary_line="Daily CS2 briefing (editorial unavailable).",
+            sections=sections,
+        )
 
     # ── 3. HTML briefing ─────────────────────────────────────────
     logger.info("=== Step 3/4: Rendering HTML ===")

@@ -49,7 +49,7 @@ llm:
   default_provider: "gemini"
   providers:
     gemini:
-      model: "gemini-2.0-flash"
+      model: "gemini-2.5-flash"
       api_key_env: "GEMINI_API_KEY"
     claude:
       model: "claude-sonnet-4-20250514"
@@ -64,4 +64,3 @@ schedule:
   live_poll_interval_minutes: 5
 
 timezone: "Europe/Berlin"
-
