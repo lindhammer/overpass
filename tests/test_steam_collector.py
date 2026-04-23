@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from overpass.collectors.steam import SteamCollector
+from overpass.collectors.steam import STEAM_NEWS_URL, SteamCollector
 
 # ── Sample API responses ─────────────────────────────────────────
 
@@ -171,3 +171,7 @@ async def test_steam_updates_feedname_accepted():
     assert len(items) == 1
     assert items[0].metadata["feedname"] == "steam_updates"
     assert items[0].metadata["tags"] == ["patchnotes", "major"]
+
+
+def test_steam_news_url_uses_live_endpoint() -> None:
+    assert STEAM_NEWS_URL == "https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/"

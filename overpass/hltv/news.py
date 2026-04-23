@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 
 from overpass.hltv.models import HLTVNewsArticle, HLTVNewsListingItem
 
@@ -20,22 +21,21 @@ def parse_news_listing(html: str, base_url: str = "https://www.hltv.org") -> lis
     for link in soup.select("a.article[href*='/news/']"):
         href = link.get("href")
         title_node = link.select_one(".newstext")
-        time_node = link.select_one("time[datetime]")
-        if not href or title_node is None or time_node is None:
+        published_at = _parse_listing_datetime(link)
+        if not href or title_node is None or published_at is None:
             continue
 
         external_id = _extract_article_id(href)
         if external_id is None:
             continue
 
-        teaser_node = link.select_one(".newstc")
         items.append(
             HLTVNewsListingItem(
                 external_id=external_id,
                 title=_clean_text(title_node.get_text(" ", strip=True)),
                 url=urljoin(base_url, href),
-                published_at=_parse_datetime(time_node["datetime"]),
-                teaser=_clean_text(teaser_node.get_text(" ", strip=True)) if teaser_node is not None else None,
+                published_at=published_at,
+                teaser=_extract_listing_teaser(link),
                 thumbnail_url=_extract_thumbnail_url(link, base_url),
             )
         )
@@ -50,9 +50,14 @@ def parse_news_article(
     base_url: str = "https://www.hltv.org",
 ) -> HLTVNewsArticle:
     soup = BeautifulSoup(html, "html.parser")
-    title_node = soup.select_one("h1.headline")
-    author_node = soup.select_one(".article-info .author")
-    time_node = soup.select_one(".article-info time[datetime]")
+    title_node = soup.select_one("article.newsitem h1, h1.headline")
+    author_node = soup.select_one(".article-info .author, .article-info .authorName")
+    time_node = soup.select_one(
+        ".article-info time[datetime], "
+        ".article-info .date[data-unix], "
+        ".news-with-frag-date[data-unix], "
+        ".news-with-frag-date"
+    )
     if title_node is None or time_node is None:
         raise ValueError("Missing required HLTV article metadata")
 
@@ -83,7 +88,7 @@ def parse_news_article(
         external_id=external_id,
         title=_clean_text(title_node.get_text(" ", strip=True)),
         url=resolved_article_url,
-        published_at=_parse_datetime(time_node["datetime"]),
+        published_at=_parse_datetime_node(time_node),
         teaser=listing_item.teaser if listing_item is not None else None,
         author=_clean_text(author_node.get_text(" ", strip=True)) if author_node is not None else None,
         body_text=body_text,
@@ -110,22 +115,72 @@ def _parse_datetime(value: str) -> datetime:
     return parsed
 
 
+def _parse_datetime_node(node: Tag) -> datetime:
+    datetime_value = node.get("datetime")
+    if datetime_value:
+        return _parse_datetime(datetime_value)
+
+    unix_value = node.get("data-unix")
+    if unix_value:
+        return datetime.fromtimestamp(int(unix_value) / 1000, tz=timezone.utc)
+
+    return _parse_datetime_text(node.get_text(" ", strip=True))
+
+
+def _parse_datetime_text(value: str) -> datetime:
+    cleaned_value = _clean_text(value)
+    for fmt in ("%Y-%m-%d", "%d-%m-%Y %H:%M"):
+        try:
+            return datetime.strptime(cleaned_value, fmt).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    return _parse_datetime(cleaned_value)
+
+
 def _clean_text(value: str) -> str:
     return " ".join(value.split())
 
 
 def _extract_body_text(soup: BeautifulSoup) -> str:
     article_body = soup.select_one(".article-body")
-    if article_body is None:
-        return ""
+    if article_body is not None:
+        selectors = "p, blockquote"
+        body_root: BeautifulSoup | Tag = article_body
+    else:
+        body_root = soup.select_one("article.newsitem") or soup
+        selectors = "p.news-block, blockquote"
 
     body_parts = []
-    for node in article_body.select("p, blockquote"):
+    for node in body_root.select(selectors):
         text = _clean_text(node.get_text(" ", strip=True))
         if text:
             body_parts.append(text)
 
     return "\n\n".join(body_parts)
+
+
+def _parse_listing_datetime(link: Tag) -> datetime | None:
+    time_node = link.select_one("time[datetime]")
+    if time_node is not None:
+        return _parse_datetime_node(time_node)
+
+    date_node = link.select_one(".newsrecent")
+    if date_node is None:
+        return None
+
+    return _parse_datetime_text(date_node.get_text(" ", strip=True))
+
+
+def _extract_listing_teaser(link: Tag) -> str | None:
+    teaser_node = link.select_one(".newstc")
+    if teaser_node is None:
+        return None
+
+    if teaser_node.select_one(".newsrecent") is not None:
+        return None
+
+    teaser = _clean_text(teaser_node.get_text(" ", strip=True))
+    return teaser or None
 
 
 def _extract_thumbnail_url(node: BeautifulSoup, base_url: str) -> str | None:

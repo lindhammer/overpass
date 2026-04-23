@@ -40,7 +40,6 @@ class HLTVBrowserClient:
         self._monotonic = monotonic
         self._playwright: Any | None = None
         self._browser: Any | None = None
-        self._page: Any | None = None
         self._last_request_started_at: float | None = None
         self._last_request_finished_at: float | None = None
         self._startup_lock = asyncio.Lock()
@@ -58,21 +57,17 @@ class HLTVBrowserClient:
 
     async def startup(self) -> HLTVBrowserClient:
         async with self._startup_lock:
-            if self._page is not None:
+            if self._browser is not None:
                 return self
 
             playwright_context = self._playwright_factory()
             playwright = None
             browser = None
-            page = None
 
             try:
                 playwright = await playwright_context.start()
                 browser = await playwright.chromium.launch(headless=self.headless)
-                page = await browser.new_page()
             except Exception:
-                if page is not None:
-                    await page.close()
                 if browser is not None:
                     await browser.close()
                 if playwright is not None:
@@ -81,16 +76,11 @@ class HLTVBrowserClient:
 
             self._playwright = playwright
             self._browser = browser
-            self._page = page
             return self
 
     async def close(self) -> None:
         async with self._request_lock:
             async with self._startup_lock:
-                if self._page is not None:
-                    await self._page.close()
-                    self._page = None
-
                 if self._browser is not None:
                     await self._browser.close()
                     self._browser = None
@@ -110,7 +100,13 @@ class HLTVBrowserClient:
             return path_or_url
         return urljoin(f"{self.base_url}/", path_or_url)
 
-    async def fetch_page_content(self, path_or_url: str) -> str:
+    async def fetch_page_content(self, path_or_url: str, wait_until: str = "domcontentloaded") -> str:
+        return await self._fetch(path_or_url, wait_until=wait_until, use_response_text=False)
+
+    async def fetch_response_text(self, path_or_url: str, wait_until: str = "commit") -> str:
+        return await self._fetch(path_or_url, wait_until=wait_until, use_response_text=True)
+
+    async def _fetch(self, path_or_url: str, wait_until: str, use_response_text: bool) -> str:
         async with self._request_lock:
             await self.startup()
             await self._wait_for_request_slot()
@@ -118,17 +114,26 @@ class HLTVBrowserClient:
             url = self.resolve_url(path_or_url)
             self._last_request_started_at = self._monotonic()
 
-            if self._page is None:
-                raise RuntimeError("Browser page is not initialized")
+            if self._browser is None:
+                raise RuntimeError("Browser is not initialized")
+
+            page = None
 
             try:
-                await self._page.goto(
+                page = await self._browser.new_page()
+                response = await page.goto(
                     url,
-                    wait_until="domcontentloaded",
+                    wait_until=wait_until,
                     timeout=self.request_timeout_seconds * 1000,
                 )
-                return await self._page.content()
+                if use_response_text:
+                    if response is None:
+                        raise RuntimeError("Navigation did not return a response")
+                    return await response.text()
+                return await page.content()
             finally:
+                if page is not None:
+                    await page.close()
                 self._last_request_finished_at = self._monotonic()
 
     async def _wait_for_request_slot(self) -> None:

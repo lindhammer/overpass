@@ -30,9 +30,9 @@ def parse_results_listing(html: str, base_url: str = "https://www.hltv.org") -> 
     items: list[HLTVMatchResult] = []
 
     for link in soup.select("a.a-reset[href*='/matches/']"):
-        result_node = link.select_one(".result-con")
-        time_node = link.select_one(".time[data-datetime], .time[data-unix]")
-        team_nodes = link.select(".team")
+        result_node = link.select_one(".result-con, .result")
+        time_node = _select_result_time_node(link)
+        team_nodes = _select_team_nodes(link)
         score_nodes = link.select(".result-score span")
         event_node = link.select_one(".event-name")
         format_node = link.select_one(".map-text")
@@ -79,6 +79,27 @@ def parse_results_listing(html: str, base_url: str = "https://www.hltv.org") -> 
         )
 
     return items
+
+
+def parse_ranked_team_names(html: str, limit: int) -> list[str]:
+    if limit <= 0:
+        return []
+
+    soup = BeautifulSoup(html, "html.parser")
+    team_names: list[str] = []
+    seen_names: set[str] = set()
+
+    for node in soup.select(".ranked-team .teamLine .name, .teamLine .name"):
+        team_name = _clean_text(node.get_text(" ", strip=True))
+        normalized_name = team_name.casefold()
+        if not team_name or normalized_name in seen_names:
+            continue
+        seen_names.add(normalized_name)
+        team_names.append(team_name)
+        if len(team_names) >= limit:
+            break
+
+    return team_names
 
 
 def _parse_team_name_and_rank(node: Tag) -> tuple[str, int | None]:
@@ -251,12 +272,30 @@ def _extract_match_id(path_or_url: str) -> str | None:
 
 
 def _parse_datetime_node(node: BeautifulSoup) -> datetime:
-    raw_value = node.get("data-datetime") or node.get("data-unix")
+    raw_value = node.get("data-datetime") or node.get("data-unix") or node.get("data-zonedgrouping-entry-unix")
     if raw_value is None:
         raise ValueError("Missing HLTV match datetime")
     if node.get("data-datetime") is not None:
         return _parse_iso_datetime(raw_value)
     return datetime.fromtimestamp(int(raw_value) / 1000, tz=timezone.utc)
+
+
+def _select_result_time_node(link: Tag) -> Tag | None:
+    time_node = link.select_one(".time[data-datetime], .time[data-unix]")
+    if time_node is not None:
+        return time_node
+
+    return link.find_parent("div", attrs={"data-zonedgrouping-entry-unix": True})
+
+
+def _select_team_nodes(link: Tag) -> list[Tag]:
+    team1_node = link.select_one(".team1 .team, .team.team1")
+    team2_node = link.select_one(".team2 .team, .team.team2")
+    if team1_node is not None and team2_node is not None:
+        return [team1_node, team2_node]
+
+    team_nodes = link.select(".team")
+    return team_nodes[:2]
 
 
 def _parse_iso_datetime(value: str) -> datetime:

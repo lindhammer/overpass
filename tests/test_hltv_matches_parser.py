@@ -122,6 +122,54 @@ def test_parse_results_listing_extracts_team_ranks_when_present() -> None:
     ]
 
 
+def test_parse_results_listing_supports_current_live_results_rows() -> None:
+        html = """
+        <div class="results-sublist">
+            <div class="standard-headline">Results for April 22nd 2026</div>
+            <div class="result-con" data-zonedgrouping-entry-unix="1776876420000">
+                <a href="/matches/2393190/favbet-vs-oxuji-nodwin-clutch-series-7" class="a-reset">
+                    <div class="result">
+                        <table>
+                            <tr>
+                                <td class="team-cell">
+                                    <div class="line-align team1">
+                                        <div class="team">FAVBET</div>
+                                    </div>
+                                </td>
+                                <td class="result-score"><span class="score-lost">0</span> - <span class="score-won">2</span></td>
+                                <td class="team-cell">
+                                    <div class="line-align team2">
+                                        <div class="team team-won">Oxuji</div>
+                                    </div>
+                                </td>
+                                <td class="event"><span class="event-name">NODWIN Clutch Series 7</span></td>
+                                <td class="star-cell"><div class="map-text">bo3</div></td>
+                            </tr>
+                        </table>
+                    </div>
+                </a>
+            </div>
+        </div>
+        """
+
+        items = parse_results_listing(html, base_url="https://www.hltv.org")
+
+        assert items == [
+                HLTVMatchResult(
+                        external_id="2393190",
+                        url="https://www.hltv.org/matches/2393190/favbet-vs-oxuji-nodwin-clutch-series-7",
+                        team1_name="FAVBET",
+                        team2_name="Oxuji",
+                        team1_score=0,
+                        team2_score=2,
+                        winner_name="Oxuji",
+                        event_name="NODWIN Clutch Series 7",
+                        format="bo3",
+                        played_at=datetime(2026, 4, 22, 16, 47, tzinfo=timezone.utc),
+                )
+        ]
+
+
 def test_parse_match_detail_hydrates_listing_item_with_maps_veto_and_player_stats() -> None:
     listing_item = parse_results_listing(
         _read_fixture("hltv_results.html"),

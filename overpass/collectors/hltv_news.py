@@ -14,6 +14,13 @@ from overpass.hltv.news import parse_news_article, parse_news_listing
 
 class HLTVNewsCollector(BaseCollector):
     name = "hltv_news"
+    _MAX_RENDERED_ARTICLE_ATTEMPTS = 3
+    _CHALLENGE_MARKERS = (
+        "<title>Just a moment",
+        "checking your browser before accessing",
+        "cf-browser-verification",
+        "cf-challenge",
+    )
 
     def __init__(
         self,
@@ -37,25 +44,21 @@ class HLTVNewsCollector(BaseCollector):
         cutoff = self._now() - timedelta(hours=24)
 
         try:
-            listing_html = await self._browser_client.fetch_page_content("/news")
+            listing_html = await self._browser_client.fetch_response_text("/news/archive")
             listing_items = parse_news_listing(
                 listing_html,
                 base_url=self._base_url,
             )
             recent_listing_items = [
-                listing_item for listing_item in listing_items if listing_item.published_at >= cutoff
+                listing_item
+                for listing_item in listing_items
+                if listing_item.published_at >= cutoff or listing_item.published_at.date() >= cutoff.date()
             ][: self._news_limit]
 
             items: list[CollectorItem] = []
             for listing_item in recent_listing_items:
                 try:
-                    article_html = await self._browser_client.fetch_page_content(listing_item.url)
-                    article = parse_news_article(
-                        article_html,
-                        article_url=listing_item.url,
-                        listing_item=listing_item,
-                        base_url=self._base_url,
-                    )
+                    article = await self._collect_article(listing_item)
                 except Exception:
                     self.logger.exception(
                         "Failed to collect HLTV article %s",
@@ -95,3 +98,37 @@ class HLTVNewsCollector(BaseCollector):
             thumbnail_url=article.thumbnail_url,
             metadata=metadata,
         )
+
+    async def _collect_article(self, listing_item) -> HLTVNewsArticle:
+        article_html = await self._browser_client.fetch_response_text(listing_item.url)
+        try:
+            return parse_news_article(
+                article_html,
+                article_url=listing_item.url,
+                listing_item=listing_item,
+                base_url=self._base_url,
+            )
+        except ValueError as first_error:
+            last_error = first_error
+
+        for _ in range(self._MAX_RENDERED_ARTICLE_ATTEMPTS):
+            rendered_article_html = await self._browser_client.fetch_page_content(
+                listing_item.url,
+                wait_until="load",
+            )
+            try:
+                return parse_news_article(
+                    rendered_article_html,
+                    article_url=listing_item.url,
+                    listing_item=listing_item,
+                    base_url=self._base_url,
+                )
+            except ValueError as rendered_error:
+                last_error = rendered_error
+
+        raise last_error
+
+    @classmethod
+    def _looks_like_challenge_page(cls, html: str) -> bool:
+        lowered_html = html.lower()
+        return any(marker in lowered_html for marker in cls._CHALLENGE_MARKERS)

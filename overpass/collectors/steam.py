@@ -8,7 +8,7 @@ import httpx
 
 from overpass.collectors.base import BaseCollector, CollectorItem
 
-STEAM_NEWS_URL = "https://api.steampowered.com/ISteamNews/GetNewsForAppV2/v0002/"
+STEAM_NEWS_URL = "https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/"
 CS2_APP_ID = 730
 
 OFFICIAL_FEEDNAMES = frozenset({

@@ -8,12 +8,19 @@ from datetime import datetime, timedelta, timezone
 from overpass.config import load_config
 from overpass.collectors.base import BaseCollector, CollectorItem
 from overpass.hltv.browser import HLTVBrowserClient
-from overpass.hltv.matches import parse_match_detail, parse_results_listing
+from overpass.hltv.matches import parse_match_detail, parse_ranked_team_names, parse_results_listing
 from overpass.hltv.models import HLTVMatchDetail, HLTVMatchResult
 
 
 class HLTVMatchesCollector(BaseCollector):
     name = "hltv_matches"
+    _RANKINGS_PATH = "/ranking/teams/"
+    _CHALLENGE_MARKERS = (
+        "<title>just a moment",
+        "checking your browser before accessing",
+        "cf-browser-verification",
+        "cf-challenge",
+    )
 
     def __init__(
         self,
@@ -22,16 +29,17 @@ class HLTVMatchesCollector(BaseCollector):
         base_url: str = "https://www.hltv.org",
     ) -> None:
         config = load_config()
+        self._hltv_config = config.hltv
         self._owns_browser_client = browser_client is None
-        self._browser_client = browser_client or HLTVBrowserClient.from_config(config.hltv)
+        self._browser_client = browser_client or HLTVBrowserClient.from_config(self._hltv_config)
         self._base_url = getattr(
             self._browser_client,
             "base_url",
-            config.hltv.base_url if self._owns_browser_client else base_url,
+            self._hltv_config.base_url if self._owns_browser_client else base_url,
         ).rstrip("/")
-        self._watchlist_only_matches = config.hltv.watchlist_only_matches
+        self._watchlist_only_matches = self._hltv_config.watchlist_only_matches
         self._watchlist_teams = {team.casefold() for team in config.watchlist_teams}
-        self._results_pages = config.hltv.results_pages
+        self._results_pages = self._hltv_config.results_pages
         self._top_n = max(config.hltv_top_n, 0)
         self._now = now or (lambda: datetime.now(tz=timezone.utc))
         super().__init__()
@@ -42,13 +50,12 @@ class HLTVMatchesCollector(BaseCollector):
         try:
             listing_items: list[HLTVMatchResult] = []
             for results_path in self._results_paths():
-                results_html = await self._browser_client.fetch_page_content(results_path)
-                listing_items.extend(parse_results_listing(results_html, base_url=self._base_url))
+                listing_items.extend(await self._collect_results_page(results_path))
 
             recent_listing_items = [
                 listing_item for listing_item in listing_items if listing_item.played_at is not None and listing_item.played_at >= cutoff
             ]
-            relevant_teams = self._relevant_team_names(recent_listing_items)
+            relevant_teams = await self._relevant_team_names(recent_listing_items)
             if not relevant_teams:
                 self.logger.info("No relevant HLTV matches found from watchlist or top-ranked teams")
                 return []
@@ -62,12 +69,7 @@ class HLTVMatchesCollector(BaseCollector):
             items: list[CollectorItem] = []
             for listing_item in relevant_listing_items:
                 try:
-                    detail_html = await self._browser_client.fetch_page_content(listing_item.url)
-                    match = parse_match_detail(
-                        detail_html,
-                        listing_item=listing_item,
-                        base_url=self._base_url,
-                    )
+                    match = await self._collect_match_detail(listing_item)
                 except Exception:
                     self.logger.exception(
                         "Failed to collect HLTV match %s",
@@ -89,15 +91,77 @@ class HLTVMatchesCollector(BaseCollector):
     def _results_paths(self) -> list[str]:
         return ["/results", *[f"/results?offset={page_index * 100}" for page_index in range(1, self._results_pages)]]
 
-    def _relevant_team_names(self, listing_items: list[HLTVMatchResult]) -> set[str]:
+    async def _collect_results_page(self, results_path: str) -> list[HLTVMatchResult]:
+        results_html = await self._browser_client.fetch_page_content(results_path)
+        listing_items = parse_results_listing(results_html, base_url=self._base_url)
+        if listing_items or not self._looks_like_challenge_page(results_html):
+            return listing_items
+
+        rendered_results_html = await self._fetch_with_load_fallback(self._browser_client, results_path)
+        rendered_listing_items = parse_results_listing(rendered_results_html, base_url=self._base_url)
+        if rendered_listing_items or not self._looks_like_challenge_page(rendered_results_html):
+            return rendered_listing_items
+
+        if not getattr(self._browser_client, "headless", False):
+            return rendered_listing_items
+
+        headful_client = HLTVBrowserClient(
+            base_url=self._base_url,
+            headless=False,
+            request_timeout_seconds=self._hltv_config.request_timeout_seconds,
+            min_request_interval_seconds=self._hltv_config.min_request_interval_seconds,
+        )
+        try:
+            headful_results_html = await self._fetch_with_load_fallback(headful_client, results_path)
+            return parse_results_listing(headful_results_html, base_url=self._base_url)
+        finally:
+            await headful_client.close()
+
+    async def _collect_match_detail(self, listing_item: HLTVMatchResult) -> HLTVMatchDetail:
+        detail_html = await self._browser_client.fetch_page_content(listing_item.url)
+        try:
+            return parse_match_detail(
+                detail_html,
+                listing_item=listing_item,
+                base_url=self._base_url,
+            )
+        except ValueError as first_error:
+            headless_detail_html = await self._fetch_with_load_fallback(self._browser_client, listing_item.url)
+            try:
+                return parse_match_detail(
+                    headless_detail_html,
+                    listing_item=listing_item,
+                    base_url=self._base_url,
+                )
+            except ValueError:
+                if not getattr(self._browser_client, "headless", False):
+                    raise first_error
+
+        headful_client = HLTVBrowserClient(
+            base_url=self._base_url,
+            headless=False,
+            request_timeout_seconds=self._hltv_config.request_timeout_seconds,
+            min_request_interval_seconds=self._hltv_config.min_request_interval_seconds,
+        )
+        try:
+            headful_detail_html = await self._fetch_with_load_fallback(headful_client, listing_item.url)
+            return parse_match_detail(
+                headful_detail_html,
+                listing_item=listing_item,
+                base_url=self._base_url,
+            )
+        finally:
+            await headful_client.close()
+
+    async def _relevant_team_names(self, listing_items: list[HLTVMatchResult]) -> set[str]:
         if self._watchlist_only_matches:
             return set(self._watchlist_teams)
 
         relevant_teams = set(self._watchlist_teams)
-        relevant_teams.update(self._top_ranked_team_names(listing_items))
+        relevant_teams.update(await self._top_ranked_team_names(listing_items))
         return relevant_teams
 
-    def _top_ranked_team_names(self, listing_items: list[HLTVMatchResult]) -> set[str]:
+    async def _top_ranked_team_names(self, listing_items: list[HLTVMatchResult]) -> set[str]:
         if self._top_n <= 0:
             return set()
 
@@ -107,6 +171,33 @@ class HLTVMatchesCollector(BaseCollector):
                 ranked_teams.add(listing_item.team1_name.casefold())
             if listing_item.team2_rank is not None and listing_item.team2_rank <= self._top_n:
                 ranked_teams.add(listing_item.team2_name.casefold())
+        if ranked_teams:
+            return ranked_teams
+
+        return await self._fetch_top_ranked_team_names_from_rankings()
+
+    async def _fetch_top_ranked_team_names_from_rankings(self) -> set[str]:
+        try:
+            rankings_client = self._browser_client
+            temporary_client: HLTVBrowserClient | None = None
+            if getattr(self._browser_client, "headless", False):
+                temporary_client = HLTVBrowserClient(
+                    base_url=self._base_url,
+                    headless=False,
+                    request_timeout_seconds=self._hltv_config.request_timeout_seconds,
+                    min_request_interval_seconds=self._hltv_config.min_request_interval_seconds,
+                )
+                rankings_client = temporary_client
+
+            rankings_html = await self._fetch_with_load_fallback(rankings_client, self._RANKINGS_PATH)
+            ranked_team_names = parse_ranked_team_names(rankings_html, limit=self._top_n)
+            return {team_name.casefold() for team_name in ranked_team_names}
+        except Exception:
+            self.logger.exception("Failed to fetch HLTV rankings for top-team relevance")
+            return set()
+        finally:
+            if 'temporary_client' in locals() and temporary_client is not None:
+                await temporary_client.close()
         return ranked_teams
 
     def _has_relevant_team(self, listing_item: HLTVMatchResult, relevant_teams: set[str]) -> bool:
@@ -114,6 +205,17 @@ class HLTVMatchesCollector(BaseCollector):
             listing_item.team1_name.casefold() in relevant_teams
             or listing_item.team2_name.casefold() in relevant_teams
         )
+
+    async def _fetch_with_load_fallback(self, browser_client: HLTVBrowserClient, path_or_url: str) -> str:
+        try:
+            return await browser_client.fetch_page_content(path_or_url, wait_until="load")
+        except Exception:
+            return await browser_client.fetch_page_content(path_or_url)
+
+    @classmethod
+    def _looks_like_challenge_page(cls, html: str) -> bool:
+        lowered_html = html.lower()
+        return any(marker in lowered_html for marker in cls._CHALLENGE_MARKERS)
 
     @staticmethod
     def _to_collector_item(match: HLTVMatchDetail) -> CollectorItem:
