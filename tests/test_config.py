@@ -45,3 +45,35 @@ def test_load_config_rejects_malformed_hltv_base_url(tmp_path, base_url: str):
 
     with pytest.raises(ValidationError, match="base_url"):
         load_config(config_path)
+
+
+def test_liquipedia_config_defaults():
+    from overpass.config import LiquipediaConfig
+
+    cfg = LiquipediaConfig()
+    assert cfg.base_url == "https://liquipedia.net/counterstrike"
+    assert cfg.api_url == "https://liquipedia.net/counterstrike/api.php"
+    assert cfg.min_request_interval_seconds == 2.0
+    assert cfg.cache_ttl_minutes == 30
+    assert cfg.hltv_fallback is True
+    assert cfg.upcoming_matches.enabled is False
+    assert cfg.upcoming_matches.lookahead_hours == 36
+    assert cfg.transfers.enabled is False
+    assert cfg.transfers.lookback_hours == 48
+
+
+def test_liquipedia_user_agent_interpolates_contact():
+    from overpass.config import LiquipediaConfig
+
+    cfg = LiquipediaConfig(
+        contact="me@example.com",
+        user_agent="overpass/0.1.0 (+url; {contact})",
+    )
+    assert cfg.user_agent == "overpass/0.1.0 (+url; me@example.com)"
+
+
+def test_app_config_includes_liquipedia_block():
+    from overpass.config import AppConfig
+
+    cfg = AppConfig()
+    assert cfg.liquipedia.hltv_fallback is True

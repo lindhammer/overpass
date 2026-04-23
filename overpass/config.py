@@ -63,6 +63,36 @@ class LLMConfig(BaseModel):
     providers: dict[str, LLMProviderConfig] = {}
 
 
+class LiquipediaUpcomingConfig(BaseModel):
+    enabled: bool = False
+    lookahead_hours: int = Field(default=36, gt=0)
+
+
+class LiquipediaTransfersConfig(BaseModel):
+    enabled: bool = False
+    lookback_hours: int = Field(default=48, gt=0)
+
+
+class LiquipediaConfig(BaseModel):
+    base_url: str = "https://liquipedia.net/counterstrike"
+    api_url: str = "https://liquipedia.net/counterstrike/api.php"
+    contact: str = "63104033+lindhammer@users.noreply.github.com"
+    user_agent: str = (
+        "overpass/0.1.0 (+https://github.com/lindhammer/overpass; {contact})"
+    )
+    min_request_interval_seconds: float = Field(default=2.0, ge=0)
+    request_timeout_seconds: int = Field(default=30, gt=0)
+    cache_dir: str = ".cache/liquipedia"
+    cache_ttl_minutes: int = Field(default=30, ge=0)
+    hltv_fallback: bool = True
+    upcoming_matches: LiquipediaUpcomingConfig = LiquipediaUpcomingConfig()
+    transfers: LiquipediaTransfersConfig = LiquipediaTransfersConfig()
+
+    def model_post_init(self, __context: Any) -> None:
+        if "{contact}" in self.user_agent:
+            object.__setattr__(self, "user_agent", self.user_agent.format(contact=self.contact))
+
+
 class TelegramConfig(BaseModel):
     bot_token_env: str
     chat_id_env: str
@@ -102,6 +132,7 @@ class AppConfig(BaseModel):
     web_base_url: str = "http://localhost:8000"
     live_alerts: LiveAlertsConfig = LiveAlertsConfig()
     llm: LLMConfig = LLMConfig()
+    liquipedia: LiquipediaConfig = LiquipediaConfig()
     telegram: TelegramConfig = TelegramConfig(bot_token_env="TELEGRAM_BOT_TOKEN", chat_id_env="TELEGRAM_CHAT_ID")
     schedule: ScheduleConfig = ScheduleConfig()
     timezone: str = "Europe/Berlin"
