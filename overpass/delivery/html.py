@@ -178,6 +178,9 @@ def render_briefing(digest: DigestOutput, briefing_date: date) -> str:
         "issue_no": _compute_issue_number(briefing_date),
         "ticker_chips": _build_ticker_chips(digest),
         "sources": _collect_sources(digest),
+        "per_match_blurbs": {
+            url: blurb.model_dump() for url, blurb in digest.per_match_blurbs.items()
+        },
     }
     return template.render(**context)
 

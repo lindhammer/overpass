@@ -6,7 +6,7 @@ import json
 import logging
 from collections import defaultdict
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from overpass.collectors.base import CollectorItem
 from overpass.editorial.base import BaseLLMProvider
@@ -21,9 +21,18 @@ class SectionOutput(BaseModel):
     items: list[CollectorItem]
 
 
+class MatchBlurb(BaseModel):
+    """Editorial copy for a single match: a short slug + one-sentence highlight."""
+
+    tagline: str
+    highlight: str
+
+
 class DigestOutput(BaseModel):
     summary_line: str
     sections: dict[str, SectionOutput]
+    # Keyed by CollectorItem.url for matches.
+    per_match_blurbs: dict[str, MatchBlurb] = Field(default_factory=dict)
 
 
 # ── Section display names ────────────────────────────────────────
@@ -74,6 +83,37 @@ The section keys you must use: {section_keys}
 
 --- RAW DATA ---
 {items_json}
+"""
+
+
+# ── Match-blurbs prompts (second LLM pass) ──────────────────────
+
+_MATCH_BLURBS_SYSTEM_PROMPT = """\
+You are a concise CS2 match-desk writer.  For each match given, produce two \
+short pieces of editorial copy:
+
+- "tagline":  2-4 UPPERCASE words, no punctuation.  A wire-service slug \
+that captures the shape of the result.  Examples: "OT THRILLER", \
+"CLEAN SWEEP", "UPSET ALERT", "TITLE DEFENSE", "BACK ON TRACK".
+- "highlight":  ONE sentence (max ~140 chars), matter-of-fact, no hype, \
+no emojis.  Reference a specific player, map, or score detail when the data \
+allows.  Never invent stats not present in the input.
+
+Tone: HLTV news desk, not Reddit post.  English."""
+
+_MATCH_BLURBS_USER_PROMPT = """\
+Write blurbs for the following matches.  Return **only** valid JSON keyed by \
+the match URL (no markdown fences, no commentary):
+
+{{
+  "<match_url>": {{
+    "tagline": "...",
+    "highlight": "..."
+  }}
+}}
+
+--- MATCHES ---
+{matches_json}
 """
 
 
@@ -137,6 +177,111 @@ def _parse_llm_response(
     return DigestOutput(summary_line=summary_line, sections=sections)
 
 
+def _strip_json_fences(raw: str) -> str:
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
+    return text.strip()
+
+
+def _build_match_blurbs_payload(matches: list[CollectorItem]) -> str:
+    """Compact, blurb-relevant JSON describing each match."""
+    payload = []
+    for item in matches:
+        m = item.metadata or {}
+        # Trim maps and player_stats to just the fields the model needs.
+        maps = [
+            {
+                "name": mp.get("name"),
+                "team1_score": mp.get("team1_score"),
+                "team2_score": mp.get("team2_score"),
+                "winner": mp.get("winner_name"),
+            }
+            for mp in (m.get("maps") or [])
+        ]
+        # Top 5 player_stats by rating (descending) so the prompt stays small.
+        all_stats = m.get("player_stats") or []
+        top_stats = sorted(
+            all_stats,
+            key=lambda p: p.get("rating") or 0.0,
+            reverse=True,
+        )[:5]
+        stats = [
+            {
+                "team": p.get("team_name"),
+                "player": p.get("player_name"),
+                "kills": p.get("kills"),
+                "deaths": p.get("deaths"),
+                "rating": p.get("rating"),
+            }
+            for p in top_stats
+        ]
+        payload.append({
+            "url": item.url,
+            "team1": m.get("team1_name"),
+            "team2": m.get("team2_name"),
+            "team1_score": m.get("team1_score"),
+            "team2_score": m.get("team2_score"),
+            "winner": m.get("winner_name"),
+            "event": m.get("event_name") or m.get("event"),
+            "format": m.get("format"),
+            "maps": maps,
+            "top_players": stats,
+        })
+    return json.dumps(payload, indent=2, ensure_ascii=False)
+
+
+def _parse_match_blurbs_response(
+    raw: str,
+    matches: list[CollectorItem],
+) -> dict[str, MatchBlurb]:
+    text = _strip_json_fences(raw)
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        logger.warning("Match-blurbs LLM returned invalid JSON – skipping blurbs")
+        return {}
+
+    if not isinstance(data, dict):
+        logger.warning("Match-blurbs LLM returned non-object JSON – skipping blurbs")
+        return {}
+
+    valid_urls = {item.url for item in matches}
+    blurbs: dict[str, MatchBlurb] = {}
+    for url, payload in data.items():
+        if url not in valid_urls or not isinstance(payload, dict):
+            continue
+        tagline = (payload.get("tagline") or "").strip()
+        highlight = (payload.get("highlight") or "").strip()
+        if not tagline and not highlight:
+            continue
+        blurbs[url] = MatchBlurb(
+            tagline=tagline or "RESULT",
+            highlight=highlight,
+        )
+    return blurbs
+
+
+async def generate_match_blurbs(
+    matches: list[CollectorItem],
+    provider: BaseLLMProvider,
+) -> dict[str, MatchBlurb]:
+    """Second LLM pass: per-match tagline + highlight, keyed by URL."""
+    if not matches:
+        return {}
+
+    matches_json = _build_match_blurbs_payload(matches)
+    prompt = _MATCH_BLURBS_USER_PROMPT.format(matches_json=matches_json)
+
+    logger.info("Sending match-blurbs prompt to LLM (%d matches)", len(matches))
+    raw = await provider.generate(prompt, system=_MATCH_BLURBS_SYSTEM_PROMPT)
+    logger.debug("Raw match-blurbs response:\n%s", raw)
+
+    return _parse_match_blurbs_response(raw, matches)
+
+
 async def generate_digest(
     items: list[CollectorItem],
     provider: BaseLLMProvider,
@@ -161,4 +306,13 @@ async def generate_digest(
     raw = await provider.generate(prompt, system=_SYSTEM_PROMPT)
     logger.debug("Raw LLM response:\n%s", raw)
 
-    return _parse_llm_response(raw, groups)
+    digest = _parse_llm_response(raw, groups)
+
+    matches = groups.get("match", [])
+    if matches:
+        try:
+            digest.per_match_blurbs = await generate_match_blurbs(matches, provider)
+        except Exception:
+            logger.exception("Per-match blurbs generation failed; continuing without")
+
+    return digest

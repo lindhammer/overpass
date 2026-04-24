@@ -1458,7 +1458,9 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
                     m.get("team2_score", 0) }}
                   </div>
                   <div class="maps">
-                    {%- if m.get("maps") -%}{{ m.maps | join(" · ") }} {%- elif
+                    {%- if m.get("maps") -%} {%- for mp in m.maps -%} {%- if not
+                    loop.first %} · {% endif -%} {{ mp.name }} {{ mp.team1_score
+                    }}-{{ mp.team2_score }} {%- endfor -%} {%- elif
                     m.get("format") -%}{{ m.format }} {%- endif -%}
                   </div>
                 </div>
