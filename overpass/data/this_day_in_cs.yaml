@@ -179,3 +179,181 @@
     visual_label: "HLTV '18"
     source_url: "https://www.hltv.org/news/26602/top-20-players-of-2018-coldzera-3"
   alternatives: []
+
+"02-11":
+  primary:
+    year: 2024
+    headline: "Spirit win IEM Katowice 2024"
+    narrative: |
+      Team Spirit defeat FaZe Clan 3–0 in the IEM Katowice 2024 grand final to
+      capture the Intel Extreme Masters championship. Spirit won
+      13–9 on Nuke, 13–11 on Mirage and 13–3 on Overpass for a dominant victory
+      .
+    visual_label: "KAT '24"
+    source_url: "https://www.hltv.org/news/38187/spirit-enter-intel-grand-slam-season-5-race-with-iem-katowice-victory"
+  alternatives: []
+
+"02-17":
+  primary:
+    year: 2016
+    headline: "Valve launches CS:GO Operation Wildfire"
+    narrative: |
+      Valve rolls out Operation Wildfire for CS:GO on Feb 17, 2016. The
+      event adds seven community-made maps (Tulip, Cruise, Coast, Empire and a
+      revamped Nuke) to the game, and a $6 Wildfire Access Pass
+      unlocks new mission campaigns and a special Wildfire coin.
+    visual_label: "WLD '16"
+    source_url: "https://www.pcgamer.com/operation-wildfire-comes-to-csgo/"
+  alternatives: []
+
+"02-21":
+  primary:
+    year: 2014
+    headline: "Valve launches CS:GO Operation Phoenix"
+    narrative: |
+      Valve releases the Operation Phoenix update for CS:GO on February 21, 2014.
+      The update adds eight community maps (including de_cache, de_overpass and others)
+      to matchmaking and provides an Operation Phoenix Coin and a new weapon case with
+      13 community-created skins.
+    visual_label: "PHX '14"
+    source_url: "https://www.hltv.org/news/12076/operation-phoenix-launched"
+  alternatives: []
+
+"04-25":
+  primary:
+    year: 2013
+    headline: "Valve launches CS:GO Operation Payback"
+    narrative: |
+      Valve releases Operation Payback for CS:GO on April 25, 2013. The
+      operation offers a Classic Casual map group of seven top-voted community
+      maps, accessible via a limited-time pass (half-price at launch) that also grants
+      an upgradable challenge coin to track matches.
+    visual_label: "PAY '13"
+    source_url: "https://blog.counter-strike.net/2013/04/6907/"
+  alternatives: []
+
+"05-24":
+  primary:
+    year: 2017
+    headline: "Valve launches CS:GO Operation Hydra"
+    narrative: |
+      Valve releases an update on May 24, 2017, introducing Operation Hydra for
+      CS:GO. Hydra adds new weekly game modes (War Games,
+      Wingman, Weapons Expert) and includes weapon balance tweaks such as a
+      nerf to the UMP45.
+    visual_label: "HYD '17"
+    source_url: "https://www.hltv.org/news/20546/new-update-changes-the-ump45"
+  alternatives: []
+
+"05-27":
+  primary:
+    year: 2015
+    headline: "Valve launches CS:GO Operation Bloodhound"
+    narrative: |
+      Valve releases CS:GO’s Operation Bloodhound in a May 27, 2015 update.
+      The operation adds six community maps (Agency, Resort, Zoo, Log, Rails and
+      Season) to official matchmaking and introduces new mission campaigns,
+      weapon skins and the Falchion Case with a new knife.
+    visual_label: "BLO '15"
+    source_url: "https://www.hltv.org/news/15049/operation-bloodhound-in-new-update"
+  alternatives: []
+
+"07-02":
+  primary:
+    year: 2014
+    headline: "Valve launches CS:GO Operation Breakout"
+    narrative: |
+      Valve releases the Operation Breakout update for CS:GO on July 2, 2014.
+      The update adds six community maps (Castle, Overgrown, Black Gold, Mist, Rush,
+      Insertion) to official matchmaking and introduces 45 new weapon finishes and an
+      Operation Breakout case drop.
+    visual_label: "BRK '14"
+    source_url: "https://www.hltv.org/news/12727/cz-nerf-new-operation-in-update"
+  alternatives: []
+
+"08-21":
+  primary:
+    year: 2012
+    headline: "Counter-Strike: Global Offensive is released"
+    narrative: |
+      Valve and Hidden Path release Counter-Strike: Global Offensive on August 21,
+      2012. The launch marked a new era for the franchise, bringing
+      CS to new platforms and the updated Source engine after months of beta testing.
+    visual_label: "GO '12"
+    source_url: "https://www.hltv.org/news/34381/csgo10-a-successor-to-the-counter-strike-franchise-arrives-2012"
+  alternatives: []
+
+"09-19":
+  primary:
+    year: 2013
+    headline: "Valve launches CS:GO Operation Bravo"
+    narrative: |
+      Valve releases the Operation Bravo update for CS:GO on September 19, 2013.
+      The update adds eight community-voted maps (Agency, Ali, Cache, Chinatown, Gwalior,
+      Ruins, Siege and the returning Seaside) and introduces a challenge coin and new
+      weapon finish collections via timed drops.
+    visual_label: "BRV '13"
+    source_url: "https://blog.counter-strike.net/2013/09/7647/"
+  alternatives: []
+
+"10-07":
+  primary:
+    year: 2004
+    headline: "Counter-Strike: Source is released"
+    narrative: |
+      Valve and Turtle Rock release Counter-Strike: Source on October 7, 2004.
+      The game is a Source-engine remake of Counter-Strike, bringing the classic shooter
+      to PC, Mac, and Linux platforms.
+    visual_label: "CSS '04"
+    source_url: "https://www.gamespot.com/games/counter-strike-source/"
+  alternatives: []
+
+"11-01":
+  primary:
+    year: 2015
+    headline: "EnVyUs win CS:GO's seventh Major"
+    narrative: |
+      Team EnVyUs defeat Natus Vincere 2–0 (16–14, 16–5) in the DreamHack Open
+      Cluj-Napoca 2015 grand final to claim CS:GO’s seventh Major title.
+      The French squad took map one 16–14 on Train and map two 16–5 on Cobblestone,
+      earning the US$100,000 champion’s prize.
+    visual_label: "CLJ '15"
+    source_url: "https://www.hltv.org/news/16287/envyus-win-csgos-seventh-major"
+  alternatives: []
+
+"11-09":
+  primary:
+    year: 2000
+    headline: "Counter-Strike 1.0 is released"
+    narrative: |
+      Valve and Sierra announce the official release of Counter-Strike version 1.0 on
+      November 9, 2000. After more than a year in beta, the full game is now
+      complete and the retail Half-Life: Counter-Strike edition has gone gold.
+    visual_label: "CS1.0"
+    source_url: "https://www.gamespot.com/articles/counter-strike-10-released/1100-2652037/"
+  alternatives: []
+
+"11-12":
+  primary:
+    year: 2014
+    headline: "Valve launches CS:GO Operation Vanguard"
+    narrative: |
+      Valve releases the Operation Vanguard update for CS:GO on November 12, 2014.
+      The update adds six community maps (de_marquis, de_facade, de_season, de_bazaar,
+      cs_workout, cs_backalley) and new mission campaigns, along with exclusive
+      Vanguard weapon cases and challenge coins for pass holders.
+    visual_label: "VNG '14"
+    source_url: "https://www.hltv.org/news/13600/operation-vanguard-begins"
+  alternatives: []
+
+"12-01":
+  primary:
+    year: 2013
+    headline: "Fnatic win DreamHack Winter 2013"
+    narrative: |
+      Fnatic defeat Ninjas in Pyjamas 2–1 (16–14, 6–16, 16–2) in the DreamHack Winter
+      2013 grand final. The Swedish team claim the $100,000 champion’s prize
+      and the title of the biggest Counter-Strike tournament to date.
+    visual_label: "DHW '13"
+    source_url: "https://www.hltv.org/news/11814/fnatic-win-dreamhack-winter-2013"
+  alternatives: []
