@@ -38,6 +38,8 @@ class HLTVMatchResult(BaseModel):
     url: str
     team1_name: str
     team2_name: str
+    team1_logo_url: str | None = None
+    team2_logo_url: str | None = None
     team1_rank: int | None = None
     team2_rank: int | None = None
     team1_score: int

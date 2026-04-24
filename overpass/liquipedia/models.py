@@ -14,6 +14,8 @@ class LiquipediaMap(BaseModel):
 class LiquipediaMatch(BaseModel):
     team1_name: str
     team2_name: str
+    team1_logo_url: str | None = None
+    team2_logo_url: str | None = None
     team1_score: int
     team2_score: int
     winner_name: str | None = None

@@ -224,6 +224,8 @@ class HLTVMatchesCollector(BaseCollector):
             url=listing_item.url,
             team1_name=listing_item.team1_name,
             team2_name=listing_item.team2_name,
+            team1_logo_url=liq_match.team1_logo_url,
+            team2_logo_url=liq_match.team2_logo_url,
             team1_rank=listing_item.team1_rank,
             team2_rank=listing_item.team2_rank,
             team1_score=liq_match.team1_score,
@@ -329,6 +331,10 @@ class HLTVMatchesCollector(BaseCollector):
         }
         if match.source_fallback is not None:
             metadata["source_fallback"] = match.source_fallback
+        if match.team1_logo_url is not None:
+            metadata["team1_logo_url"] = match.team1_logo_url
+        if match.team2_logo_url is not None:
+            metadata["team2_logo_url"] = match.team2_logo_url
 
         return CollectorItem(
             source="hltv",

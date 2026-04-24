@@ -136,6 +136,8 @@ def parse_match_detail(
 
     team1_name = _select_required_text(soup, ".team1-gradient .teamName")
     team2_name = _select_required_text(soup, ".team2-gradient .teamName")
+    team1_logo_url = _select_logo_url(soup, ".team1-gradient", base_url)
+    team2_logo_url = _select_logo_url(soup, ".team2-gradient", base_url)
     team1_score = _select_required_int(soup, ".team1-gradient .won, .team1-gradient .lost")
     team2_score = _select_required_int(soup, ".team2-gradient .won, .team2-gradient .lost")
     event_name = _select_optional_text(soup, ".timeAndEvent .event, .timeAndEvent .text")
@@ -152,6 +154,8 @@ def parse_match_detail(
         url=resolved_match_url,
         team1_name=team1_name,
         team2_name=team2_name,
+        team1_logo_url=team1_logo_url,
+        team2_logo_url=team2_logo_url,
         team1_score=team1_score,
         team2_score=team2_score,
         winner_name=_determine_winner(team1_name, team2_name, team1_score, team2_score),
@@ -342,6 +346,18 @@ def _select_required_int(node: BeautifulSoup, selector: str) -> int:
     if selected is None:
         raise ValueError(f"Missing required HLTV match field: {selector}")
     return _parse_int(selected.get_text(" ", strip=True))
+
+
+def _select_logo_url(node: BeautifulSoup, selector: str, base_url: str) -> str | None:
+    container = node.select_one(selector)
+    if container is None:
+        return None
+
+    for img in container.select("img"):
+        raw_url = img.get("data-src") or img.get("src")
+        if isinstance(raw_url, str) and raw_url.strip():
+            return urljoin(base_url, raw_url.strip())
+    return None
 
 
 def _parse_int(value: str) -> int:

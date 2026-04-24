@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
@@ -38,11 +39,15 @@ _SUFFIXES_TO_STRIP = ("esports", "gaming", "team", "club")
 _TEAM_ALIASES = {
     "betclic": "apogee",
     "eyeballers": "eye",
+    "keyd stars": "keyd",
 }
 
 
 def parse_match_from_tournament_page(
-    html: str, team1_name: str, team2_name: str
+    html: str,
+    team1_name: str,
+    team2_name: str,
+    base_url: str = "https://liquipedia.net",
 ) -> LiquipediaMatch | None:
     """Return the unique matchup of (team1, team2) on this page, or None."""
     if not html or not team1_name or not team2_name:
@@ -50,16 +55,17 @@ def parse_match_from_tournament_page(
 
     soup = BeautifulSoup(html, "html.parser")
     candidates: list[LiquipediaMatch] = []
+    team_logo_urls = _parse_team_logo_urls(soup, base_url)
 
     for node in soup.select(_MATCH_NODE_SELECTORS):
-        match = _parse_match_node(node)
+        match = _parse_match_node(node, base_url)
         if match is None:
             continue
         if not _matches_pair(match, team1_name, team2_name):
             continue
         # Orient the match so team1 in the result corresponds to the requested team1.
         oriented = _orient_to(match, team1_name)
-        candidates.append(oriented)
+        candidates.append(_apply_team_logo_map(oriented, team_logo_urls))
 
     if len(candidates) == 1:
         return candidates[0]
@@ -71,9 +77,9 @@ def parse_match_from_tournament_page(
     return None
 
 
-def _parse_match_node(node: Tag) -> LiquipediaMatch | None:
+def _parse_match_node(node: Tag, base_url: str) -> LiquipediaMatch | None:
     if "brkts-matchlist-match" in (node.get("class") or []):
-        return _parse_matchlist_node(node)
+        return _parse_matchlist_node(node, base_url)
 
     entries = node.select(_OPPONENT_ENTRY_SELECTORS)
     if len(entries) < 2:
@@ -81,6 +87,7 @@ def _parse_match_node(node: Tag) -> LiquipediaMatch | None:
 
     team_names: list[str] = []
     scores: list[int] = []
+    logo_urls: list[str | None] = []
     for entry in entries[:2]:
         name_node = entry.select_one(_TEAM_NAME_SELECTORS_PER_ENTRY)
         score_node = entry.select_one(_SCORE_SELECTORS_PER_ENTRY)
@@ -96,6 +103,7 @@ def _parse_match_node(node: Tag) -> LiquipediaMatch | None:
             return None
         team_names.append(name)
         scores.append(score)
+        logo_urls.append(_extract_team_logo_url(entry, base_url))
 
     raw_t1, raw_t2 = team_names[0], team_names[1]
     s1, s2 = scores[0], scores[1]
@@ -106,6 +114,8 @@ def _parse_match_node(node: Tag) -> LiquipediaMatch | None:
     return LiquipediaMatch(
         team1_name=raw_t1,
         team2_name=raw_t2,
+        team1_logo_url=logo_urls[0],
+        team2_logo_url=logo_urls[1],
         team1_score=s1,
         team2_score=s2,
         winner_name=winner,
@@ -113,7 +123,7 @@ def _parse_match_node(node: Tag) -> LiquipediaMatch | None:
     )
 
 
-def _parse_matchlist_node(node: Tag) -> LiquipediaMatch | None:
+def _parse_matchlist_node(node: Tag, base_url: str) -> LiquipediaMatch | None:
     opponent_cells = node.find_all(
         class_="brkts-matchlist-opponent",
         recursive=False,
@@ -126,6 +136,7 @@ def _parse_matchlist_node(node: Tag) -> LiquipediaMatch | None:
         return None
 
     team_names: list[str] = []
+    logo_urls: list[str | None] = []
     for cell in (opponent_cells[0], opponent_cells[-1]):
         name_node = cell.select_one(_TEAM_NAME_SELECTORS_PER_ENTRY)
         if name_node is None:
@@ -134,6 +145,7 @@ def _parse_matchlist_node(node: Tag) -> LiquipediaMatch | None:
         if not name:
             return None
         team_names.append(name)
+        logo_urls.append(_extract_team_logo_url(cell, base_url))
 
     scores: list[int] = []
     for cell in (score_cells[0], score_cells[-1]):
@@ -150,6 +162,8 @@ def _parse_matchlist_node(node: Tag) -> LiquipediaMatch | None:
     return LiquipediaMatch(
         team1_name=raw_t1,
         team2_name=raw_t2,
+        team1_logo_url=logo_urls[0],
+        team2_logo_url=logo_urls[1],
         team1_score=s1,
         team2_score=s2,
         winner_name=winner,
@@ -196,6 +210,49 @@ def _parse_maps(node: Tag) -> list[LiquipediaMap]:
     return maps
 
 
+def _parse_team_logo_urls(soup: BeautifulSoup, base_url: str) -> dict[str, str]:
+    logo_urls: dict[str, str] = {}
+    for card in soup.select(".teamcard"):
+        name_node = card.select_one("center a[title], center")
+        logo_url = _extract_team_logo_url(card, base_url)
+        if name_node is None or logo_url is None:
+            continue
+        name = _clean(name_node.get("title") or name_node.get_text(" ", strip=True))
+        if name:
+            logo_urls[_normalize(name)] = logo_url
+    return logo_urls
+
+
+def _apply_team_logo_map(
+    match: LiquipediaMatch,
+    logo_urls: dict[str, str],
+) -> LiquipediaMatch:
+    team1_logo_url = match.team1_logo_url or logo_urls.get(_normalize(match.team1_name))
+    team2_logo_url = match.team2_logo_url or logo_urls.get(_normalize(match.team2_name))
+    if team1_logo_url == match.team1_logo_url and team2_logo_url == match.team2_logo_url:
+        return match
+    return match.model_copy(
+        update={
+            "team1_logo_url": team1_logo_url,
+            "team2_logo_url": team2_logo_url,
+        }
+    )
+
+
+def _extract_team_logo_url(node: Tag, base_url: str) -> str | None:
+    for selector in (".team-template-image-icon img", "table.logo img", ".logo img", "img"):
+        for img in node.select(selector):
+            raw_url = img.get("data-src") or img.get("src")
+            if not isinstance(raw_url, str) or not raw_url.strip():
+                continue
+            if "Counter-Strike_2_default_" in raw_url:
+                continue
+            if "HLTV_icon" in raw_url:
+                continue
+            return urljoin(base_url, raw_url.strip())
+    return None
+
+
 def _matches_pair(match: LiquipediaMatch, want_t1: str, want_t2: str) -> bool:
     a = _normalize(match.team1_name)
     b = _normalize(match.team2_name)
@@ -210,6 +267,8 @@ def _orient_to(match: LiquipediaMatch, want_t1: str) -> LiquipediaMatch:
     return LiquipediaMatch(
         team1_name=match.team2_name,
         team2_name=match.team1_name,
+        team1_logo_url=match.team2_logo_url,
+        team2_logo_url=match.team1_logo_url,
         team1_score=match.team2_score,
         team2_score=match.team1_score,
         winner_name=match.winner_name,

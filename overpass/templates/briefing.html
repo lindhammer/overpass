@@ -14,7 +14,24 @@ present_sections -%} {%- if videos_and_podcasts_both and key in ["Videos",
 "Podcasts"] -%} {%- if not merge_ns.seen -%} {%- set _ =
 render_keys.append("VideosPodcasts") -%} {%- set merge_ns.seen = true -%} {%-
 endif -%} {%- else -%} {%- set _ = render_keys.append(key) -%} {%- endif -%} {%-
-endfor -%}
+endfor -%} {%- macro team_crest(name, logo_url) -%}
+<div
+  class="crest{% if logo_url %} has-logo{% endif %}"
+  data-team="{{ name | team_code }}"
+>
+  {%- if logo_url -%}
+  <img
+    class="team-logo"
+    src="{{ logo_url }}"
+    alt="{{ name }} logo"
+    loading="lazy"
+    decoding="async"
+  />
+  {%- else -%}
+  <span>{{ name | team_code }}</span>
+  {%- endif -%}
+</div>
+{%- endmacro -%}
 <!doctype html>
 <html lang="en" data-palette="dark">
   <head>
@@ -365,6 +382,24 @@ endfor -%}
       .crest span {
         position: relative;
         z-index: 1;
+      }
+      .crest.has-logo {
+        background: var(--surface-2);
+      }
+      .crest.has-logo::after {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.05),
+          transparent 65%
+        );
+      }
+      .team-logo {
+        position: relative;
+        z-index: 1;
+        display: block;
+        width: 78%;
+        height: 78%;
+        object-fit: contain;
       }
 
       /* specific team tints (subtle, desaturated) */
@@ -1455,9 +1490,7 @@ endfor -%}
             {%- set t1_win = (m.team1_score or 0) > (m.team2_score or 0) %} {%-
             set t2_win = (m.team2_score or 0) > (m.team1_score or 0) %}
             <div class="mh-team">
-              <div class="crest" data-team="{{ m.team1_name | team_code }}">
-                <span>{{ m.team1_name | team_code }}</span>
-              </div>
+              {{ team_crest(m.team1_name, m.team1_logo_url) }}
               <div class="tname">{{ m.team1_name }}</div>
               {%- if m.team1_rank %}
               <div class="rank">#{{ "%02d"|format(m.team1_rank) }}</div>
@@ -1473,9 +1506,7 @@ endfor -%}
               >
             </div>
             <div class="mh-team">
-              <div class="crest" data-team="{{ m.team2_name | team_code }}">
-                <span>{{ m.team2_name | team_code }}</span>
-              </div>
+              {{ team_crest(m.team2_name, m.team2_logo_url) }}
               <div class="tname">{{ m.team2_name }}</div>
               {%- if m.team2_rank %}
               <div class="rank">#{{ "%02d"|format(m.team2_rank) }}</div>
@@ -1541,9 +1572,7 @@ endfor -%}
             </div>
             <div class="mc-board">
               <div class="mc-row">
-                <div class="crest" data-team="{{ m.team1_name | team_code }}">
-                  <span>{{ m.team1_name | team_code }}</span>
-                </div>
+                {{ team_crest(m.team1_name, m.team1_logo_url) }}
                 <div class="name{% if not t1_win %} l{% endif %}">
                   {{ m.team1_name }}{% if m.team1_rank %}<span
                     class="rank-inline"
@@ -1555,9 +1584,7 @@ endfor -%}
                 </div>
               </div>
               <div class="mc-row">
-                <div class="crest" data-team="{{ m.team2_name | team_code }}">
-                  <span>{{ m.team2_name | team_code }}</span>
-                </div>
+                {{ team_crest(m.team2_name, m.team2_logo_url) }}
                 <div class="name{% if not t2_win %} l{% endif %}">
                   {{ m.team2_name }}{% if m.team2_rank %}<span
                     class="rank-inline"
@@ -1988,4 +2015,3 @@ endfor -%}
     </article>
   </body>
 </html>
-

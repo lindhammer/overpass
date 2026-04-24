@@ -35,6 +35,78 @@ def test_parser_finds_known_matchup() -> None:
     assert [(m.name, m.team1_score, m.team2_score) for m in match.maps] == EXPECTED_MAPS
 
 
+def test_parser_extracts_team_logo_urls_from_match_nodes() -> None:
+    html = """\
+    <div class="brkts-match">
+      <div class="brkts-opponent-entry">
+        <span class="team-template-image-icon">
+          <img src="/commons/images/thumb/3/34/Legacy_allmode.png/49px-Legacy_allmode.png" />
+        </span>
+        <span class="name">Legacy</span>
+        <span class="brkts-opponent-score-inner">2</span>
+      </div>
+      <div class="brkts-opponent-entry">
+        <span class="team-template-image-icon">
+          <img src="/commons/images/thumb/c/cf/Keyd_Stars_2022_allmode.png/41px-Keyd_Stars_2022_allmode.png" />
+        </span>
+        <span class="name">Keyd</span>
+        <span class="brkts-opponent-score-inner">0</span>
+      </div>
+    </div>
+    """
+
+    match = parse_match_from_tournament_page(html, "Legacy", "Keyd Stars")
+
+    assert match is not None
+    assert match.team1_logo_url == (
+        "https://liquipedia.net/commons/images/thumb/3/34/"
+        "Legacy_allmode.png/49px-Legacy_allmode.png"
+    )
+    assert match.team2_logo_url == (
+        "https://liquipedia.net/commons/images/thumb/c/cf/"
+        "Keyd_Stars_2022_allmode.png/41px-Keyd_Stars_2022_allmode.png"
+    )
+
+
+def test_parser_extracts_team_logo_urls_from_roster_cards_when_match_node_has_none() -> None:
+    html = """\
+    <div class="brkts-match">
+      <div class="brkts-opponent-entry">
+        <span class="name">Legacy</span>
+        <span class="brkts-opponent-score-inner">2</span>
+      </div>
+      <div class="brkts-opponent-entry">
+        <span class="name">Keyd Stars</span>
+        <span class="brkts-opponent-score-inner">0</span>
+      </div>
+    </div>
+    <div class="teamcard">
+      <center><a title="Legacy">Legacy</a></center>
+      <span class="flag">
+        <img src="/commons/images/thumb/a/a9/Br_hd.png/36px-Br_hd.png" />
+      </span>
+      <table class="logo"><tr><td>
+        <img src="/commons/images/thumb/3/34/Legacy_allmode.png/146px-Legacy_allmode.png" />
+      </td></tr></table>
+    </div>
+    <div class="teamcard">
+      <center><a title="Keyd Stars">Keyd Stars</a></center>
+      <span class="flag">
+        <img src="/commons/images/thumb/a/a9/Br_hd.png/36px-Br_hd.png" />
+      </span>
+      <table class="logo"><tr><td>
+        <img src="/commons/images/thumb/c/cf/Keyd_Stars_2022_allmode.png/120px-Keyd_Stars_2022_allmode.png" />
+      </td></tr></table>
+    </div>
+    """
+
+    match = parse_match_from_tournament_page(html, "Legacy", "Keyd Stars")
+
+    assert match is not None
+    assert "Legacy_allmode.png" in (match.team1_logo_url or "")
+    assert "Keyd_Stars_2022_allmode.png" in (match.team2_logo_url or "")
+
+
 def test_parser_normalises_team_name_suffixes() -> None:
     # Same matchup, but with a "Team " prefix that should normalise away.
     match = parse_match_from_tournament_page(

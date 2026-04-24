@@ -61,6 +61,8 @@ def test_collector_uses_liquipedia_when_hltv_detail_parse_fails() -> None:
         team1_score=2,
         team2_score=0,
         winner_name="Legacy",
+        team1_logo_url="https://liquipedia.net/commons/images/thumb/3/34/Legacy_allmode.png/49px-Legacy_allmode.png",
+        team2_logo_url=None,
         maps=[
             LiquipediaMap(name="Nuke", team1_score=13, team2_score=1),
             LiquipediaMap(name="Mirage", team1_score=13, team2_score=3),
@@ -87,6 +89,11 @@ def test_collector_uses_liquipedia_when_hltv_detail_parse_fails() -> None:
     assert [m.name for m in detail.maps] == ["Nuke", "Mirage"]
     item = collector._to_collector_item(detail)
     assert item.metadata["source_fallback"] == "liquipedia"
+    assert item.metadata["team1_logo_url"] == (
+        "https://liquipedia.net/commons/images/thumb/3/34/"
+        "Legacy_allmode.png/49px-Legacy_allmode.png"
+    )
+    assert "team2_logo_url" not in item.metadata
 
 
 def test_collector_drops_match_when_liquipedia_also_fails() -> None:

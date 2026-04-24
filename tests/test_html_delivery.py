@@ -270,6 +270,37 @@ def test_match_section_renders_teams_score_and_event():
     assert "Mirage" in html
 
 
+def test_match_section_renders_team_logos_when_available():
+    match = _match()
+    match.metadata["team1_logo_url"] = "https://img.example/spirit.png"
+    match.metadata["team2_logo_url"] = "https://img.example/faze.png"
+    digest = DigestOutput(
+        summary_line="Spirit edge FaZe in Lisbon.",
+        sections={"Matches": SectionOutput(intro="", items=[match])},
+    )
+
+    html = html_lib.unescape(render_briefing(digest, _DATE))
+    collapsed = " ".join(html.split())
+
+    assert 'class="team-logo"' in collapsed
+    assert 'src="https://img.example/spirit.png"' in collapsed
+    assert 'alt="Spirit logo"' in collapsed
+    assert 'src="https://img.example/faze.png"' in collapsed
+    assert 'alt="FaZe logo"' in collapsed
+    assert ">SP</span>" not in html
+    assert ">FAZE</span>" not in html
+
+
+def test_match_section_falls_back_to_initial_crest_without_team_logos():
+    digest = _digest_with_hltv_sections()
+
+    html = html_lib.unescape(render_briefing(digest, _DATE))
+    collapsed = " ".join(html.split())
+
+    assert 'class="crest" data-team="SP"' in collapsed
+    assert ">SP</span>" in html
+
+
 def test_news_section_renders_article():
     digest = _digest_with_hltv_sections()
     html = html_lib.unescape(render_briefing(digest, _DATE))

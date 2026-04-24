@@ -18,6 +18,7 @@ env/
 .pytest_cache/
 .pytest_tmp/
 .tmp_pytest/
+tmp_pytest_run/
 
 *.log
 

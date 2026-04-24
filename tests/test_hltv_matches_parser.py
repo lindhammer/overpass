@@ -261,6 +261,29 @@ def test_parse_match_detail_hydrates_listing_item_with_maps_veto_and_player_stat
     )
 
 
+def test_parse_match_detail_extracts_team_logo_urls() -> None:
+    listing_item = parse_results_listing(
+        _read_fixture("hltv_results.html"),
+        base_url="https://www.hltv.org",
+    )[0]
+    html = _read_fixture("hltv_match_detail.html").replace(
+        '<div class="team1-gradient">',
+        '<div class="team1-gradient"><img class="team-logo" src="/img/static/team/7020.png" />',
+    ).replace(
+        '<div class="team2-gradient">',
+        '<div class="team2-gradient"><img class="team-logo" data-src="/img/static/team/6667.png" />',
+    )
+
+    match = parse_match_detail(
+        html,
+        listing_item=listing_item,
+        base_url="https://www.hltv.org",
+    )
+
+    assert match.team1_logo_url == "https://www.hltv.org/img/static/team/7020.png"
+    assert match.team2_logo_url == "https://www.hltv.org/img/static/team/6667.png"
+
+
 def test_parse_match_detail_accepts_numbered_veto_rows() -> None:
     listing_item = parse_results_listing(
         _read_fixture("hltv_results.html"),
