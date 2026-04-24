@@ -21,6 +21,7 @@ from overpass.delivery.html import render_briefing, save_briefing
 from overpass.delivery.telegram import send_digest_notification
 from overpass.editorial.digest import generate_digest
 from overpass.editorial.gemini import GeminiProvider
+from overpass.history.lookup import get_primary_for
 from overpass.hltv.browser import HLTVBrowserClient
 from overpass.liquipedia.client import LiquipediaClient
 
@@ -157,11 +158,17 @@ async def async_main() -> None:
     logger.info("=== Step 3/4: Rendering HTML ===")
     t0 = time.monotonic()
     today = date.today()
+    this_day = get_primary_for(today)
+    if this_day is not None:
+        logger.info("This Day in CS: %d — %s", this_day.year, this_day.headline)
+    else:
+        logger.info("This Day in CS: no entry for %s", today.isoformat())
     html = render_briefing(
         digest,
         today,
         social_items=social_items,
         upcoming_items=upcoming_items,
+        this_day=this_day,
     )
     path = save_briefing(html, today)
     logger.info("HTML saved to %s (%.1fs)", path, time.monotonic() - t0)
