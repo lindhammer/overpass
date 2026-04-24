@@ -24,7 +24,7 @@ hltv:
 youtube:
   api_key_env: "YOUTUBE_API_KEY"
   channels:
-    - id: "UC_SgBkrOEFVnJkBMKcpp5lg"
+    - id: "UCXbsUubmNPK8XJFbkmlMcMg"
       name: "HLTV"
 
 podcasts:
@@ -72,8 +72,8 @@ timezone: "Europe/Berlin"
 liquipedia:
   base_url: "https://liquipedia.net/counterstrike"
   api_url: "https://liquipedia.net/counterstrike/api.php"
-  contact: "your-email@example.com"  # Required. Your contact email, used in the Liquipedia API User-Agent.
-  user_agent: "overpass/0.1.0 (+https://github.com/your-github-username/overpass; {contact})"  # Required. {contact} is replaced with the contact value above.
+  contact: "your-email@example.com" # Required. Your contact email, used in the Liquipedia API User-Agent.
+  user_agent: "overpass/0.1.0 (+https://github.com/your-github-username/overpass; {contact})" # Required. {contact} is replaced with the contact value above.
   min_request_interval_seconds: 2.0
   request_timeout_seconds: 30
   cache_dir: ".cache/liquipedia"
@@ -131,3 +131,4 @@ social:
       display_name: "NiKo"
     - handle: "broky"
       display_name: "broky"
+
