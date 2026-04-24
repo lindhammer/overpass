@@ -21,15 +21,10 @@ first_paragraph(s) -> first
 block -#} {%- set social_posts = social_posts | default([]) -%} {%- set
 upcoming_matches = upcoming_matches | default([]) -%} {%- set this_day =
 this_day | default(none) -%} {%- set route_stops = route_stops | default([]) -%}
-{%- set per_match_blurbs = per_match_blurbs | default({}) -%} {%- set
-videos_and_podcasts_both = ("Videos" in digest.sections) and ("Podcasts" in
-digest.sections) -%} {%- set ns = namespace(blocks=[]) -%} {%- if "Matches" in
-digest.sections -%} {%- set _ = ns.blocks.append({"key":"Matches","title":"Match Results","kind":"matches","blurb":"Last 24h. Taglines and key-player highlights."}) -%} {%- endif -%} {%- if "Clips" in digest.sections -%} {%- set _ = ns.blocks.append({"key":"Clips","title":"Top Clips","kind":"clips","blurb":"Reddit moments worth opening before the algorithm buries them."}) -%} {%- endif -%} {%- if social_posts -%} {%- set _ = ns.blocks.append({"key":"Social","title":"Social","kind":"social","blurb":"Notable pro posts from the last 24 hours."}) -%} {%- endif -%} {%- if "News" in
-digest.sections -%} {%- set _ = ns.blocks.append({"key":"News","title":"Roster Moves & News","kind":"news","blurb":"Team changes, management hints, announcement smoke."}) -%} {%- endif -%} {%- if upcoming_matches -%} {%- set _ = ns.blocks.append({"key":"Upcoming","title":"Upcoming","kind":"upcoming","blurb":"Scheduled fixtures. Click through to HLTV for streams and stats."}) -%} {%- endif -%} {%-
-if videos_and_podcasts_both -%} {%- set _ = ns.blocks.append({"key":"Drops","title":"Content Drops","kind":"drops","blurb":"Long-form videos and podcasts from the last cycle."}) -%} {%- elif "Videos" in digest.sections -%} {%- set _ = ns.blocks.append({"key":"Videos","title":"Videos","kind":"videos","blurb":"Long-form videos worth your watch-later list."}) -%} {%- elif "Podcasts" in
-digest.sections -%} {%- set _ = ns.blocks.append({"key":"Podcasts","title":"Podcasts","kind":"podcasts","blurb":"Episodes dropped in the last cycle."}) -%} {%- endif -%} {%- if "Patches" in
-digest.sections -%} {%- set _ = ns.blocks.append({"key":"Patches","title":"Patch Notes","kind":"patches","blurb":"Latest game updates and balance changes."}) -%}
-{%- endif -%} {%- if this_day -%} {%- set _ = ns.blocks.append({"key":"History","title":"This Day in CS","kind":"history","blurb":"A moment from this date in Counter-Strike history."}) -%} {%- endif -%} {%- macro crest(name, logo_url) -%}
+{%- set per_match_blurbs = per_match_blurbs | default({}) -%}
+{%- set blocks = blocks | default([]) -%}
+{%- set section_limits = section_limits | default({}) -%}
+{%- macro crest(name, logo_url) -%}
 <span
   class="crest{% if logo_url %} has-logo{% endif %}"
   data-team="{{ name | team_code }}"
@@ -60,30 +55,164 @@ bl.highlight }} {%- elif item.metadata.get("event") -%}<span class="dim"
 {%- endif -%} {%- endmacro -%}
 {%- macro drop_card(item, kind) -%}
 {%- set m = item.metadata or {} -%}
+{%- set _channel = m.get("channel") or m.get("channel_name") or m.get("podcast_name") or item.source -%}
+{%- set _thumb = item.thumbnail_url or (item.url | youtube_thumb if kind == 'video' else none) -%}
+{%- set _desc = m.get("description") | clean_drop -%}
 <a class="drop" href="{{ item.url }}" target="_blank" rel="noopener">
-  <div class="drop-kind {{ kind }}">{{ kind | upper }}</div>
+  <div class="drop-thumb {{ kind }}{{ ' has-img' if _thumb else '' }}">
+    {%- if _thumb %}<img src="{{ _thumb }}" alt="" loading="lazy" decoding="async" />{%- endif %}
+  </div>
   <div>
     <h3>{{ item.title }}</h3>
-    {%- if m.get("description") %}
-    <p>{{ m.get("description") }}</p>
+    {%- if _desc %}
+    <p>{{ _desc }}</p>
     {%- endif %}
     <div class="drop-meta">
-      <span>{{ m.get("channel") or item.source }}</span>
+      <span class="drop-source">{{ _channel }}</span>
       {%- if item.timestamp %}<span>{{ item.timestamp | fmt_date("%-d %b") | upper }}</span>{%- endif %}
       {%- if m.get("duration") %}<span>{{ m.get("duration") }}</span>{%- endif %}
     </div>
   </div>
 </a>
 {%- endmacro -%}
-{%- if not route_stops -%} {%- set ns2 =
-namespace(stops=[]) -%} {%- for b in ns.blocks[:4] -%} {%- set count = 0 -%} {%-
-if b.key in digest.sections -%}{%- set count = digest.sections[b.key].items |
-length -%} {%- elif b.kind == "social" -%}{%- set count = social_posts | length
--%} {%- elif b.kind == "upcoming" -%}{%- set count = upcoming_matches | length
--%} {%- endif -%} {%- set _label = "item" if count == 1 else "items" -%}
-{%- set _ = ns2.stops.append({ "title": b.title, "body":
-(count ~ " " ~ _label ~ " queued.") if count else "Briefing stop." })
--%} {%- endfor -%} {%- set route_stops = ns2.stops -%} {%- endif -%} {%- set ns3
+{%- macro match_card(item) -%}
+{%- set m = item.metadata or {} -%}
+{%- set _s1 = m.get("team1_score") -%}
+{%- set _s2 = m.get("team2_score") -%}
+{%- set _has_score = (_s1 is not none) and (_s2 is not none) -%}
+{%- set s1 = _s1 | int if _s1 is not none else 0 -%}
+{%- set s2 = _s2 | int if _s2 is not none else 0 -%}
+{%- set t1cls = "winner" if _has_score and s1 > s2 else ("loser" if _has_score and s1 < s2 else "") -%}
+{%- set t2cls = "winner" if _has_score and s2 > s1 else ("loser" if _has_score and s2 < s1 else "") -%}
+{%- set s1cls = "win" if _has_score and s1 > s2 else ("lose" if _has_score and s1 < s2 else "") -%}
+{%- set s2cls = "win" if _has_score and s2 > s1 else ("lose" if _has_score and s2 < s1 else "") -%}
+{%- set _veto = m.get("veto") or [] -%}
+{%- set _stats = m.get("player_stats") or [] -%}
+<article class="match">
+  <a class="match-link" href="{{ item.url }}" target="_blank" rel="noopener">
+    <div class="teams">
+      <div class="team-line {{ t1cls }}">
+        {{ crest(m.get("team1_name") or "?", m.get("team1_logo_url")) }}
+        <strong>{{ m.get("team1_name") or "TBD" }}</strong>
+        {%- if m.get("team1_rank") %}<span class="rank">#{{ m.get("team1_rank") }}</span>{%- endif %}
+      </div>
+      <div class="team-line {{ t2cls }}">
+        {{ crest(m.get("team2_name") or "?", m.get("team2_logo_url")) }}
+        <strong>{{ m.get("team2_name") or "TBD" }}</strong>
+        {%- if m.get("team2_rank") %}<span class="rank">#{{ m.get("team2_rank") }}</span>{%- endif %}
+      </div>
+    </div>
+    <div class="scorebox">
+      <div class="score">
+        {%- if _has_score -%}
+        <span class="s {{ s1cls }}">{{ s1 }}</span><em>:</em><span class="s {{ s2cls }}">{{ s2 }}</span>
+        {%- else -%}
+        <span class="s pending" title="No result">—</span>
+        {%- endif -%}
+      </div>
+      <div class="maps">
+        {%- if m.get("maps") -%} {%- for mp in m.maps -%} {%- if not loop.first %} · {% endif -%} {{ mp.name }} {{ mp.team1_score }}-{{ mp.team2_score }} {%- endfor -%}
+        {%- elif m.get("format") -%}{{ m.format }}{%- endif -%}
+      </div>
+    </div>
+    <p class="highlight">
+      <span class="tagline">{{ match_tagline(item) }}</span><br />
+      {{ match_highlight(item) }}
+    </p>
+  </a>
+  {%- if _veto or _stats %}
+  <details class="match-detail">
+    <summary>Veto &amp; player stats</summary>
+    <div class="match-detail-body">
+      {%- if _veto %}
+      <div class="veto">
+        {%- for v in _veto -%}
+        {%- set _team = v.team_name | team_code if v.team_name else "" -%}
+        {%- set _act = (v.action or "") | lower -%}
+        <span class="veto-step {{ 'pick' if 'pick' in _act else ('ban' if 'ban' in _act else 'left') }}">
+          {%- if _team %}<b>{{ _team }}</b>{%- endif %}
+          <em>{{ v.action }}</em>
+          <span>{{ v.map_name }}</span>
+        </span>
+        {%- endfor -%}
+      </div>
+      {%- endif %}
+      {%- if _stats %}
+      {%- set _by_team = {} -%}
+      {%- set _ns = namespace(t1=[], t2=[]) -%}
+      {%- for p in _stats -%}
+        {%- if p.team_name == m.get("team1_name") -%}{%- set _ = _ns.t1.append(p) -%}
+        {%- elif p.team_name == m.get("team2_name") -%}{%- set _ = _ns.t2.append(p) -%}
+        {%- endif -%}
+      {%- endfor -%}
+      <div class="stats-grid">
+        {%- for team_name, players in [(m.get("team1_name"), _ns.t1), (m.get("team2_name"), _ns.t2)] %}
+        {%- if players %}
+        <div class="stats-team">
+          <h4>{{ team_name }}</h4>
+          <table>
+            <thead><tr><th>Player</th><th>K-D</th><th>ADR</th><th>Rating</th></tr></thead>
+            <tbody>
+            {%- for p in players | sort(attribute='rating', reverse=true) | list %}{%- if loop.index <= 3 %}
+              <tr>
+                <td>{{ p.player_name }}</td>
+                <td class="num">{{ p.kills }}–{{ p.deaths }}</td>
+                <td class="num">{{ "%.1f" | format(p.adr) }}</td>
+                <td class="num rating {{ 'up' if p.rating >= 1.10 else ('down' if p.rating < 0.95 else '') }}">{{ "%.2f" | format(p.rating) }}</td>
+              </tr>
+            {%- endif %}{%- endfor %}
+            </tbody>
+          </table>
+        </div>
+        {%- endif %}
+        {%- endfor %}
+      </div>
+      {%- endif %}
+    </div>
+  </details>
+  {%- endif %}
+</article>
+{%- endmacro -%}
+{%- macro clip_card(item) -%}
+{%- set m = item.metadata or {} -%}
+<a class="clip" href="{{ item.url }}" target="_blank" rel="noopener">
+  <div class="thumb">
+    {%- if item.thumbnail_url %}<img src="{{ item.thumbnail_url }}" alt="" loading="lazy" />{%- endif %}
+    {%- if m.get("upvotes") is not none %}
+    <div class="upvote" title="{{ m.upvotes }} upvotes"><b>{{ m.upvotes }}</b><span>▲</span></div>
+    {%- endif %}
+  </div>
+  <div class="clip-text">
+    <h3>{{ item.title }}</h3>
+    <p>
+      {%- if m.get("subreddit") %}r/{{ m.subreddit }}{% endif -%}
+      {%- if m.get("author") %} · u/{{ m.author }}{% endif -%}
+      {%- if item.timestamp %} · {{ item.timestamp | fmt_date("%-d %b %H:%M") }}{% endif -%}
+    </p>
+  </div>
+</a>
+{%- endmacro -%}
+{%- macro news_card(item) -%}
+{%- set m = item.metadata or {} -%}
+{%- set variant = item | news_category -%}
+{%- set _is_older = item.timestamp and item.timestamp.date() < date -%}
+<a class="news {{ variant }}" href="{{ item.url }}" target="_blank" rel="noopener">
+  <div class="news-ribbon">
+    <span class="news-type">{{ item | news_category_label }}</span>
+    <span class="news-when">{%- if _is_older -%}{{ item.timestamp | fmt_date("%-d %b") }} {% endif -%}{{ item.timestamp | fmt_date("%H:%M") }}</span>
+  </div>
+  <div class="news-body">
+    <h3>{{ item.title }}</h3>
+    {%- if m.get("teaser") %}
+    <p>{{ m.get("teaser") }}</p>
+    {%- endif %}
+  </div>
+</a>
+{%- endmacro -%}
+{%- macro empty_lane(message) -%}
+<div class="empty-lane">{{ message }}</div>
+{%- endmacro -%}
+{%- if not route_stops -%} {%- set route_stops = [] -%} {%- endif -%} {%- set ns3
 = namespace(total=0) -%} {%- for sec in digest.sections.values() -%}{%- set
 ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
 <!doctype html>
@@ -95,8 +224,17 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>
-      OVERPASS — CS2 DAILY · {{ date | fmt_date("%a %-d %b %Y") | upper }}
+      OVERPASS — CS2 DAILY · {{ date | fmt_date(DATE_FMT_HEADER) | upper }}
     </title>
+    <meta name="description" content="{{ digest.summary_line }}" />
+    <meta name="theme-color" content="#1a1d21" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="OVERPASS · CS2 Daily — Issue {{ issue_no }}" />
+    <meta property="og:description" content="{{ digest.summary_line }}" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="OVERPASS · CS2 Daily — Issue {{ issue_no }}" />
+    <meta name="twitter:description" content="{{ digest.summary_line }}" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%231a1d21'/><text x='16' y='22' font-family='monospace' font-size='18' font-weight='700' text-anchor='middle' fill='%23f5b942'>O</text></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -266,22 +404,18 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       }
       .datebox strong {
         color: var(--ink);
-        font-weight: 600;
+        font-weight: 700;
       }
       .pulse {
         width: 11px;
         height: 11px;
         background: var(--primary);
         box-shadow: 0 0 0 0 var(--primary-line);
-        animation: ping 1.8s infinite;
+        animation: ping 1.8s 3;
         flex: 0 0 auto;
       }
       .datebox > span:last-child {
         color: var(--ink-2);
-      }
-      .datebox strong {
-        color: var(--ink);
-        font-weight: 700;
       }
       @keyframes ping {
         0% {
@@ -394,7 +528,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         margin-top: 24px;
       }
       .jumpbar a {
-        padding: 10px 16px;
+        padding: 14px 18px;
         border: 1px solid var(--rule);
         border-right: 0;
         font-family: "Roboto Condensed", sans-serif;
@@ -610,7 +744,66 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         background: var(--primary-soft);
         color: var(--ink);
         font-size: 0.95rem;
+        line-height: 1.55;
         margin-bottom: 24px;
+      }
+      .lane-intro.is-fallback {
+        background: transparent;
+        border-left-color: var(--rule-strong);
+        color: var(--ink-2);
+        font-style: italic;
+      }
+
+      /* Persistent right-arrow affordance on link rows. Brightens on hover. */
+      .clip,
+      .news,
+      .schedule,
+      .drop {
+        position: relative;
+      }
+      .clip::after,
+      .news::after,
+      .schedule::after,
+      .drop::after {
+        content: "→";
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--ink-dim);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 1.1rem;
+        line-height: 1;
+        transition: color 0.15s, transform 0.15s;
+        pointer-events: none;
+      }
+      .clip:hover::after,
+      .news:hover::after,
+      .schedule:hover::after,
+      .drop:hover::after,
+      .clip:focus-visible::after,
+      .news:focus-visible::after,
+      .schedule:focus-visible::after,
+      .drop:focus-visible::after {
+        color: var(--primary);
+        transform: translateY(-50%) translateX(3px);
+      }
+      @media (max-width: 640px) {
+        .clip::after,
+        .drop::after {
+          display: none;
+        }
+      }
+
+      /* Respect reduced-motion preferences — freeze ticker + pulse. */
+      @media (prefers-reduced-motion: reduce) {
+        .ticker-track {
+          animation: none;
+          transform: none;
+        }
+        .pulse {
+          animation: none;
+        }
       }
 
       /* ── CRESTS ───────────────────────────────────────────────────────── */
@@ -630,42 +823,153 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         flex: 0 0 auto;
       }
       .crest.has-logo {
-        background: oklch(0.28 0.005 255);
+        /* Most team logos are designed for a light background; rather than
+           blend-mode tricks (which black out dark logos like BIG or Sharks),
+           we give every crest a subtle off-white tile so brand colour
+           displays as designed. */
+        background: oklch(0.92 0.005 255);
+        border-color: oklch(0.82 0.005 255);
         padding: 3px;
       }
       .crest img {
         width: 100%;
         height: 100%;
         object-fit: contain;
-        /* Most team logos are designed for a light background; lifting them
-           with a screen blend keeps brand colour while killing the bright
-           white tile that would otherwise punch through the dark theme. */
-        mix-blend-mode: screen;
-        filter: brightness(1.05) contrast(1.05);
       }
 
       /* ── MATCH ROWS ───────────────────────────────────────────────────── */
       .match {
+        display: block;
+        border-left: 2px solid transparent;
+        transition: border-left-color 0.15s;
+      }
+      .match:has(.match-link:hover),
+      .match:focus-within {
+        border-left-color: var(--primary);
+      }
+      .match-link {
         display: grid;
         grid-template-columns: minmax(0, 1.3fr) 140px minmax(0, 1.4fr);
         gap: 28px;
         align-items: center;
         padding: 22px 20px;
-        border-left: 2px solid transparent;
-        transition:
-          background 0.15s,
-          border-left-color 0.15s;
+        transition: background 0.15s;
       }
-      .match:hover {
+      .match-link:hover,
+      .match-link:focus-visible {
         background: oklch(0.2 0.005 255 / 0.5);
-        border-left-color: var(--primary);
       }
       @media (max-width: 720px) {
-        .match {
+        .match-link {
           grid-template-columns: 1fr;
           gap: 16px;
         }
       }
+
+      /* ── MATCH DETAIL (veto + player stats) ─────────────────────────── */
+      .match-detail {
+        border-top: 1px dashed var(--rule);
+        margin: 0 20px;
+      }
+      .match-detail > summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 10px 0;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        transition: color 0.15s;
+      }
+      .match-detail > summary::-webkit-details-marker { display: none; }
+      .match-detail > summary::after {
+        content: " ↓";
+        color: var(--primary);
+      }
+      .match-detail[open] > summary::after { content: " ↑"; }
+      .match-detail > summary:hover { color: var(--ink); }
+      .match-detail > summary:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+      .match-detail-body {
+        padding: 4px 0 16px;
+        display: grid;
+        gap: 18px;
+      }
+      .veto {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+      }
+      .veto-step {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
+        padding: 5px 9px;
+        border: 1px solid var(--rule);
+        background: oklch(0.18 0.005 255 / 0.6);
+        color: var(--ink-2);
+      }
+      .veto-step b {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .veto-step em {
+        font-style: normal;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .veto-step.ban { border-color: oklch(0.42 0.05 25 / 0.6); }
+      .veto-step.ban em { color: var(--live); }
+      .veto-step.pick { border-color: var(--primary-line); }
+      .veto-step.pick em { color: var(--primary); }
+      .veto-step.left em { color: var(--signal); }
+      .stats-grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      }
+      .stats-team h4 {
+        margin: 0 0 6px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 600;
+        font-size: 0.78rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-2);
+      }
+      .stats-team table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.84rem;
+      }
+      .stats-team th,
+      .stats-team td {
+        padding: 5px 8px;
+        text-align: left;
+        border-bottom: 1px solid var(--rule);
+      }
+      .stats-team th {
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 500;
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .stats-team td.num {
+        font-family: "JetBrains Mono", monospace;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .stats-team td.rating.up { color: var(--primary); }
+      .stats-team td.rating.down { color: var(--ink-dim); }
 
       .teams {
         display: flex;
@@ -678,6 +982,11 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         align-items: center;
         gap: 12px;
         min-width: 0;
+        padding-left: 8px;
+        border-left: 2px solid transparent;
+      }
+      .team-line.winner {
+        border-left-color: var(--primary);
       }
       .team-line strong {
         font-family: "Roboto Condensed", sans-serif;
@@ -687,6 +996,10 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+      .team-line.loser strong {
+        color: var(--ink-mute);
+        font-weight: 500;
       }
       .team-line .rank {
         margin-left: auto;
@@ -707,6 +1020,15 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         line-height: 1;
         color: var(--ink);
         letter-spacing: 0.04em;
+      }
+      .scorebox .score .s.win {
+        color: var(--ink);
+      }
+      .scorebox .score .s.lose {
+        color: var(--ink-mute);
+      }
+      .scorebox .score .s.pending {
+        color: var(--ink-dim);
       }
       .scorebox .score em {
         font-style: normal;
@@ -735,10 +1057,11 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       }
       .tagline {
         display: inline-block;
-        padding: 4px 10px;
+        padding: 3px 9px;
         margin-bottom: 8px;
-        background: var(--primary);
-        color: var(--primary-ink);
+        background: transparent;
+        color: var(--primary);
+        border: 1px solid var(--primary-line);
         font-family: "Roboto Condensed", sans-serif;
         font-weight: 700;
         font-size: 0.7rem;
@@ -749,10 +1072,10 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       /* ── CLIP ROWS ────────────────────────────────────────────────────── */
       .clip {
         display: grid;
-        grid-template-columns: 132px minmax(0, 1fr) auto;
+        grid-template-columns: 200px minmax(0, 1fr);
         gap: 22px;
         align-items: center;
-        padding: 18px 20px;
+        padding: 18px 36px 18px 20px;
         border-left: 2px solid transparent;
         transition:
           background 0.15s,
@@ -796,7 +1119,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         margin: 0 0 6px;
         font-family: "Roboto Condensed", sans-serif;
         font-weight: 700;
-        font-size: 1.02rem;
+        font-size: 1.18rem;
         line-height: 1.3;
         color: var(--ink);
       }
@@ -807,25 +1130,28 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         line-height: 1.45;
       }
 
-      .upvote {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-width: 64px;
-        padding: 8px 12px;
-        border: 1px solid var(--rule);
+      /* Upvote chip overlays the thumb's bottom-right corner. */
+      .thumb .upvote {
+        position: absolute;
+        right: 6px;
+        bottom: 6px;
+        display: inline-flex;
+        align-items: baseline;
+        gap: 5px;
+        padding: 4px 9px;
+        background: oklch(0 0 0 / 0.75);
         color: var(--signal);
+        border: 1px solid oklch(0.85 0.15 95 / 0.35);
       }
-      .upvote b {
+      .thumb .upvote b {
         font-family: "JetBrains Mono", monospace;
         font-weight: 700;
-        font-size: 1.05rem;
+        font-size: 0.86rem;
         line-height: 1;
       }
-      .upvote span {
-        margin-top: 4px;
+      .thumb .upvote span {
         font-family: "Roboto Condensed", sans-serif;
-        font-size: 0.66rem;
+        font-size: 0.62rem;
         letter-spacing: 0.16em;
         text-transform: uppercase;
         color: var(--ink-mute);
@@ -908,7 +1234,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         display: grid;
         grid-template-columns: 140px 1fr;
         gap: 24px;
-        padding: 20px;
+        padding: 20px 36px 20px 20px;
         border-left: 2px solid var(--primary);
         transition:
           background 0.15s,
@@ -971,8 +1297,8 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         margin: 0 0 6px;
         font-family: "Roboto Condensed", sans-serif;
         font-weight: 700;
-        font-size: 1.05rem;
-        line-height: 1.35;
+        font-size: 1.18rem;
+        line-height: 1.3;
         color: var(--ink);
       }
       .news-body p {
@@ -988,7 +1314,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         grid-template-columns: 110px minmax(0, 1fr) auto;
         gap: 24px;
         align-items: center;
-        padding: 18px 20px;
+        padding: 18px 36px 18px 20px;
         border-left: 2px solid transparent;
         transition:
           background 0.15s,
@@ -1055,9 +1381,9 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       /* ── CONTENT DROPS (videos / podcasts) ───────────────────────────── */
       .drop {
         display: grid;
-        grid-template-columns: 96px minmax(0, 1fr);
+        grid-template-columns: 160px minmax(0, 1fr);
         gap: 20px;
-        padding: 20px;
+        padding: 20px 36px 20px 20px;
         border-left: 2px solid transparent;
         transition:
           background 0.15s,
@@ -1073,29 +1399,55 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         }
       }
 
-      .drop-kind {
+      .drop-thumb {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        background: var(--surface-2);
+        border: 1px solid var(--rule);
+        overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 8px 0;
-        background: var(--primary);
-        color: var(--primary-ink);
-        font-family: "Roboto Condensed", sans-serif;
-        font-weight: 700;
-        font-size: 0.74rem;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        writing-mode: vertical-rl;
-        transform: rotate(180deg);
       }
-      .drop-kind.video {
-        background: var(--ink);
-        color: var(--bg);
+      .drop-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
       }
-      .drop-kind.podcast {
-        background: var(--surface-2);
+      .drop-thumb:not(.has-img)::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(135deg, var(--surface-2) 0%, var(--surface) 100%);
+      }
+      .drop-thumb.video:not(.has-img)::after,
+      .drop-thumb.video.has-img::after {
+        content: "▶";
+        position: absolute;
+        right: 6px;
+        bottom: 4px;
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: oklch(0 0 0 / 0.6);
+        color: var(--ink);
+        font-size: 0.78rem;
+        line-height: 1;
+        padding-left: 2px;
+      }
+      .drop-thumb.podcast:not(.has-img)::after {
+        content: "♪";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         color: var(--primary);
-        border: 1px solid var(--primary-line);
+        font-size: 1.6rem;
       }
       .drop h3 {
         margin: 0 0 8px;
@@ -1124,6 +1476,57 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       .drop-meta span {
         padding: 3px 8px;
         border: 1px solid var(--rule);
+      }
+      .drop-meta .drop-source {
+        color: var(--ink-2);
+        border-color: var(--rule-strong);
+      }
+
+      /* ── EMPTY STATES & SHOW-MORE ────────────────────────────────────── */
+      .empty-lane {
+        margin: 8px 20px;
+        padding: 18px 20px;
+        border: 1px dashed var(--rule);
+        background: oklch(0.18 0.005 255 / 0.4);
+        color: var(--ink-mute);
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.86rem;
+        letter-spacing: 0.04em;
+      }
+      details.show-more {
+        margin-top: 4px;
+        border-top: 1px solid var(--rule);
+      }
+      details.show-more > summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 14px 20px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.78rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-2);
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      details.show-more > summary::-webkit-details-marker {
+        display: none;
+      }
+      details.show-more > summary::after {
+        content: " ↓";
+        color: var(--primary);
+      }
+      details.show-more[open] > summary::after {
+        content: " ↑";
+      }
+      details.show-more > summary:hover {
+        background: oklch(0.2 0.005 255 / 0.5);
+        color: var(--ink);
+      }
+      details.show-more > summary:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: -2px;
       }
 
       /* ── PATCH ────────────────────────────────────────────────────────── */
@@ -1334,12 +1737,14 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         outline: 2px solid var(--primary);
         outline-offset: 2px;
       }
-      .match:focus-within,
       .clip:focus-within,
       .news:focus-within,
       .schedule:focus-within,
       .drop:focus-within {
         background: oklch(0.2 0.005 255 / 0.5);
+        border-left-color: var(--primary);
+      }
+      .match:focus-within {
         border-left-color: var(--primary);
       }
 
@@ -1395,7 +1800,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         gap: 0;
       }
       .foot nav a {
-        padding: 8px 12px;
+        padding: 12px 16px;
         border: 1px solid var(--rule);
         border-right: 0;
         font-family: "Roboto Condensed", sans-serif;
@@ -1425,8 +1830,8 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         <div class="datebox">
           <span class="pulse" aria-hidden="true"></span>
           <span>
-            <strong>{{ date | fmt_date("%a %-d %b %Y") | upper }}</strong><br />
-            Filed {{ generated_at | fmt_date("%H:%M") }} {{ tz_label }} · Personal Edition
+            <strong>{{ date | fmt_date(DATE_FMT_HEADER) | upper }}</strong><br />
+            Filed {{ generated_at | fmt_date(DATE_FMT_TIME) }} {{ tz_label }} · Personal Edition
           </span>
         </div>
       </div>
@@ -1480,11 +1885,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
                 <div class="stat">
                   <b>{{ ns3.total }}</b><span>{{ ns3.total | pluralize('Story', 'Stories') }} Scanned</span>
                 </div>
-                {%- for b in ns.blocks[:3] %} {%- set count =
-                digest.sections[b.key].items | length if b.key in
-                digest.sections else (social_posts | length if b.kind ==
-                'social' else (upcoming_matches | length if b.kind == 'upcoming'
-                else 0)) -%} {%- if count -%}
+                {%- for b in blocks %} {%- set count = b.count -%} {%- if count -%}
                 <div class="stat">
                   <b>{{ count }}</b><span>{{ _stat_singular.get(b.key, b.title) if count == 1 else _stat_labels.get(b.key, b.title) }}</span>
                 </div>
@@ -1492,7 +1893,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
               </div>
 
               <nav class="jumpbar" aria-label="Jump to briefing sections">
-                {%- for b in ns.blocks %}
+                {%- for b in blocks %}
                 <a href="#{{ b.key | lower }}">{{ b.title }}</a>
                 {%- endfor %}
               </nav>
@@ -1528,11 +1929,9 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       {# ─── BODY SECTIONS ─────────────────────────────────────────────── #}
       <div class="briefing">
         <div class="wrap">
-          {%- for b in ns.blocks %}
-          {%- set _section_count = (digest.sections[b.key].items | length) if b.key in digest.sections
-              else (social_posts | length if b.kind == 'social'
-              else (upcoming_matches | length if b.kind == 'upcoming'
-              else (1 if b.kind == 'history' else 0))) %}
+          {%- for b in blocks %}
+          {%- set _section_count = b.count %}
+          {%- set _limit = section_limits.get(b.kind, 0) %}
           <section class="section" id="{{ b.key | lower }}">
             <header class="section-head">
               <div class="title-row">
@@ -1547,80 +1946,41 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
 
             {%- if b.key in digest.sections and digest.sections[b.key].intro %}
             <p class="lane-intro">{{ digest.sections[b.key].intro }}</p>
+            {%- elif b.blurb %}
+            <p class="lane-intro is-fallback">{{ b.blurb }}</p>
             {%- endif %}
 
             <div class="lane">
-              {# ─── MATCHES ─── #} {%- if b.kind == "matches" %} {%- for item
-              in digest.sections.Matches.items %} {%- set m = item.metadata or
-              {} %}
-              <article class="match">
-                <div class="teams">
-                  <div class="team-line">
-                    {{ crest(m.get("team1_name") or "?",
-                    m.get("team1_logo_url")) }}
-                    <strong>{{ m.get("team1_name") or "TBD" }}</strong>
-                    {%- if m.get("team1_rank") %}<span class="rank"
-                      >#{{ m.get("team1_rank") }}</span
-                    >{%- endif %}
-                  </div>
-                  <div class="team-line">
-                    {{ crest(m.get("team2_name") or "?",
-                    m.get("team2_logo_url")) }}
-                    <strong>{{ m.get("team2_name") or "TBD" }}</strong>
-                    {%- if m.get("team2_rank") %}<span class="rank"
-                      >#{{ m.get("team2_rank") }}</span
-                    >{%- endif %}
-                  </div>
+              {# ─── MATCHES ─── #} {%- if b.kind == "matches" %}
+              {%- set _items = digest.sections.Matches.items if 'Matches' in digest.sections else [] %}
+              {%- set _visible = _items[:_limit] if _limit else _items %}
+              {%- set _rest = _items[_limit:] if _limit else [] %}
+              {%- if not _items %}
+                {{ empty_lane("No completed matches in the last 24 hours.") }}
+              {%- endif %}
+              {%- for item in _visible %}{{ match_card(item) }}{%- endfor %}
+              {%- if _rest %}
+              <details class="show-more">
+                <summary>Show {{ _rest | length }} more {{ (_rest | length) | pluralize('match', 'matches') }}</summary>
+                <div class="lane-rest">
+                {%- for item in _rest %}{{ match_card(item) }}{%- endfor %}
                 </div>
-                <div class="scorebox">
-                  <div class="score">
-                    {{ m.get("team1_score", 0) }} <em>:</em> {{
-                    m.get("team2_score", 0) }}
-                  </div>
-                  <div class="maps">
-                    {%- if m.get("maps") -%} {%- for mp in m.maps -%} {%- if not
-                    loop.first %} · {% endif -%} {{ mp.name }} {{ mp.team1_score
-                    }}-{{ mp.team2_score }} {%- endfor -%} {%- elif
-                    m.get("format") -%}{{ m.format }} {%- endif -%}
-                  </div>
+              </details>
+              {%- endif %}
+              {# ─── CLIPS ─── #} {%- elif b.kind == "clips" %}
+              {%- set _items = digest.sections.Clips.items %}
+              {%- set _visible = _items[:_limit] if _limit else _items %}
+              {%- set _rest = _items[_limit:] if _limit else [] %}
+              {%- for item in _visible %}{{ clip_card(item) }}{%- endfor %}
+              {%- if _rest %}
+              <details class="show-more">
+                <summary>Show {{ _rest | length }} more {{ (_rest | length) | pluralize('clip') }}</summary>
+                <div class="lane-rest">
+                {%- for item in _rest %}{{ clip_card(item) }}{%- endfor %}
                 </div>
-                <p class="highlight">
-                  <a href="{{ item.url }}" target="_blank" rel="noopener">
-                    <span class="tagline">{{ match_tagline(item) }}</span> </a
-                  ><br />
-                  {{ match_highlight(item) }}
-                </p>
-              </article>
-              {%- endfor %} {# ─── CLIPS ─── #} {%- elif b.kind == "clips" %}
-              {%- for item in digest.sections.Clips.items %} {%- set m =
-              item.metadata or {} %}
-              <a
-                class="clip"
-                href="{{ item.url }}"
-                target="_blank"
-                rel="noopener"
-              >
-                <div class="thumb">
-                  {%- if item.thumbnail_url %}<img
-                    src="{{ item.thumbnail_url }}"
-                    alt=""
-                    loading="lazy"
-                  />{%- endif %}
-                </div>
-                <div class="clip-text">
-                  <h3>{{ item.title }}</h3>
-                  <p>
-                    {%- if m.get("subreddit") %}r/{{ m.subreddit }}{% endif -%}
-                    {%- if m.get("author") %} · u/{{ m.author }}{% endif -%}
-                  </p>
-                </div>
-                {%- if m.get("upvotes") is not none %}
-                <div class="upvote">
-                  <b>{{ m.upvotes }}</b><span>Upvotes</span>
-                </div>
-                {%- endif %}
-              </a>
-              {%- endfor %} {# ─── SOCIAL ─── #} {%- elif b.kind == "social" %}
+              </details>
+              {%- endif %}
+              {# ─── SOCIAL ─── #} {%- elif b.kind == "social" %}
               {%- for post in social_posts %}
               <a
                 class="story"
@@ -1651,49 +2011,26 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
                 </div>
               </a>
               {%- endfor %} {# ─── NEWS / ROSTER ─── #} {%- elif b.kind == "news" %}
-              {%- set _news_items = digest.sections.News.items %}
-              {%- set _news_visible = _news_items[:5] %}
-              {%- set _news_rest = _news_items[5:] %}
-              {%- for item in _news_visible %}
-                {%- set m = item.metadata or {} %}
-                {%- set variant = item | news_category %}
-                <a class="news {{ variant }}" href="{{ item.url }}" target="_blank" rel="noopener">
-                  <div class="news-ribbon">
-                    <span class="news-type">{{ item | news_category_label }}</span>
-                    <span class="news-when">{{ item.timestamp | fmt_date("%H:%M") }}</span>
-                  </div>
-                  <div class="news-body">
-                    <h3>{{ item.title }}</h3>
-                    {%- if m.get("teaser") %}
-                    <p>{{ m.get("teaser") }}</p>
-                    {%- endif %}
-                  </div>
-                </a>
-              {%- endfor %}
-              {%- if _news_rest %}
-              <details>
-                <summary>Show {{ _news_rest | length }} more {{ (_news_rest | length) | pluralize('item') }}</summary>
+              {%- set _items = digest.sections.News.items if 'News' in digest.sections else [] %}
+              {%- set _visible = _items[:_limit] if _limit else _items %}
+              {%- set _rest = _items[_limit:] if _limit else [] %}
+              {%- if not _items %}
+                {{ empty_lane("No roster moves or major news in the last 24 hours.") }}
+              {%- endif %}
+              {%- for item in _visible %}{{ news_card(item) }}{%- endfor %}
+              {%- if _rest %}
+              <details class="show-more">
+                <summary>Show {{ _rest | length }} more {{ (_rest | length) | pluralize('item') }}</summary>
                 <div class="lane-rest">
-                {%- for item in _news_rest %}
-                  {%- set m = item.metadata or {} %}
-                  {%- set variant = item | news_category %}
-                  <a class="news {{ variant }}" href="{{ item.url }}" target="_blank" rel="noopener">
-                    <div class="news-ribbon">
-                      <span class="news-type">{{ item | news_category_label }}</span>
-                      <span class="news-when">{{ item.timestamp | fmt_date("%H:%M") }}</span>
-                    </div>
-                    <div class="news-body">
-                      <h3>{{ item.title }}</h3>
-                      {%- if m.get("teaser") %}
-                      <p>{{ m.get("teaser") }}</p>
-                      {%- endif %}
-                    </div>
-                  </a>
-                {%- endfor %}
+                {%- for item in _rest %}{{ news_card(item) }}{%- endfor %}
                 </div>
               </details>
               {%- endif %} {# ─── UPCOMING ─── #} {%- elif b.kind == "upcoming"
-              %} {%- for u in upcoming_matches %}
+              %}
+              {%- if not upcoming_matches %}
+                {{ empty_lane("No scheduled fixtures in the briefing window.") }}
+              {%- endif %}
+              {%- for u in upcoming_matches %}
               <a
                 class="schedule"
                 href="{{ u.hltv_url or '#' }}"
@@ -1721,19 +2058,43 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
               {%- set merged =
                 (digest.sections.Videos.items if 'Videos' in digest.sections else [])
                 + (digest.sections.Podcasts.items if 'Podcasts' in digest.sections else []) %}
-              {%- for item in merged %}
-                {%- set m = item.metadata or {} %}
-                {%- set kind = "podcast" if item.type == "episode" else "video" %}
-                {{ drop_card(item, kind) }}
-              {%- endfor %}
+              {%- set _visible = merged[:_limit] if _limit else merged %}
+              {%- set _rest = merged[_limit:] if _limit else [] %}
+              {%- for item in _visible %}{{ drop_card(item, ('podcast' if item.type == 'episode' else 'video')) }}{%- endfor %}
+              {%- if _rest %}
+              <details class="show-more">
+                <summary>Show {{ _rest | length }} more {{ (_rest | length) | pluralize('drop') }}</summary>
+                <div class="lane-rest">
+                {%- for item in _rest %}{{ drop_card(item, ('podcast' if item.type == 'episode' else 'video')) }}{%- endfor %}
+                </div>
+              </details>
+              {%- endif %}
               {%- elif b.kind == "videos" %}
-              {%- for item in digest.sections.Videos.items %}
-                {{ drop_card(item, 'video') }}
-              {%- endfor %}
+              {%- set _items = digest.sections.Videos.items %}
+              {%- set _visible = _items[:_limit] if _limit else _items %}
+              {%- set _rest = _items[_limit:] if _limit else [] %}
+              {%- for item in _visible %}{{ drop_card(item, 'video') }}{%- endfor %}
+              {%- if _rest %}
+              <details class="show-more">
+                <summary>Show {{ _rest | length }} more {{ (_rest | length) | pluralize('video') }}</summary>
+                <div class="lane-rest">
+                {%- for item in _rest %}{{ drop_card(item, 'video') }}{%- endfor %}
+                </div>
+              </details>
+              {%- endif %}
               {%- elif b.kind == "podcasts" %}
-              {%- for item in digest.sections.Podcasts.items %}
-                {{ drop_card(item, 'podcast') }}
-              {%- endfor %} {# ─── PATCHES ─── #} {%- elif b.kind == "patches"
+              {%- set _items = digest.sections.Podcasts.items %}
+              {%- set _visible = _items[:_limit] if _limit else _items %}
+              {%- set _rest = _items[_limit:] if _limit else [] %}
+              {%- for item in _visible %}{{ drop_card(item, 'podcast') }}{%- endfor %}
+              {%- if _rest %}
+              <details class="show-more">
+                <summary>Show {{ _rest | length }} more {{ (_rest | length) | pluralize('episode') }}</summary>
+                <div class="lane-rest">
+                {%- for item in _rest %}{{ drop_card(item, 'podcast') }}{%- endfor %}
+                </div>
+              </details>
+              {%- endif %} {# ─── PATCHES ─── #} {%- elif b.kind == "patches"
               %} {%- for item in digest.sections.Patches.items %} {%- set m =
               item.metadata or {} %}
               <div class="patch">
@@ -1791,7 +2152,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
               {%- endif %}
             </div>
           </section>
-          {%- endfor %} {%- if not ns.blocks %}
+          {%- endfor %} {%- if not blocks %}
           <div class="empty" style="margin: 80px 0">
             No items collected today.
           </div>
@@ -1804,15 +2165,13 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       <div class="wrap foot">
         <div class="meta">
           <b>OVERPASS</b> · ISSUE {{ issue_no }} · GENERATED {{ generated_at |
-          fmt_date("%a %-d %b %Y · %H:%M") }} {{ tz_label }}
+          fmt_date(DATE_FMT_FOOTER) }} {{ tz_label }}
         </div>
         <nav aria-label="Footer navigation">
           <a href="#top">Top</a>
-          {%- for b in ns.blocks %}
+          {%- for b in blocks %}
           <a href="#{{ b.key | lower }}">{{ b.title }}</a>
           {%- endfor %}
-          <a href="./" title="Briefing archive (coming soon)">Archive</a>
-          <a href="#" title="Live alerts (coming soon)" aria-disabled="true">Live</a>
         </nav>
       </div>
     </footer>

@@ -17,6 +17,12 @@ from overpass.history.models import HistoryEntry
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 _OUTPUT_DIR = Path(__file__).resolve().parent.parent.parent / "output" / "briefings"
 
+# Centralised strftime format strings used by the template. These are passed
+# through the template context so format choices live in one place.
+_DATE_FMT_HEADER = "%a %-d %b %Y"     # masthead + <title>: "WED 24 APR 2026"
+_DATE_FMT_FOOTER = "%a %-d %b %Y · %H:%M"  # colophon line
+_DATE_FMT_TIME = "%H:%M"               # "Filed HH:MM" line
+
 # Map collector source ids to the human-readable labels shown in the colophon.
 _SOURCE_LABELS: dict[str, str] = {
     "hltv": "HLTV",
@@ -26,8 +32,68 @@ _SOURCE_LABELS: dict[str, str] = {
     "podcast": "Podcasts",
 }
 
+# Ordered catalogue of briefing sections. Order here defines the on-page order,
+# the jumpbar order, and the route-stops order. ``always_on`` sections always
+# render (showing an empty-state tile when no items are available); other
+# sections collapse silently when their data isn't present.
+_SECTION_BLOCKS: list[dict[str, Any]] = [
+    {"key": "Matches", "title": "Match Results", "kind": "matches",
+     "blurb": "Last 24h. Taglines and key-player highlights.",
+     "always_on": True, "source": "section"},
+    {"key": "Clips", "title": "Top Clips", "kind": "clips",
+     "blurb": "Reddit moments worth opening before the algorithm buries them.",
+     "always_on": False, "source": "section"},
+    {"key": "Social", "title": "Social", "kind": "social",
+     "blurb": "Notable pro posts from the last 24 hours.",
+     "always_on": False, "source": "social_posts"},
+    {"key": "News", "title": "Roster Moves & News", "kind": "news",
+     "blurb": "Team changes, management hints, announcement smoke.",
+     "always_on": True, "source": "section"},
+    {"key": "Upcoming", "title": "Upcoming", "kind": "upcoming",
+     "blurb": "Scheduled fixtures. Click through to HLTV for streams and stats.",
+     "always_on": True, "source": "upcoming_matches"},
+    # Drops / Videos / Podcasts are resolved at build time: if both Videos and
+    # Podcasts have items, we emit a single merged "Drops" block; otherwise we
+    # emit whichever is present (or neither).
+    {"key": "Drops", "title": "Content Drops", "kind": "drops",
+     "blurb": "Long-form videos and podcasts from the last cycle.",
+     "always_on": False, "source": "drops"},
+    {"key": "Patches", "title": "Patch Notes", "kind": "patches",
+     "blurb": "Latest game updates and balance changes.",
+     "always_on": False, "source": "section"},
+    {"key": "History", "title": "This Day in CS", "kind": "history",
+     "blurb": "A moment from this date in Counter-Strike history.",
+     "always_on": False, "source": "this_day"},
+]
+
+# Per-section show-more thresholds. Blocks not listed here render every item
+# inline (no <details> wrapper).
+_SECTION_LIMITS: dict[str, int] = {
+    "matches": 6,
+    "clips": 5,
+    "news": 8,
+    "drops": 6,
+    "videos": 4,
+    "podcasts": 4,
+}
+
 # Matches BBCode tags like [b], [/b], [h1], [list], [*], [url=...], etc.
 _BBCODE_RE = re.compile(r"\[/?[a-zA-Z0-9]+(?:=[^\]]+)?\]")
+
+# Patterns used by _clean_drop to strip noise from YouTube / podcast blurbs.
+_URL_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
+_EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")
+_HASHTAG_RUN_RE = re.compile(r"(?:#\w+\s*){2,}")
+_LONE_HASHTAG_RE = re.compile(r"#\w+")
+_BOILERPLATE_RE = re.compile(
+    r"\b(?:please\s+)?(?:subscribe|like\s+and\s+subscribe|hit\s+that\s+(?:like|bell)|"
+    r"smash(?:\s+the)?\s+like|follow\s+us|follow\s+me|check\s+out\s+our|"
+    r"join\s+our\s+discord|use\s+code\s+\w+|sponsored\s+by\b[^.]*)\.?",
+    re.IGNORECASE,
+)
+_WS_RE = re.compile(r"\s+")
+# Real YouTube IDs are exactly 11 chars from [A-Za-z0-9_-].
+_YT_ID_RE = re.compile(r"(?:v=|youtu\.be/|/embed/|/shorts/)([A-Za-z0-9_-]{11})(?:[^A-Za-z0-9_-]|$)")
 
 # Common multi-word team-name aliases that map to the established short codes
 # used by the template's per-team crest tints.
@@ -158,6 +224,97 @@ def _build_ticker_chips(digest: DigestOutput) -> list[dict[str, str]]:
     return chips
 
 
+def _section_count(
+    block: dict[str, Any],
+    digest: DigestOutput,
+    social_posts: list[Any],
+    upcoming_matches: list[Any],
+    this_day: HistoryEntry | None,
+) -> int:
+    """Return the item count a block will render for its current data."""
+    src = block["source"]
+    if src == "section":
+        section = digest.sections.get(block["key"])
+        return len(section.items) if section else 0
+    if src == "social_posts":
+        return len(social_posts)
+    if src == "upcoming_matches":
+        return len(upcoming_matches)
+    if src == "this_day":
+        return 1 if this_day is not None else 0
+    if src == "drops":
+        videos = digest.sections.get("Videos")
+        pods = digest.sections.get("Podcasts")
+        return (len(videos.items) if videos else 0) + (len(pods.items) if pods else 0)
+    return 0
+
+
+def _build_blocks(
+    digest: DigestOutput,
+    social_posts: list[Any],
+    upcoming_matches: list[Any],
+    this_day: HistoryEntry | None,
+) -> list[dict[str, Any]]:
+    """Resolve _SECTION_BLOCKS against the current briefing's data.
+
+    Drops/Videos/Podcasts are special-cased: when both Videos and Podcasts have
+    items the merged "Drops" block is emitted; otherwise the present sub-section
+    (if any) takes its place. Always-on blocks are kept regardless of count.
+    """
+    has_videos = bool(digest.sections.get("Videos") and digest.sections["Videos"].items)
+    has_pods = bool(digest.sections.get("Podcasts") and digest.sections["Podcasts"].items)
+
+    out: list[dict[str, Any]] = []
+    for block in _SECTION_BLOCKS:
+        if block["kind"] == "drops":
+            resolved: dict[str, Any] | None = None
+            if has_videos and has_pods:
+                resolved = {**block}
+            elif has_videos:
+                resolved = {
+                    "key": "Videos", "title": "Videos", "kind": "videos",
+                    "blurb": "Long-form videos worth your watch-later list.",
+                    "always_on": False, "source": "section",
+                }
+            elif has_pods:
+                resolved = {
+                    "key": "Podcasts", "title": "Podcasts", "kind": "podcasts",
+                    "blurb": "Episodes dropped in the last cycle.",
+                    "always_on": False, "source": "section",
+                }
+            if resolved is not None:
+                resolved["count"] = _section_count(
+                    resolved, digest, social_posts, upcoming_matches, this_day,
+                )
+                out.append(resolved)
+            continue
+
+        count = _section_count(block, digest, social_posts, upcoming_matches, this_day)
+        if count > 0 or block.get("always_on"):
+            out.append({**block, "count": count})
+    return out
+
+
+def _build_route_stops(blocks: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Auto-derive masthead route stops from the resolved block list.
+
+    Each stop's body uses the section's editorial blurb when present, prefixed
+    with the item count (e.g. "6 \u00b7 Last 24h. Taglines and key-player highlights.").
+    Falls back to a plain count line when no blurb is configured.
+    """
+    stops: list[dict[str, str]] = []
+    for block in blocks[:4]:
+        count = block.get("count", 0)
+        blurb = (block.get("blurb") or "").strip()
+        if blurb:
+            body = f"{count} \u00b7 {blurb}" if count else blurb
+        else:
+            label = "item" if count == 1 else "items"
+            body = f"{count} {label} queued." if count else "Briefing stop."
+        stops.append({"title": block["title"], "body": body})
+    return stops
+
+
 def _make_env() -> Environment:
     env = Environment(
         loader=FileSystemLoader(str(_TEMPLATES_DIR)),
@@ -169,6 +326,8 @@ def _make_env() -> Environment:
     env.filters["news_category"] = _classify_news
     env.filters["news_category_label"] = _news_category_label
     env.filters["pluralize"] = _pluralize
+    env.filters["clean_drop"] = _clean_drop
+    env.filters["youtube_thumb"] = _youtube_thumb
     return env
 
 
@@ -239,6 +398,41 @@ def _pluralize(count: int, singular: str, plural: str | None = None) -> str:
     if count == 1:
         return singular
     return plural if plural is not None else f"{singular}s"
+
+
+def _clean_drop(text: str | None, max_chars: int = 180) -> str:
+    """Sanitise a YouTube/podcast description for compact card display.
+
+    Removes URLs, emails, runs of hashtags, common subscribe/follow boilerplate,
+    collapses whitespace, then truncates to ``max_chars`` on a word boundary
+    with an ellipsis when needed.
+    """
+    if not text:
+        return ""
+    s = _URL_RE.sub("", text)
+    s = _EMAIL_RE.sub("", s)
+    s = _BOILERPLATE_RE.sub("", s)
+    s = _HASHTAG_RUN_RE.sub("", s)
+    s = _LONE_HASHTAG_RE.sub("", s)
+    s = _WS_RE.sub(" ", s).strip(" \t\n-—|·•")
+    if len(s) <= max_chars:
+        return s
+    cut = s[:max_chars].rsplit(" ", 1)[0].rstrip(",.;:—-·•|")
+    return f"{cut}…"
+
+
+def _youtube_thumb(url: str | None) -> str | None:
+    """Return an mqdefault thumbnail URL for a YouTube video URL, else None.
+
+    Only matches canonical 11-character YouTube IDs so demo placeholder URLs
+    fall through to the card's solid fallback tile.
+    """
+    if not url:
+        return None
+    match = _YT_ID_RE.search(url)
+    if not match:
+        return None
+    return f"https://i.ytimg.com/vi/{match.group(1)}/mqdefault.jpg"
 
 
 def _timezone_label(value: datetime) -> str:
@@ -345,6 +539,8 @@ def render_briefing(
     this_day_ctx = (
         _history_entry_to_dict(this_day, briefing_date) if this_day is not None else None
     )
+    blocks = _build_blocks(digest, social_posts, upcoming_matches, this_day)
+    route_stops = _build_route_stops(blocks)
     generated_at = datetime.now()
     context: dict[str, Any] = {
         "digest": digest,
@@ -357,6 +553,12 @@ def render_briefing(
         "social_posts": social_posts,
         "upcoming_matches": upcoming_matches,
         "this_day": this_day_ctx,
+        "blocks": blocks,
+        "route_stops": route_stops,
+        "section_limits": _SECTION_LIMITS,
+        "DATE_FMT_HEADER": _DATE_FMT_HEADER,
+        "DATE_FMT_FOOTER": _DATE_FMT_FOOTER,
+        "DATE_FMT_TIME": _DATE_FMT_TIME,
         "per_match_blurbs": {
             url: blurb.model_dump() for url, blurb in digest.per_match_blurbs.items()
         },
