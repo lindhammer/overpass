@@ -179,6 +179,41 @@ async def test_non_matching_flair_filtered_out():
 
 
 @pytest.mark.asyncio
+async def test_hosted_video_with_non_clip_flair_collected():
+    """Hosted Reddit videos are treated as clips even if flair taxonomy changes."""
+    video_listing = {
+        "data": {
+            "children": [
+                {
+                    "data": {
+                        "title": "Now we got snakes on the game!",
+                        "permalink": "/r/GlobalOffensive/comments/live123/snakes_on_the_game/",
+                        "created_utc": _RECENT_TS,
+                        "score": 1500,
+                        "num_comments": 88,
+                        "author": "clip_hunter",
+                        "link_flair_text": "Gameplay",
+                        "thumbnail": "https://b.thumbs.redditmedia.com/live.jpg",
+                        "post_hint": "hosted:video",
+                        "url_overridden_by_dest": "https://v.redd.it/6h448wocc0xg1",
+                        "media": {
+                            "reddit_video": {
+                                "fallback_url": "https://v.redd.it/6h448wocc0xg1/DASH_720.mp4",
+                            }
+                        },
+                    }
+                }
+            ]
+        }
+    }
+
+    with _mock_config(), _mock_fetch(video_listing):
+        items = await RedditCollector().collect()
+
+    assert [item.title for item in items] == ["Now we got snakes on the game!"]
+
+
+@pytest.mark.asyncio
 async def test_flair_filter_empty_passes_all():
     """When flair_filter is empty, all posts are returned."""
     cfg_no_filter = AppConfig(
