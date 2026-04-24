@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import logging
 import time
@@ -70,7 +71,10 @@ def build_collectors() -> list[BaseCollector]:
     return collectors
 
 
-COLLECTORS: list[BaseCollector] = build_collectors()
+try:
+    COLLECTORS: list[BaseCollector] = build_collectors()
+except Exception:
+    COLLECTORS = []
 
 
 async def run_collectors() -> list[CollectorItem]:
@@ -188,6 +192,19 @@ async def async_main() -> None:
 
 def main() -> None:
     """Sync wrapper for CLI entry point."""
+    parser = argparse.ArgumentParser(description="Overpass CS2 daily briefing")
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="Generate a demo briefing from mock data, no config required",
+    )
+    args = parser.parse_args()
+
+    if args.demo:
+        from overpass.demo import run_demo
+        run_demo()
+        return
+
     asyncio.run(async_main())
 
 

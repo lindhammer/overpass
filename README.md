@@ -85,6 +85,16 @@ It also includes a "This Day in CS" section: a daily historic moment drawn from 
    # or: python -m overpass.main
    ```
 
+### Try it without any setup
+
+To see what a generated briefing looks like without configuring anything:
+
+```bash
+overpass --demo
+```
+
+This generates a demo briefing at `output/briefings/demo.html` using hardcoded mock data. No API keys or config required.
+
 ---
 
 ## Configuration
