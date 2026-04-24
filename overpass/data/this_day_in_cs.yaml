@@ -2418,3 +2418,406 @@
     visual_label: "CPH '24"
     source_url: "https://liquipedia.net/counterstrike/PGL/Major/2024/Copenhagen"
   alternatives: []
+
+"04-01":
+  primary:
+    year: 2026
+    headline: "Ninjas in Pyjamas acquire xKacpersky from ENCE on a permanent basis"
+    narrative: |
+      NIP finalizes the acquisition of xKacpersky from ENCE, signaling a long-
+      term commitment to their newly integrated prospect. This move anchors
+      the organization's developmental strategy heading into the mid-year
+      circuit.
+    visual_label: "NIP '26"
+    source_url: "https://liquipedia.net/counterstrike/Stake_Ranked/Episode_1"
+  alternatives: []
+
+"04-02":
+  primary:
+    year: 2020
+    headline: "Valve scraps direct invites for ESL One Rio Major due to coronavirus"
+    narrative: |
+      Valve formally cancels the direct invite system for the ESL One Rio
+      Major as the global pandemic halts offline play. This forces the
+      implementation of the Regional Major Rankings (RMR) system to determine
+      online qualification.
+    visual_label: "RIO '20"
+    source_url: "https://en.wikipedia.org/wiki/Counter-Strike_Major_Championships"
+  alternatives: []
+
+"04-03":
+  primary:
+    year: 2016
+    headline: "Maikelele announces his departure from the FaZe Clan active roster"
+    narrative: |
+      Following a string of underwhelming performances post-acquisition,
+      Maikelele steps down from FaZe Clan. The departure creates a critical
+      void in the primary AWP role and initiates a long phase of international
+      rebuilding.
+    visual_label: "FAZE '16"
+    source_url: "https://liquipedia.net/counterstrike/FaZe_Clan"
+  alternatives: []
+
+"04-04":
+  primary:
+    year: 2025
+    headline: "m0NESY trade to Team Falcons reported as the biggest in CS history"
+    narrative: |
+      Reports confirm that Team Falcons have acquired m0NESY from G2 Esports
+      for a staggering sum exceeding $2 million. The acquisition reunites him
+      with NiKo and establishes a new financial ceiling for player buyouts.
+    visual_label: "FALC '25"
+    source_url: "https://www.dust2.us/news/59814/breaking-m0nesy-to-join-falcons-in-biggest-transfer-in-cs-history"
+  alternatives:
+  - year: 2014
+    headline: "Operation Bravo introduces the workshop pipeline"
+    narrative: |
+      Valve ships Operation Bravo, the first sustained run of community-built
+      maps in CS:GO matchmaking and the template every later Operation
+      followed.
+    visual_label: "OP BRV"
+    source_url: "https://liquipedia.net/counterstrike/Operation_Bravo"
+
+"04-05":
+  primary:
+    year: 2025
+    headline: "Aurora Gaming signs the entirety of the Eternal Fire roster"
+    narrative: |
+      Aurora Gaming shocks the market by acquiring the complete Turkish lineup
+      of Eternal Fire. The massive transfer ensures XANTARES and woxic receive
+      substantial backing ahead of the upcoming Major qualification cycle.
+    visual_label: "AUR '25"
+    source_url: "https://www.reddit.com/r/GlobalOffensive/comments/1js02y1/aurora_sign_entire_eternal_fire_roster/"
+  alternatives: []
+
+"04-06":
+  primary:
+    year: 2026
+    headline: "FUT Esports begins dominant PGL Bucharest run with opening victories"
+    narrative: |
+      FUT Esports secures critical early-round victories in the PGL Bucharest
+      Swiss stage, setting the tone for a historic tournament run. The Turkish
+      squad demonstrates immaculate utility coordination against top-tier
+      European opposition.
+    visual_label: "PGL '26"
+    source_url: "https://liquipedia.net/counterstrike/PGL/2026/Bucharest"
+  alternatives: []
+
+"04-07":
+  primary:
+    year: 2025
+    headline: "Valve Regional Standings lock determines BLAST Austin Major invites"
+    narrative: |
+      Valve finalizes the Regional Standings cutoff, officially locking the
+      invite tier for the BLAST Austin Major Stages 2 and 3. This mathematical
+      threshold dictates which teams bypass the perilous open qualification
+      brackets.
+    visual_label: "AUS '25"
+    source_url: "https://en.wikipedia.org/wiki/Blast_Austin_Major_2025"
+  alternatives: []
+
+"04-08":
+  primary:
+    year: 2025
+    headline: "Team Falcons targets kyousuke to finalize their superteam roster"
+    narrative: |
+      Reports emerge that Team Falcons are actively targeting Spirit Academy
+      prodigy kyousuke to replace TeSeS. The potential signing signals zonic's
+      intent to pair the young rifler with m0NESY and NiKo ahead of the global
+      summer circuit.
+    visual_label: "FALC '25"
+    source_url: "https://www.dust2.us/news/59982/breaking-falcons-reportedly-target-kyousuke"
+  alternatives: []
+
+"04-09":
+  primary:
+    year: 2025
+    headline: "Valve releases comprehensive Counter-Strike 2 map and UI updates"
+    narrative: |
+      A substantial CS2 patch is deployed addressing critical clipping issues
+      on Ancient and Shoots, while updating the Loadout UI. The update also
+      integrates several community workshop maps into the official platform.
+    visual_label: "CS2 '25"
+    source_url: "https://www.reddit.com/r/counterstrike2/comments/1n7ukt7/counterstrike_2_release_notes_for_04092025/"
+  alternatives: []
+
+"04-10":
+  primary:
+    year: 2016
+    headline: "kioShiMa officially joins FaZe Clan to rebuild the international roster"
+    narrative: |
+      FaZe Clan secures the signature of former Envy anchor kioShiMa, looking
+      to stabilize their defensive setups. The move highlights FaZe's
+      commitment to building a purely international, English-speaking
+      superteam.
+    visual_label: "FAZE '16"
+    source_url: "https://liquipedia.net/counterstrike/FaZe_Clan"
+  alternatives: []
+
+"04-11":
+  primary:
+    year: 2017
+    headline: "Perfect World launches CS:GO in China with Alibaba credit integration"
+    narrative: |
+      Perfect World introduces CS:GO to the Chinese market with a draconian
+      anti-cheat measure tied to real-world financial credit. Cheaters face
+      permanent damage to their Alibaba Zhima Credit scores, effectively
+      weaponizing civic standing.
+    visual_label: "PW '17"
+    source_url: "https://news.cgtn.com/news/3d49544e7a517a4d/share_p.html"
+  alternatives: []
+
+"04-12":
+  primary:
+    year: 2000
+    headline: "Valve announces official partnership with the Counter-Strike team"
+    narrative: |
+      Valve Software officially brings Counter-Strike in-house, confirming the
+      acquisition of the intellectual property ahead of the retail 1.0
+      release. This pivotal agreement transforms the Half-Life mod into a
+      standalone commercial juggernaut.
+    visual_label: "BETA '00"
+    source_url: "https://en.wikipedia.org/wiki/Counter-Strike_(video_game)"
+  alternatives: []
+
+"04-13":
+  primary:
+    year: 2026
+    headline: "FUT Esports defeats Astralis 3-1 to win PGL Bucharest"
+    narrative: |
+      FUT Esports completes a monumental underdog run by dismantling Astralis
+      in the Grand Final of PGL Bucharest. The victory earns the Turkish
+      roster their first A-Tier championship and a massive $200,000 prize.
+    visual_label: "PGL '26"
+    source_url: "https://liquipedia.net/counterstrike/PGL/2026/Bucharest"
+  alternatives: []
+
+"04-14":
+  primary:
+    year: 2025
+    headline: "Team Falcons officially announce the blockbuster signing of m0NESY"
+    narrative: |
+      Ending months of speculation, Falcons formally announce the acquisition
+      of m0NESY to replace the benched degster. The record-breaking multi-
+      million dollar transfer shifts the balance of power in international
+      Counter-Strike.
+    visual_label: "FALC '25"
+    source_url: "https://game-tournaments.com/en/csgo/news/67888"
+  alternatives: []
+
+"04-15":
+  primary:
+    year: 2026
+    headline: "Virtus.pro stuns the community by signing electroNic"
+    narrative: |
+      Virtus.pro executes a massive regional transfer by acquiring electroNic
+      to bolster their firepower ahead of the Pro League. The legendary
+      rifler's aggressive spacing is expected to perfectly complement the
+      team's methodical defaults.
+    visual_label: "VP '26"
+    source_url: "https://esports.gg/news/counter-strike-2/virtus-pro-fame-on-electronics-addition-fast-rounds/"
+  alternatives: []
+
+"04-16":
+  primary:
+    year: 2018
+    headline: "Stewie2K makes historic move to Brazilian powerhouse SK Gaming"
+    narrative: |
+      Jacky "Stewie2K" Yip departs Cloud9 to join FalleN and the SK Gaming
+      core, creating an unprecedented cross-cultural roster. The gamble
+      attempts to reignite the Brazilian dynasty through raw North American
+      entry-fragging prowess.
+    visual_label: "SK '18"
+    source_url: "https://esl.com/article/tag/esl-pro-leaguecounter-strike/"
+  alternatives: []
+
+"04-17":
+  primary:
+    year: 2026
+    headline: "Copenhagen Wolves announce a pause on all Counter-Strike 2 operations"
+    narrative: |
+      Citing the harsh realities of the Valve Regional Standings and economic
+      pressures, the Copenhagen Wolves organization officially benches its
+      roster. The departure highlights the intense financial friction within
+      the modern tier-two ecosystem.
+    visual_label: "CPH '26"
+    source_url: "https://esportsinsider.com/2026/01/copenhagen-wolves-cs2-operation-pause"
+  alternatives: []
+
+"04-18":
+  primary:
+    year: 2026
+    headline: "Gabriel \"FalleN\" Toledo announces his retirement from competitive play"
+    narrative: |
+      During the playoffs of IEM Rio 2026, the legendary Brazilian in-game
+      leader officially announces the end of his playing career. The
+      retirement closes the chapter on one of the most influential minds in
+      the history of tactical shooters.
+    visual_label: "RIO '26"
+    source_url: "https://scouts.yutori.com/019e01d1-920a-4c70-a5bc-0b7aa53b887e"
+  alternatives: []
+
+"04-19":
+  primary:
+    year: 2026
+    headline: "Team Vitality sweeps Team Spirit 3-0 to win IEM Rio"
+    narrative: |
+      Team Vitality puts on an absolute masterclass in Rio de Janeiro,
+      sweeping Spirit in the Grand Final to claim the championship. The
+      victory historically secures the organization their second consecutive
+      ESL Grand Slam title.
+    visual_label: "RIO '26"
+    source_url: "https://escharts.com/news/iem-rio-2026-recap"
+  alternatives: []
+
+"04-20":
+  primary:
+    year: 2026
+    headline: "Valve deploys the massive AnimGraph 2 physics and animation update"
+    narrative: |
+      The highly anticipated AnimGraph 2 update exits beta, overhauling third-
+      person animations and aim punch telemetry. The patch drastically
+      improves visual responsiveness and server synchronization across
+      competitive CS2 matches.
+    visual_label: "CS2 '26"
+    source_url: "https://www.counter-strike.net/news/updates"
+  alternatives: []
+
+"04-21":
+  primary:
+    year: 2026
+    headline: "Finn \"karrigan\" Andersen officially transfers from FaZe Clan to Team Falcons"
+    narrative: |
+      The architect of FaZe Clan's Grand Slam era officially departs for Team
+      Falcons, resulting in kyxsan moving to the inactive roster. The
+      monumental IGL shift leaves FaZe scrambling to reorganize their tactical
+      hierarchy.
+    visual_label: "FALC '26"
+    source_url: "https://scouts.yutori.com/019e01d1-920a-4c70-a5bc-0b7aa53b887e"
+  alternatives: []
+
+"04-22":
+  primary:
+    year: 2026
+    headline: "Roster lock comes into effect for the IEM Cologne Major"
+    narrative: |
+      ESL officially enforces the roster submission deadline for the upcoming
+      IEM Cologne Major, preventing any further player transfers. Teams are
+      now contractually locked into their starting fives and designated
+      substitutes for the cycle.
+    visual_label: "COL '26"
+    source_url: "https://egamersworld.com/counterstrike/news/34199/iem-cologne-major-2026-all-official-team-rosters-c-PikVdxxyQ"
+  alternatives: []
+
+"04-23":
+  primary:
+    year: 2026
+    headline: "FaZe Clan confirms Neityu as stand-in following karrigan's departure"
+    narrative: |
+      FaZe announces that benched ENCE rifler Neityu will stand in for the
+      squad during their upcoming North American tour. The roster stopgap
+      forces Twistzz to permanently assume the in-game leading
+      responsibilities.
+    visual_label: "FAZE '26"
+    source_url: "https://www.dust2.us/news/73131/official-faze-confirm-neityu-as-stand-in"
+  alternatives: []
+
+"04-24":
+  primary:
+    year: 2022
+    headline: "Cloud9 returns to Counter-Strike by signing the Gambit Esports roster"
+    narrative: |
+      North American juggernaut Cloud9 re-enters the CS:GO ecosystem by
+      acquiring the entire Gambit lineup amidst geopolitical turmoil. The
+      transfer instantly provides the organization with a championship-caliber
+      CIS roster.
+    visual_label: "C9 '22"
+    source_url: "https://cloud9.gg/cloud9-returns-to-counter-strike/"
+  alternatives: []
+
+"04-25":
+  primary:
+    year: 2024
+    headline: "Valve implements left-handed viewmodel support in Counter-Strike 2"
+    narrative: |
+      A massive quality-of-life update brings ambidextrous viewmodel
+      functionality back to Counter-Strike, allowing players to dynamically
+      switch hands. The patch also networks the viewmodel orientation to
+      first-person spectators for accurate broadcasting.
+    visual_label: "CS2 '24"
+    source_url: "https://www.gamespot.com/articles/counter-strike-2-update-adds-ambidextrous-support-adjusts-buy-menu/1100-6523024/"
+  alternatives:
+  - year: 2013
+    headline: "Valve launches CS:GO Operation Payback"
+    narrative: |
+      Valve releases Operation Payback for CS:GO on April 25, 2013. The
+      operation offers a Classic Casual map group of seven top-voted community
+      maps, accessible via a limited-time pass (half-price at launch) that
+      also grants an upgradable challenge coin to track matches.
+    visual_label: "PAY '13"
+    source_url: "https://blog.counter-strike.net/2013/04/6907/"
+
+"04-26":
+  primary:
+    year: 2026
+    headline: "The LORGAR Rankings LAN Finals commence in the EU Schengen area"
+    narrative: |
+      StarLadder and LORGAR kick off their $50,000 Tier-2 LAN finals,
+      providing crucial Valve Regional Standings points to emerging teams. The
+      event highlights the growing infrastructure designed to support the sub-
+      top tier of European competition.
+    visual_label: "LRG '26"
+    source_url: "https://news.asbis.com/news/press/lorgar-rankings-new-cs2-tournament-for-eastern-europe/"
+  alternatives: []
+
+"04-27":
+  primary:
+    year: 2025
+    headline: "CCT Season 2 Global Finals conclude with B8 securing the championship"
+    narrative: |
+      B8 emerges victorious in the CCT Season 2 Global Finals, cementing their
+      status as a rising force in the European circuit. The online victory
+      nets the Ukrainian organization a significant share of the $150,000
+      prize pool.
+    visual_label: "CCT '25"
+    source_url: "https://liquipedia.net/counterstrike/CCT/Season_2/Global_Finals"
+  alternatives: []
+
+"04-28":
+  primary:
+    year: 2024
+    headline: "Apeks announces withdrawal from Counter-Strike 2 operations"
+    narrative: |
+      Following a severe decline in performance and inability to progress past
+      Challenger Stages, Apeks officially disbands its CS2 roster. The sudden
+      departure underscores the immense volatility and financial strain facing
+      mid-tier organizations.
+    visual_label: "APEX '24"
+    source_url: "https://www.betus.com.pa/esports/news/apeks-leaves-behind-cs2-roster-05-03-2024/"
+  alternatives: []
+
+"04-29":
+  primary:
+    year: 2015
+    headline: "Cloud9 signs Freakazoid, Skadoodle, and Swag following the iBUYPOWER bans"
+    narrative: |
+      In the wake of the devastating iBUYPOWER match-fixing scandal, Cloud9
+      aggressively rebuilds their roster to save North American CS:GO. The
+      acquisition of Skadoodle provides the team with the region's undisputed
+      premier sniper.
+    visual_label: "C9 '15"
+    source_url: "https://en.wikipedia.org/wiki/Counter-Strike_match-fixing_scandal"
+  alternatives: []
+
+"04-30":
+  primary:
+    year: 2020
+    headline: "ENCE signs Jamppi to pioneer a six-man active roster system"
+    narrative: |
+      ENCE acquires the highly touted Finnish prospect Jamppi, explicitly
+      outlining plans to utilize a rotating six-man roster. The controversial
+      strategic pivot attempts to mitigate burnout and introduce specialized
+      map-dependent player substitutions.
+    visual_label: "ENCE '20"
+    source_url: "https://www.hltv.org/news/29502/ence-sign-jamppi-to-create-six-man-roster"
+  alternatives: []
