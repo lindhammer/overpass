@@ -41,7 +41,7 @@ class RedditConfig(BaseModel):
     time_filter: str = "day"
     limit: int = 10
     flair_filter: list[str] = []
-    user_agent: str = "overpass:v0.1.0 (by /u/overpass-bot)"
+    user_agent: str = ""
 
 
 class LiveAlertsConfig(BaseModel):
@@ -74,10 +74,8 @@ class LiquipediaTransfersConfig(BaseModel):
 class LiquipediaConfig(BaseModel):
     base_url: str = "https://liquipedia.net/counterstrike"
     api_url: str = "https://liquipedia.net/counterstrike/api.php"
-    contact: str = "63104033+lindhammer@users.noreply.github.com"
-    user_agent: str = (
-        "overpass/0.1.0 (+https://github.com/lindhammer/overpass; {contact})"
-    )
+    contact: str = ""
+    user_agent: str = ""
     min_request_interval_seconds: float = Field(default=2.0, ge=0)
     request_timeout_seconds: int = Field(default=30, gt=0)
     cache_dir: str = ".cache/liquipedia"
@@ -115,9 +113,7 @@ class SocialConfig(BaseModel):
     skip_retweets: bool = True
     skip_replies: bool = True
     cache_dir: str = ".cache/nitter"
-    user_agent: str = (
-        "overpass/0.1.0 (+https://github.com/lindhammer/overpass)"
-    )
+    user_agent: str = ""
 
 
 class TelegramConfig(BaseModel):
@@ -204,4 +200,27 @@ def load_config(path: Path | None = None) -> AppConfig:
     with open(config_path, encoding="utf-8") as fh:
         raw: dict[str, Any] = yaml.safe_load(fh) or {}
     resolved = _resolve_env_vars(raw)
-    return AppConfig(**resolved)
+    cfg = AppConfig(**resolved)
+
+    if not cfg.liquipedia.contact:
+        raise ValueError(
+            "liquipedia.contact must be set in config.yaml. "
+            "See config.example.yaml for reference."
+        )
+    if not cfg.liquipedia.user_agent:
+        raise ValueError(
+            "liquipedia.user_agent must be set in config.yaml. "
+            "See config.example.yaml for reference."
+        )
+    if not cfg.social.user_agent:
+        raise ValueError(
+            "social.user_agent must be set in config.yaml. "
+            "See config.example.yaml for reference."
+        )
+    if not cfg.reddit.user_agent:
+        raise ValueError(
+            "reddit.user_agent must be set in config.yaml. "
+            "See config.example.yaml for reference."
+        )
+
+    return cfg

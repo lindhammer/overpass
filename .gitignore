@@ -38,3 +38,29 @@ output/
 # User config
 config.yaml
 docs/superpowers/
+
+# Dev tools
+tools/
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# Test artifacts
+junit*.xml
+playwright-report/
+
+# SQLite variants
+*.sqlite
+*.sqlite3
+*.db-*
+
+# OS artifacts
+Thumbs.db
+desktop.ini
+
+# Editor artifacts
+*.swp
+*.swo
+*~
