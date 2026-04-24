@@ -19,4 +19,4 @@ class HistoryDay(BaseModel):
     """All entries bucketed under a single MM-DD key."""
 
     primary: HistoryEntry
-    alternatives: list[HistoryEntry] = []
+    alternatives: list[HistoryEntry] = Field(default_factory=list)
