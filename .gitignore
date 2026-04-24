@@ -34,3 +34,7 @@ env/
 output/
 
 .worktrees/
+
+# User config
+config.yaml
+docs/superpowers/

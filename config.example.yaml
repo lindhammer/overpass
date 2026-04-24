@@ -1,3 +1,6 @@
+# Copy this file to config.yaml and fill in your own values.
+# config.yaml is gitignored and should never be committed.
+
 watchlist_teams:
   - Vitality
   - G2
@@ -67,8 +70,8 @@ timezone: "Europe/Berlin"
 liquipedia:
   base_url: "https://liquipedia.net/counterstrike"
   api_url: "https://liquipedia.net/counterstrike/api.php"
-  contact: "63104033+lindhammer@users.noreply.github.com"
-  user_agent: "overpass/0.1.0 (+https://github.com/lindhammer/overpass; {contact})"
+  contact: "your-email@example.com"
+  user_agent: "overpass/0.1.0 (+https://github.com/your-github-username/overpass; {contact})"
   min_request_interval_seconds: 2.0
   request_timeout_seconds: 30
   cache_dir: ".cache/liquipedia"
