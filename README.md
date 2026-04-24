@@ -2,6 +2,7 @@
 
 A personal CS2 daily briefing and live alert system, delivered via Telegram.
 
+<!-- Replace docs/screenshot.png with an actual screenshot of a generated briefing -->
 ![Overpass briefing example](docs/screenshot.png)
 > *Example daily briefing — dark-themed mobile-first HTML UI*
 
