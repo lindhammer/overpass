@@ -1,0 +1,181 @@
+# Curated "This Day in CS" entries, keyed by zero-padded MM-DD.
+# Each bucket has one `primary` entry rendered in the briefing; `alternatives`
+# is a free-form list reserved for future rotation logic.
+# Year must be >= 1999. Headline + narrative are required. visual_label is
+# the short watermark (falls back to the year). source_url is optional.
+
+"01-31":
+  primary:
+    year: 2016
+    headline: "Astralis is founded as a player-owned org"
+    narrative: |
+      The TSM CS:GO roster (dev1ce, dupreeh, Xyp9x, Kjaerbye, karrigan)
+      formally launches Astralis as a player-owned organisation, setting
+      up what would become the most decorated lineup in the game's history.
+    visual_label: "AST '16"
+    source_url: "https://liquipedia.net/counterstrike/Astralis"
+  alternatives: []
+
+"03-16":
+  primary:
+    year: 2014
+    headline: "Virtus.pro win EMS One Katowice"
+    narrative: |
+      Virtus.pro lift the trophy at the first CS:GO Major, EMS One Katowice,
+      kicking off the Polish dynasty era and the modern Major circuit.
+    visual_label: "KAT '14"
+    source_url: "https://liquipedia.net/counterstrike/EMS/One/Katowice/2014"
+  alternatives: []
+
+"03-04":
+  primary:
+    year: 2018
+    headline: "Cloud9 win the ELEAGUE Boston Major"
+    narrative: |
+      Cloud9 become the first North American team to win a CS:GO Major,
+      beating FaZe 2-1 in Boston after a triple-overtime Inferno decider.
+    visual_label: "BOS '18"
+    source_url: "https://liquipedia.net/counterstrike/ELEAGUE/Major/2018"
+  alternatives: []
+
+"04-04":
+  primary:
+    year: 2014
+    headline: "Operation Bravo introduces the workshop pipeline"
+    narrative: |
+      Valve ships Operation Bravo, the first sustained run of community-built
+      maps in CS:GO matchmaking and the template every later Operation
+      followed.
+    visual_label: "OP BRV"
+    source_url: "https://liquipedia.net/counterstrike/Operation_Bravo"
+  alternatives: []
+
+"04-07":
+  primary:
+    year: 2024
+    headline: "NaVi win PGL Major Copenhagen"
+    narrative: |
+      Natus Vincere take the first CS2 Major, beating FaZe 2-0 in the
+      Copenhagen final and confirming the new engine had a competitive
+      apex worth chasing.
+    visual_label: "CPH '24"
+    source_url: "https://liquipedia.net/counterstrike/PGL/Major/2024/Copenhagen"
+  alternatives: []
+
+"05-21":
+  primary:
+    year: 2023
+    headline: "Vitality win the BLAST.tv Paris Major"
+    narrative: |
+      Vitality beat GamerLegion 2-0 in Paris, closing out the final CS:GO
+      Major and giving ZywOo his first Major trophy on home soil.
+    visual_label: "PAR '23"
+    source_url: "https://liquipedia.net/counterstrike/BLAST/Major/2023/Paris"
+  alternatives: []
+
+"06-08":
+  primary:
+    year: 2017
+    headline: "Gambit win the PGL Krakow Major"
+    narrative: |
+      Gambit upset Immortals 2-1 in the Krakow final, the last European
+      Major before the North American Boston run and the high-water mark
+      of the CIS scene's first wave.
+    visual_label: "KRK '17"
+    source_url: "https://liquipedia.net/counterstrike/PGL/Major/2017/Krakow"
+  alternatives: []
+
+"07-05":
+  primary:
+    year: 2015
+    headline: "Fnatic win ESL One Cologne"
+    narrative: |
+      Fnatic beat EnVyUs 2-1 in the Cologne final, a series remembered
+      both for the championship and for the controversial Olofmeister
+      boost on Overpass.
+    visual_label: "CGN '15"
+    source_url: "https://liquipedia.net/counterstrike/ESL/One/Cologne/2015"
+  alternatives: []
+
+"07-22":
+  primary:
+    year: 2018
+    headline: "Astralis complete the Intel Grand Slam"
+    narrative: |
+      Astralis win FACEIT London, sealing the first ever Intel Grand Slam
+      and cementing their 2018-19 dynasty as the strongest in CS history.
+    visual_label: "GS '18"
+    source_url: "https://liquipedia.net/counterstrike/FACEIT/Major/2018/London"
+  alternatives: []
+
+"08-12":
+  primary:
+    year: 2012
+    headline: "Counter-Strike: Global Offensive ships"
+    narrative: |
+      Valve releases CS:GO on Windows, OS X, Xbox 360, and PS3, replacing
+      Source as the competitive entry and starting the decade-plus run
+      this dataset chronicles.
+    visual_label: "CS:GO"
+    source_url: "https://liquipedia.net/counterstrike/Counter-Strike:_Global_Offensive"
+  alternatives: []
+
+"09-27":
+  primary:
+    year: 2023
+    headline: "Counter-Strike 2 launches"
+    narrative: |
+      CS2 ships as a free upgrade to CS:GO, replacing it overnight on
+      Steam and bringing the Source 2 engine, sub-tick networking, and
+      the volumetric smoke rework to competitive play.
+    visual_label: "CS2"
+    source_url: "https://liquipedia.net/counterstrike/Counter-Strike_2"
+  alternatives: []
+
+"10-30":
+  primary:
+    year: 2016
+    headline: "Astralis win their first Major in Atlanta"
+    narrative: |
+      Astralis beat Virtus.pro 2-1 at ELEAGUE Atlanta to claim their
+      first Major trophy, a result that reframed the Danish project
+      from contender to era-defining.
+    visual_label: "ATL '17"
+    source_url: "https://liquipedia.net/counterstrike/ELEAGUE/Major/2017"
+  alternatives: []
+
+"11-07":
+  primary:
+    year: 2021
+    headline: "NaVi win the PGL Stockholm Major"
+    narrative: |
+      Natus Vincere drop a single map across the entire bracket and beat
+      G2 in the Stockholm final, giving s1mple his long-awaited first
+      Major trophy.
+    visual_label: "STO '21"
+    source_url: "https://liquipedia.net/counterstrike/PGL/Major/2021/Stockholm"
+  alternatives: []
+
+"11-19":
+  primary:
+    year: 2017
+    headline: "SK Gaming close out a record-setting year"
+    narrative: |
+      The Brazilian SK Gaming roster (FalleN, coldzera, fer, TACO, boltz)
+      cap off a 2017 in which coldzera won HLTV Player of the Year for
+      the second straight season.
+    visual_label: "SK '17"
+    source_url: "https://liquipedia.net/counterstrike/SK_Gaming"
+  alternatives: []
+
+"12-09":
+  primary:
+    year: 2018
+    headline: "coldzera takes a third top-20 podium"
+    narrative: |
+      HLTV's end-of-year ranking confirms coldzera in the top three for
+      the third year running, the first player to ever do so and a
+      benchmark s1mple would later chase down.
+    visual_label: "HLTV '18"
+    source_url: "https://www.hltv.org/news/26602/top-20-players-of-2018-coldzera-3"
+  alternatives: []
