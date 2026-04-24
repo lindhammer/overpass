@@ -1991,3 +1991,430 @@
       of national pride before the eventual global transition to CS:GO.
     visual_label: "NC XV"
     source_url: "https://liquipedia.net/counterstrike/NationsCup/XV"
+
+"03-01":
+  primary:
+    year: 2020
+    headline: "Natus Vincere sweep G2 Esports to win IEM Katowice"
+    narrative: |
+      Playing in a completely empty Spodek Arena due to emerging pandemic
+      restrictions, Natus Vincere secure a historic 3-0 victory over G2
+      Esports. The event marks the beginning of the online era of Counter-
+      Strike competition.
+    visual_label: "KAT '20"
+    source_url: "https://liquipedia.net/counterstrike/Intel_Extreme_Masters/Season_XIV/World_Championship"
+  alternatives: []
+
+"03-02":
+  primary:
+    year: 2026
+    headline: "BLUEJAYS secure the Fragadelphia Block title"
+    narrative: |
+      BLUEJAYS win the Fragadelphia Block event, securing valuable Valve
+      Regional Standings points. The victory propels the team into the top 30
+      of the global rankings just before the Major invite cutoff.
+    visual_label: "FRAG '26"
+    source_url: "https://www.hltv.org/news/41106/short-news-week-10"
+  alternatives: []
+
+"03-03":
+  primary:
+    year: 2019
+    headline: "Astralis claim the IEM Katowice Major trophy"
+    narrative: |
+      The Danish powerhouse systematically dismantles ENCE 2-0, securing their
+      third Major championship and cementing the greatest tactical dynasty in
+      Counter-Strike history. Gla1ve's utility usage forever redefines the
+      global meta.
+    visual_label: "KAT '19"
+    source_url: "https://liquipedia.net/counterstrike/Intel_Extreme_Masters/Season_XIII/World_Championship"
+  alternatives: []
+
+"03-04":
+  primary:
+    year: 2018
+    headline: "Fnatic edge FaZe Clan in a thrilling IEM Katowice final"
+    narrative: |
+      In a grueling five-map series, Fnatic defeat the European superteam 3-2,
+      anchored by flusha's incredible clutch performances. The victory denies
+      FaZe Clan crucial momentum in the Intel Grand Slam race.
+    visual_label: "KAT '18"
+    source_url: "https://liquipedia.net/counterstrike/Intel_Extreme_Masters/Season_XII/World_Championship"
+  alternatives:
+  - year: 2018
+    headline: "Cloud9 win the ELEAGUE Boston Major"
+    narrative: |
+      Cloud9 become the first North American team to win a CS:GO Major,
+      beating FaZe 2-1 in Boston after a triple-overtime Inferno decider.
+    visual_label: "BOS '18"
+    source_url: "https://liquipedia.net/counterstrike/ELEAGUE/Major/2018"
+
+"03-05":
+  primary:
+    year: 2016
+    headline: "Fnatic sweep Luminosity to win the IEM Season X World Championship"
+    narrative: |
+      The Swedish veterans execute a flawless 3-0 grand final over the rising
+      Brazilian core of Luminosity Gaming. The event highlights the growing
+      geographical diversity of tier-one grand finalists.
+    visual_label: "IEM X"
+    source_url: "https://liquipedia.net/counterstrike/Intel_Extreme_Masters/Season_X/World_Championship"
+  alternatives: []
+
+"03-06":
+  primary:
+    year: 2010
+    headline: "Natus Vincere win the IEM Season IV World Championship"
+    narrative: |
+      Natus Vincere establish themselves as the preeminent force in CS 1.6 by
+      winning the IEM World Championship in Hannover. The victory is a
+      cornerstone of their historic 2010 grand slam run.
+    visual_label: "IEM IV"
+    source_url: "https://liquipedia.net/counterstrike/Intel_Extreme_Masters/Season_IV/World_Championship"
+  alternatives: []
+
+"03-07":
+  primary:
+    year: 2023
+    headline: "G2 Esports enter the women's scene with G2 Oya"
+    narrative: |
+      G2 Esports unveil their new ESL Impact roster built around legendary
+      veterans juliano and zAAz. The move signals massive tier-one
+      organizational investment into the female competitive ecosystem.
+    visual_label: "OYA '23"
+    source_url: "https://www.hltv.org/news/35762/guild-enter-csgo-with-esl-impact-team"
+  alternatives: []
+
+"03-08":
+  primary:
+    year: 2009
+    headline: "Fnatic triumph at the IEM Season III World Championship"
+    narrative: |
+      Fnatic lift the trophy in Hannover after a grueling bracket stage,
+      proving their dominance in the CS 1.6 landscape. The event reinforces
+      Intel Extreme Masters as the premier global circuit.
+    visual_label: "IEM III"
+    source_url: "https://liquipedia.net/counterstrike/Intel_Extreme_Masters/Season_III/World_Championship"
+  alternatives:
+  - year: 2021
+    headline: "OG officially bench two-time Major winner NBK-"
+    narrative: |
+      Citing a need for fresh tactical direction, the European mix removes the
+      French veteran from the active roster. The move highlights the intense
+      pressure on international projects to produce immediate results.
+    visual_label: "OG '21"
+    source_url: "https://www.hltv.org/news/31272/official-og-bench-nbk"
+
+"03-09":
+  primary:
+    year: 2008
+    headline: "Fnatic win the Samsung Euro Championship 2008"
+    narrative: |
+      Fnatic secure the SEC 2008 title in Hannover, defeating Meet Your Makers
+      in the final. The tournament continues the tradition of elite European
+      LAN events pushing the competitive meta forward.
+    visual_label: "SEC '08"
+    source_url: "https://liquipedia.net/counterstrike/SEC"
+  alternatives: []
+
+"03-10":
+  primary:
+    year: 2012
+    headline: "ESC Gaming win the final CS 1.6 IEM World Championship"
+    narrative: |
+      The Polish Golden Five defeat Natus Vincere 2-0 in Hannover, claiming
+      the ultimate prize in the game's final major 1.6 event. The victory
+      serves as a fitting end to a legendary era of tactical competition.
+    visual_label: "IEM VI"
+    source_url: "https://liquipedia.net/counterstrike/Intel_Extreme_Masters/Season_VI/World_Championship"
+  alternatives: []
+
+"03-11":
+  primary:
+    year: 2026
+    headline: "Valve release the Dead Hand Collection and regional X-Ray Scanner"
+    narrative: |
+      A major CS2 update introduces 17 weapon finishes and 22 new gloves
+      alongside an X-Ray Scanner tool for players in Germany and the
+      Netherlands. The localized scanner addresses strict European loot-box
+      gambling legislation.
+    visual_label: "DH '26"
+    source_url: "https://www.counter-strike.net/news/updates"
+  alternatives: []
+
+"03-12":
+  primary:
+    year: 2006
+    headline: "x6tence lift the Samsung Euro Championship 2006 trophy"
+    narrative: |
+      The Spanish squad x6tence defeats Team Pentagram to win the SEC 2006
+      title in Hannover. The victory cements their place as one of the top
+      European contenders during the peak of CS 1.6.
+    visual_label: "SEC '06"
+    source_url: "https://liquipedia.net/counterstrike/SEC"
+  alternatives: []
+
+"03-13":
+  primary:
+    year: 2001
+    headline: "Valve release Counter-Strike 1.1 featuring Dust2 and Inferno"
+    narrative: |
+      The historic patch officially integrates David Johnston's iconic four-
+      square map, Dust2, into the competitive ecosystem. The spatial geometry
+      of these maps goes on to define the tactical pacing of the franchise for
+      over two decades.
+    visual_label: "V1.1 '01"
+    source_url: "https://liquipedia.net/counterstrike/Patch_1.1"
+  alternatives:
+  - year: 2005
+    headline: "Team Pentagram secure the Samsung Euro Championship 2005"
+    narrative: |
+      The Polish squad Team Pentagram defeats SK Gaming to win the SEC 2005
+      title in Hannover. The victory is an early milestone for the core that
+      would eventually become the legendary Golden Five.
+    visual_label: "SEC '05"
+    source_url: "https://liquipedia.net/counterstrike/SEC"
+
+"03-14":
+  primary:
+    year: 2020
+    headline: "CS:GO breaks the one million concurrent player barrier"
+    narrative: |
+      Driven by global lockdown mandates, the tactical shooter shatters its
+      all-time concurrency record. The milestone proves the economic
+      resilience of digital entertainment markets during physical world
+      crises.
+    visual_label: "1M '20"
+    source_url: "https://www.hltv.org/news/29302/event-status-update-how-the-coronavirus-is-affecting-lan-tournaments"
+  alternatives: []
+
+"03-15":
+  primary:
+    year: 2026
+    headline: "Natus Vincere secure the ESL Pro League Season 23 title"
+    narrative: |
+      Overcoming Aurora Gaming 3-1 at the Annexet Arena in Stockholm, Natus
+      Vincere lift the prestigious EPL trophy. The victory solidifies their
+      dominance in the early 2026 arena circuit and propels their Intel Grand
+      Slam campaign.
+    visual_label: "EPL '26"
+    source_url: "https://liquipedia.net/counterstrike/ESL/Pro_League/Season_23"
+  alternatives: []
+
+"03-16":
+  primary:
+    year: 2014
+    headline: "Virtus.pro conquer EMS One Katowice on home soil"
+    narrative: |
+      The legendary Polish roster feeds off the deafening energy of the Spodek
+      Arena to defeat Ninjas in Pyjamas 2-0. The triumph catalyzes a massive
+      boom in Eastern European esports investment and infrastructure.
+    visual_label: "KAT '14"
+    source_url: "https://liquipedia.net/counterstrike/ESL/Major_Series_One/2014/Katowice"
+  alternatives: []
+
+"03-17":
+  primary:
+    year: 2026
+    headline: "Bebop win CCT Season 3 Europe Series 18"
+    narrative: |
+      Bebop defeat HOTU 2-1 in the grand final of the European tier-2
+      tournament. The victory earns them a critical boost in the Valve
+      Regional Standings just ahead of the Major qualifier cutoff.
+    visual_label: "CCT '26"
+    source_url: "https://liquipedia.net/counterstrike/CCT/Season_3/Europe/Series_18"
+  alternatives: []
+
+"03-18":
+  primary:
+    year: 2007
+    headline: "SK Gaming win the Samsung Euro Championship 2007"
+    narrative: |
+      SK Gaming defeat Team Pentagram to win the SEC 2007 title in Hannover.
+      The Swedish powerhouse continues to exert its dominance over the
+      international CS 1.6 tournament circuit.
+    visual_label: "SEC '07"
+    source_url: "https://liquipedia.net/counterstrike/SEC"
+  alternatives: []
+
+"03-19":
+  primary:
+    year: 2019
+    headline: "Valve remove Cobblestone from the competitive map pool"
+    narrative: |
+      Valve completely excises Cobblestone from Competitive Matchmaking,
+      effectively ending its run in the professional Active Duty group. The
+      map had long been criticized for its unbalanced Dropzone choke point and
+      excessive rotation times.
+    visual_label: "CBBLE'19"
+    source_url: "https://liquipedia.net/counterstrike/Patch_March_19_2019"
+  alternatives: []
+
+"03-20":
+  primary:
+    year: 2005
+    headline: "NoA overcome 4Kings to win WEG Season 1"
+    narrative: |
+      In a landmark event for international esports, the trans-Atlantic
+      superteam wins the TV-studio finals in South Korea. The victory
+      validates the strategy of relocating Western rosters to dedicated Asian
+      player villages.
+    visual_label: "WEG '05"
+    source_url: "https://liquipedia.net/counterstrike/World_e-Sports_Games/2005/Season_1"
+  alternatives: []
+
+"03-21":
+  primary:
+    year: 2013
+    headline: "Valve fundamentally overhauls Hostage Rescue mechanics"
+    narrative: |
+      Valve abandons erratic AI pathfinding, forcing Counter-Terrorists to
+      physically carry hostages to extraction zones. The update transforms the
+      casual game mode by drastically altering mobility and retake spatial
+      timing.
+    visual_label: "HST '13"
+    source_url: "https://liquipedia.net/counterstrike/Patch_March_21_2013"
+  alternatives: []
+
+"03-22":
+  primary:
+    year: 2023
+    headline: "Valve officially announce Counter-Strike 2"
+    narrative: |
+      Following months of intense speculation, the developer reveals the
+      Source 2 successor, promising volumetric smokes and sub-tick networking.
+      The announcement triggers an immediate frenzy in the virtual skins
+      economy and community.
+    visual_label: "CS2 '23"
+    source_url: "https://www.counter-strike.net/news/updates"
+  alternatives: []
+
+"03-23":
+  primary:
+    year: 2018
+    headline: "s1mple and flamie confirm they will remain with Natus Vincere"
+    narrative: |
+      Following intense transfer rumors linking the duo to SK Gaming, s1mple
+      and flamie commit their immediate futures to Natus Vincere. The decision
+      prevents a massive talent drain from the CIS region to the Americas.
+    visual_label: "NAVI '18"
+    source_url: "https://www.hltv.org/news/23117/s1mple-and-flamie-to-stay-in-natus-vincere"
+  alternatives: []
+
+"03-24":
+  primary:
+    year: 1999
+    headline: "The official Counter-Strike website goes live online"
+    narrative: |
+      Hosted on Planet Half-Life by GameSpy, the primitive digital portal
+      provides a central hub for Minh Le and Jess Cliffe's community. It
+      becomes the primary distribution vector for early beta patches and
+      player feedback.
+    visual_label: "WEB '99"
+    source_url: "https://liquipedia.net/counterstrike/Counter-Strike"
+  alternatives: []
+
+"03-25":
+  primary:
+    year: 2023
+    headline: "CS:GO surpasses 1.5 million concurrent users"
+    narrative: |
+      Driven by the explosive hype surrounding the impending release of
+      Counter-Strike 2, the aging title sets a staggering new player record.
+      The surge reasserts the franchise's total dominance of the Steam
+      platform.
+    visual_label: "1.5M '23"
+    source_url: "https://www.hltv.org/news/35856/first-counter-strike-2-update-brings-bug-fixes-and-gameplay-adjustments"
+  alternatives: []
+
+"03-26":
+  primary:
+    year: 2023
+    headline: "FaZe Clan secure the Intel Grand Slam at EPL Season 17"
+    narrative: |
+      By clinching their fourth required S-Tier trophy, karrigan's
+      international squad earns the elusive gold bullion prize. They become
+      the first non-monolithic regional roster to complete the grueling Intel
+      Grand Slam circuit.
+    visual_label: "IGS '23"
+    source_url: "https://liquipedia.net/counterstrike/ESL/Pro_League/Season_17"
+  alternatives: []
+
+"03-27":
+  primary:
+    year: 2024
+    headline: "ESIC hands gokushima a two-year ban for match-fixing"
+    narrative: |
+      The Esports Integrity Commission publicly suspends the FORZE player
+      following extensive betting-related corruption investigations. The
+      ruling highlights the ongoing battle to eradicate illicit syndicates
+      from tier-two competition.
+    visual_label: "BAN '24"
+    source_url: "https://www.hltv.org/news/38751/gokushima-receives-two-year-match-fixing-ban"
+  alternatives: []
+
+"03-28":
+  primary:
+    year: 2026
+    headline: "Journey Spring 2026 concludes with crucial VRS points on the line"
+    narrative: |
+      The tier-2 LAN in Stockholm wraps up just before the Major invite
+      cutoff, heavily impacting the Valve Regional Standings. Teams battle
+      fiercely to secure a direct path to the upcoming IEM Cologne Major
+      qualifiers.
+    visual_label: "JRN '26"
+    source_url: "https://liquipedia.net/counterstrike/Journey/2026/Spring"
+  alternatives:
+  - year: 2019
+    headline: "mousesports sign Rejin as head coach"
+    narrative: |
+      mousesports complete their tactical overhaul by signing Rejin to guide
+      their new international roster. The move finalizes the squad that
+      karrigan would lead to multiple trophy wins later in the year.
+    visual_label: "MOUZ '19"
+    source_url: "https://www.hltv.org/news/26486/mousesports-sign-rejin-as-head-coach"
+
+"03-29":
+  primary:
+    year: 2026
+    headline: "Team Vitality sweep Natus Vincere to conquer BLAST Open Spring"
+    narrative: |
+      Concluding the Rotterdam event, ZywOo and company deliver a brutal 3-0
+      beatdown against the reigning EPL champions. The dominant victory
+      reshuffles the hierarchy at the very peak of the global rankings.
+    visual_label: "BLST '26"
+    source_url: "https://liquipedia.net/counterstrike/BLAST/Open/2026/Spring"
+  alternatives: []
+
+"03-30":
+  primary:
+    year: 2025
+    headline: "Team Vitality beat MOUZ to win BLAST Open Spring 2025"
+    narrative: |
+      In a grueling 3-2 best-of-five grand final in Lisbon, Team Vitality
+      overcome MOUZ to lift the trophy. The victory secures them the top prize
+      and early dominance in the 2025 BLAST premier circuit.
+    visual_label: "BLST '25"
+    source_url: "https://liquipedia.net/counterstrike/BLAST/Open/2025/Spring"
+  alternatives:
+  - year: 2018
+    headline: "Skadoodle announces inactivity as the Cloud9 Major roster splinters"
+    narrative: |
+      Weeks after winning the Boston Major, Skadoodle steps down while
+      Stewie2k announces a highly controversial transfer to SK Gaming. The
+      dual exits effectively terminate North America's brief grip on the
+      international crown.
+    visual_label: "C9 '18"
+    source_url: "https://www.hltv.org/news/23175/skadoodle-announces-inactivity"
+
+"03-31":
+  primary:
+    year: 2024
+    headline: "Natus Vincere capture the inaugural CS2 Major Championship"
+    narrative: |
+      Led by Aleksib's masterful calling, the international Natus Vincere
+      iteration defeats FaZe Clan 2-1 in Copenhagen. The victory secures their
+      legacy as the architects of the first great dynasty in the Source 2 era.
+    visual_label: "CPH '24"
+    source_url: "https://liquipedia.net/counterstrike/PGL/Major/2024/Copenhagen"
+  alternatives: []
