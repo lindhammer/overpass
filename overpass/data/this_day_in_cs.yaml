@@ -4,18 +4,22 @@
 # Year must be >= 1999. Headline + narrative are required. visual_label is
 # the short watermark (falls back to the year). source_url is optional.
 
-"01-31":
+"01-18":
   primary:
     year: 2016
     headline: "Astralis is founded as a player-owned org"
     narrative: |
-      The TSM CS:GO roster (dev1ce, dupreeh, Xyp9x, Kjaerbye, karrigan)
-      formally launches Astralis as a player-owned organisation, setting
-      up what would become the most decorated lineup in the game's history.
+      The former Team SoloMid/Team Questionmark roster officially launches
+      Astralis on January 18, 2016, backed by Sunstone Capital. The
+      player-owned model would go on to yield four Major championships and
+      a record 406 consecutive days at number one on the HLTV team ranking.
     visual_label: "AST '16"
     source_url: "https://liquipedia.net/counterstrike/Astralis"
-  alternatives:
-  - year: 2003
+  alternatives: []
+
+"01-31":
+  primary:
+    year: 2003
     headline: "Valve deploys a major Counter-Strike 1.6 beta patch"
     narrative: |
       The update accelerates the transition of the competitive community to
@@ -23,6 +27,7 @@
       that would sustain the franchise's global scaling.
     visual_label: "CS1.6"
     source_url: "https://liquipedia.net/counterstrike/Patch_2003-01-31"
+  alternatives: []
 
 "03-16":
   primary:
