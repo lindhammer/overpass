@@ -1,13 +1,24 @@
+# Generated / runtime artifacts
 __pycache__/
+*.pyc
+*.pyo
 *.py[cod]
 *$py.class
+.pytest_cache/
+.pytest_tmp/
+tmp_pytest_run/
+output/pytest-*/
+.cache/
+*.log
+*.db
+.DS_Store
+
 *.egg-info/
 dist/
 build/
 .eggs/
 
 .env
-*.db
 
 .venv/
 venv/
@@ -15,12 +26,7 @@ env/
 
 .mypy_cache/
 .ruff_cache/
-.pytest_cache/
-.pytest_tmp/
 .tmp_pytest/
-tmp_pytest_run/
-
-*.log
 
 .vscode/
 .idea/
@@ -28,5 +34,3 @@ tmp_pytest_run/
 output/
 
 .worktrees/
-
-.cache/
