@@ -298,11 +298,20 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         margin: 0 0 24px;
         font-family: "Bebas Neue", sans-serif;
         font-weight: 400;
-        font-size: clamp(2.6rem, 6.5vw, 5.6rem);
-        line-height: 0.92;
+        font-size: clamp(2.2rem, 4.6vw, 4rem);
+        line-height: 0.95;
         letter-spacing: 0.005em;
         color: var(--ink);
         text-wrap: balance;
+      }
+      .lead h2.is-long {
+        font-size: clamp(1.9rem, 3.6vw, 3rem);
+        line-height: 1;
+      }
+      .lead h2.is-xlong {
+        font-size: clamp(1.65rem, 2.8vw, 2.3rem);
+        line-height: 1.05;
+        letter-spacing: 0.01em;
       }
       .lead p {
         margin: 0;
@@ -1331,7 +1340,9 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
               <span class="slug"
                 >Morning Route · {{ date | fmt_date("%A") | upper }}</span
               >
-              <h2>{{ digest.summary_line }}</h2>
+              {%- set _summary_len = (digest.summary_line | length) -%}
+              {%- set _summary_class = "is-xlong" if _summary_len > 140 else ("is-long" if _summary_len > 90 else "") -%}
+              <h2{% if _summary_class %} class="{{ _summary_class }}"{% endif %}>{{ digest.summary_line }}</h2>
               <p>
                 Today's briefing draws from <strong>{{ ns3.total }}</strong>
                 item{{ '' if ns3.total == 1 else 's' }} across
