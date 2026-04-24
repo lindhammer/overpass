@@ -39,7 +39,9 @@ reddit:
   flair_filter:
     - "Highlight"
     - "Clip"
-  user_agent: "overpass:v0.1.0 (by /u/overpass-bot)"
+  # Required. Reddit requires a descriptive User-Agent identifying your app.
+  # Format: "<appname>:<version> (by /u/<your-reddit-username>)"
+  user_agent: "overpass:v0.1.0 (by /u/your-reddit-username)"
 
 live_alerts:
   watchlist_match_live: true
@@ -70,8 +72,8 @@ timezone: "Europe/Berlin"
 liquipedia:
   base_url: "https://liquipedia.net/counterstrike"
   api_url: "https://liquipedia.net/counterstrike/api.php"
-  contact: "your-email@example.com"
-  user_agent: "overpass/0.1.0 (+https://github.com/your-github-username/overpass; {contact})"
+  contact: "your-email@example.com"  # Required. Your contact email, used in the Liquipedia API User-Agent.
+  user_agent: "overpass/0.1.0 (+https://github.com/your-github-username/overpass; {contact})"  # Required. {contact} is replaced with the contact value above.
   min_request_interval_seconds: 2.0
   request_timeout_seconds: 30
   cache_dir: ".cache/liquipedia"
@@ -98,6 +100,9 @@ social:
   skip_retweets: true
   skip_replies: true
   cache_dir: ".cache/nitter"
+  # Required. Identifies your instance to Nitter mirrors.
+  # Format: "<appname>/<version> (+https://github.com/your-github-username/overpass)"
+  user_agent: "overpass/0.1.0 (+https://github.com/your-github-username/overpass)"
   instances:
     - "xcancel.com"
     - "nitter.poast.org"
