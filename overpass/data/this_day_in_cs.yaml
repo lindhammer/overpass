@@ -14,7 +14,15 @@
       up what would become the most decorated lineup in the game's history.
     visual_label: "AST '16"
     source_url: "https://liquipedia.net/counterstrike/Astralis"
-  alternatives: []
+  alternatives:
+  - year: 2003
+    headline: "Valve deploys a major Counter-Strike 1.6 beta patch"
+    narrative: |
+      The update accelerates the transition of the competitive community to
+      the nascent Steam platform. It lays the digital distribution groundwork
+      that would sustain the franchise's global scaling.
+    visual_label: "CS1.6"
+    source_url: "https://liquipedia.net/counterstrike/Patch_2003-01-31"
 
 "03-16":
   primary:
@@ -356,4 +364,353 @@
       and the title of the biggest Counter-Strike tournament to date.
     visual_label: "DHW '13"
     source_url: "https://www.hltv.org/news/11814/fnatic-win-dreamhack-winter-2013"
+  alternatives: []
+
+"01-01":
+  primary:
+    year: 2024
+    headline: "Valve permanently drops CS:GO support for older hardware and macOS"
+    narrative: |
+      Valve ends support for DirectX 9, 32-bit operating systems, and macOS,
+      officially deprecating CS:GO. The move forces the remaining player base
+      onto the 64-bit Source 2 architecture of Counter-Strike 2.
+    visual_label: "CS2 '24"
+    source_url: "https://liquipedia.net/counterstrike/Counter-Strike_2"
+  alternatives: []
+
+"01-02":
+  primary:
+    year: 2016
+    headline: "s1mple officially joins Team Liquid"
+    narrative: |
+      Oleksandr 's1mple' Kostyliev departs the CIS region to join North American
+      squad Team Liquid. The landmark transfer paves the way for Liquid's deep
+      runs at the MLG Columbus and ESL One Cologne Majors.
+    visual_label: "TL '16"
+    source_url: "https://liquipedia.net/counterstrike/S1mple"
+  alternatives: []
+
+"01-03":
+  primary:
+    year: 2025
+    headline: "Valve formally expands future Major Championships to 32 teams"
+    narrative: |
+      Valve updates the Major Supplemental Rulebook to expand the tournament
+      format from 24 to 32 teams. The update also replaces traditional offline
+      RMR events with online Major Regional Qualifiers.
+    visual_label: "MAJ '25"
+    source_url: "https://www.dust2.us/news/56641/valve-confirm-32-team-majors-unveil-new-major-qualification-path"
+  alternatives: []
+
+"01-04":
+  primary:
+    year: 2025
+    headline: "Team Falcons completes its superteam with the Heroic core"
+    narrative: |
+      Following the blockbuster acquisition of NiKo, Falcons sign kyxsan, TeSeS,
+      and degster from Heroic. The transfer allows Falcons to inherit Heroic's
+      Valve Regional Standings points for immediate tier-one invites.
+    visual_label: "FLC '25"
+    source_url: "https://liquipedia.net/counterstrike/Team_Falcons"
+  alternatives: []
+
+"01-05":
+  primary:
+    year: 2015
+    headline: "iBUYPOWER officially releases its Counter-Strike roster"
+    narrative: |
+      Amidst escalating match-fixing allegations regarding a CEVO match against
+      NetCodeGuides, iBUYPOWER parts ways with its squad. Weeks later, Valve
+      issues permanent bans to DaZeD, steel, swag, and AZK.
+    visual_label: "IBP '15"
+    source_url: "https://liquipedia.net/counterstrike/IBUYPOWER"
+  alternatives: []
+
+"01-06":
+  primary:
+    year: 2026
+    headline: "BetBoom Team appoints Fierce as their new head coach"
+    narrative: |
+      Artem 'Fierce' Ivanov is brought on to lead the Russian squad ahead of the
+      crucial spring qualification cycle. He replaces RAiLWAY on the active
+      roster to overhaul the team's tactical framework.
+    visual_label: "BB '26"
+    source_url: "https://liquipedia.net/counterstrike/BetBoom_Team"
+  alternatives: []
+
+"01-07":
+  primary:
+    year: 2021
+    headline: "Valve deploys a patch tweaking in-game ping behavior"
+    narrative: |
+      The update prevents player pings from moving when walked over by character
+      models and stops them from highlighting dropped weapons. The patch closes
+      a critical exploit affecting competitive matchmaking integrity.
+    visual_label: "CSGO '21"
+    source_url: "https://liquipedia.net/counterstrike/2021-01-07_Patch"
+  alternatives: []
+
+"01-08":
+  primary:
+    year: 2015
+    headline: "Dust II receives bullet penetration and collision fixes"
+    narrative: |
+      Valve updates Dust II to fix unintended bullet penetration through the
+      arch models in the tunnels. The patch also smooths collision models at the
+      top of the mid doors to stabilize defensive holds.
+    visual_label: "D2 '15"
+    source_url: "https://liquipedia.net/counterstrike/Patch_2015-01-08"
+  alternatives: []
+
+"01-09":
+  primary:
+    year: 2026
+    headline: "BIG reacquires faveN to finalize their 2026 roster"
+    narrative: |
+      Josef 'faveN' Baumann returns to Berlin International Gaming to complete
+      the active lineup. The move signals a strategic return to domestic synergy
+      to bolster the team's floor under the leadership of blameF.
+    visual_label: "BIG '26"
+    source_url: "https://bigclan.gg/big-completes-cs2-roster-with-faven/"
+  alternatives: []
+
+"01-10":
+  primary:
+    year: 2025
+    headline: "Team Vitality signs ropz on a free transfer from FaZe Clan"
+    narrative: |
+      Robin 'ropz' Kool departs FaZe Clan to replace Spinx on the active roster.
+      The landmark acquisition catalyzes Vitality's dominant 2025 run, which
+      includes a 30-match win streak and two Major titles.
+    visual_label: "VIT '25"
+    source_url: "https://www.hltv.org/news/40728/official-vitality-unveil-ropz"
+  alternatives: []
+
+"01-11":
+  primary:
+    year: 2021
+    headline: "Team Envy formally disbands its Counter-Strike division"
+    narrative: |
+      The historic organization releases its North American roster and
+      officially exits the CS:GO ecosystem. The departure highlights the severe
+      economic contraction of the North American scene during the online era.
+    visual_label: "NV '21"
+    source_url: "https://liquipedia.net/counterstrike/Team_Envy"
+  alternatives: []
+
+"01-12":
+  primary:
+    year: 2018
+    headline: "The expanded 24-team format debuts at the ELEAGUE Major Boston"
+    narrative: |
+      The New Challengers Stage commences in Atlanta, marking the first time the
+      offline qualifier is integrated into the Major proper. The expansion
+      grants eight additional teams access to lucrative sticker revenue.
+    visual_label: "BOS '18"
+    source_url: "https://liquipedia.net/counterstrike/ELEAGUE/2018/Major"
+  alternatives: []
+
+"01-13":
+  primary:
+    year: 2024
+    headline: "ZywOo is crowned Player of the Year at the HLTV Award Show"
+    narrative: |
+      Mathieu 'ZywOo' Herbaut secures the number one rank for the 2023 season at
+      the physical award ceremony in Belgrade. The accolade ties him with s1mple
+      for the most #1 finishes in HLTV history.
+    visual_label: "AWDS '24"
+    source_url: "https://www.hltv.org/news/37947/top-20-players-of-2023-final-three-to-be-unveiled-at-hltv-award-show"
+  alternatives: []
+
+"01-14":
+  primary:
+    year: 2024
+    headline: "Average Gaming secures the Arena Esports Major Cup January Final"
+    narrative: |
+      The Middle Eastern roster claims the tier-3 online tournament victory. The
+      grassroots event demonstrates regional depth and qualifies the squad for
+      the subsequent Major Cup Finals.
+    visual_label: "ARENA '24"
+    source_url: "https://liquipedia.net/counterstrike/Arena_Esports/Major_Cup/January"
+  alternatives: []
+
+"01-15":
+  primary:
+    year: 2022
+    headline: "nitr0 officially returns to Team Liquid's active roster"
+    narrative: |
+      Following a highly successful stint in Valorant, Nicholas 'nitr0' Cannella
+      returns to Counter-Strike to resume in-game leadership duties. He aims to
+      rebuild a fractured roster alongside EliGE and NAF.
+    visual_label: "TL '22"
+    source_url: "https://www.hltv.org/news/32780/post-major-shuffle-tracker"
+  alternatives: []
+
+"01-16":
+  primary:
+    year: 2021
+    headline: "Swedish legend GeT_RiGhT announces his retirement"
+    narrative: |
+      Christopher 'GeT_RiGhT' Alesund formally ends his 14-year competitive
+      career. The iconic lurker steps away having secured a Major championship
+      at ESL One Cologne 2014 and 87 consecutive LAN map wins with Ninjas in
+      Pyjamas.
+    visual_label: "GTR '21"
+    source_url: "https://liquipedia.net/counterstrike/GeT_RiGhT"
+  alternatives: []
+
+"01-17":
+  primary:
+    year: 2021
+    headline: "CSPPA formally extends the winter player break"
+    narrative: |
+      The Counter-Strike Professional Players' Association confirms adjustments
+      to the off-season calendar. The winter break is extended to January 17 to
+      combat player burnout and accommodate Orthodox Christmas.
+    visual_label: "CSPPA"
+    source_url: "https://www.hltv.org/news/29605/csppa-confirms-changes-to-player-breaks"
+  alternatives: []
+
+"01-19":
+  primary:
+    year: 2026
+    headline: "Anubis replaces Train in the Active Duty map pool"
+    narrative: |
+      Following the conclusion of Premier Season 3, Valve removes the heavily
+      CT-sided Train after just one year. Anubis returns to the pool to
+      reintroduce structural balance to the MR12 economy.
+    visual_label: "ANB '26"
+    source_url: "https://www.hltv.org/news/43600/anubis-replaces-train-in-active-duty-pool"
+  alternatives: []
+
+"01-20":
+  primary:
+    year: 2020
+    headline: "ZywOo becomes the youngest player to achieve the HLTV #1 rank"
+    narrative: |
+      Mathieu 'ZywOo' Herbaut edges out s1mple to be named the best player of
+      2019. He accomplishes this historic feat during his first full year as a
+      professional player, echoing coldzera's rookie breakout.
+    visual_label: "ZYW '20"
+    source_url: "https://www.hltv.org/news/28877/top-20-players-of-2019-zywoo-1"
+  alternatives: []
+
+"01-21":
+  primary:
+    year: 2026
+    headline: "SkinRave transfer-lists its roster over Tournament Operator restrictions"
+    narrative: |
+      Following Valve's strict prohibition of skin gambling sponsorships on
+      broadcast apparel, SkinRave determines its business model is unviable. The
+      entire roster is made available for transfer.
+    visual_label: "RAVE '26"
+    source_url: "https://www.dust2.us/news/69840/breaking-skinrave-transfer-lists-roster-amidst-valve-changes-to-tournament-operator-requirements"
+  alternatives: []
+
+"01-22":
+  primary:
+    year: 2026
+    headline: "ESL officially announces the relocation of IEM to Krakow"
+    narrative: |
+      Ending nearly two decades of tradition in Katowice, ESL confirms the
+      flagship Polish tournament will move to the TAURON Arena. The move aims to
+      significantly increase in-arena audience capacity.
+    visual_label: "KRA '26"
+    source_url: "https://www.eslfaceitgroup.com/press/a-new-chapter-of-intel-extreme-masters-begins-as-elite-competition-arrives-in-krakow-poland/"
+  alternatives: []
+
+"01-23":
+  primary:
+    year: 2014
+    headline: "Valve deploys a major structural update to Cobblestone"
+    narrative: |
+      The developer refines complex collision models, raises central fencing,
+      and eliminates distracting particle effects. The update acts as a vital
+      step in sanitizing the map for competitive play.
+    visual_label: "CBB '14"
+    source_url: "https://counterstrike.fandom.com/wiki/Cobblestone"
+  alternatives: []
+
+"01-24":
+  primary:
+    year: 2024
+    headline: "SINNERS Esports sweeps MOUZ NXT to win European Pro League Season 13"
+    narrative: |
+      The Czech squad secures a decisive 2-0 victory in the playoffs. The match
+      highlights the intense competitive density and grueling schedule of the
+      tier-two European online circuit.
+    visual_label: "EPL '24"
+    source_url: "https://liquipedia.net/counterstrike/European_Pro_League/Season_13"
+  alternatives: []
+
+"01-25":
+  primary:
+    year: 2001
+    headline: "Valve releases the Counter-Strike 1.0b server patch"
+    narrative: |
+      The early netcode update stabilizes critical client lagging issues
+      encountered during initial map loads. It also patches directory
+      vulnerabilities related to the 'listmaps' command.
+    visual_label: "CS1.0b"
+    source_url: "https://liquipedia.net/counterstrike/Patch_2001-01-25"
+  alternatives: []
+
+"01-26":
+  primary:
+    year: 2015
+    headline: "Valve issues permanent bans to the iBUYPOWER match-fixing conspirators"
+    narrative: |
+      Publishing the 'Integrity and Fair Play' directive, Valve indefinitely
+      bars DaZeD, steel, swag, and AZK from all sponsored events. The punitive
+      action creates a massive leadership vacuum in the North American scene.
+    visual_label: "IBP '15"
+    source_url: "https://www.hltv.org/news/14083/ex-ibp-banned-from-valve-majors"
+  alternatives: []
+
+"01-27":
+  primary:
+    year: 2026
+    headline: "The inaugural IEM Krakow 2026 Play-In Stage commences"
+    narrative: |
+      Elite competition shifts to the TAURON Arena, initiating the race for the
+      $1.25 million prize pool. The event immediately stress-tests the
+      international roster moves finalized during the winter break.
+    visual_label: "KRA '26"
+    source_url: "https://liquipedia.net/counterstrike/Intel_Extreme_Masters/2026/Krak%C3%B3w"
+  alternatives: []
+
+"01-28":
+  primary:
+    year: 2018
+    headline: "Cloud9 becomes the first North American team to win a Major"
+    narrative: |
+      In a historic double-overtime victory against FaZe Clan on Inferno, Cloud9
+      claims the ELEAGUE Major Boston trophy. Tarik 'tarik' Celik is named MVP
+      for his crucial impact throughout the series.
+    visual_label: "BOS '18"
+    source_url: "https://liquipedia.net/counterstrike/ELEAGUE/2018/Major"
+  alternatives: []
+
+"01-29":
+  primary:
+    year: 2017
+    headline: "Astralis secures their first Major title at ELEAGUE Major Atlanta"
+    narrative: |
+      Defeating Virtus.pro 2-1 in a fiercely contested final, the Danish core
+      establishes a new era of Counter-Strike. Their victory codifies a meta
+      defined by flawless utility executes and rigorous teamplay.
+    visual_label: "ATL '17"
+    source_url: "https://liquipedia.net/counterstrike/ELEAGUE/2017/Major"
+  alternatives: []
+
+"01-30":
+  primary:
+    year: 2010
+    headline: "The original Natus Vincere roster debuts with a victory at Arbalet Asia"
+    narrative: |
+      Marking their first international LAN appearance, the legendary Ukrainian
+      squad secures the championship. The victory ignites a historic 2010 run
+      that establishes NaVi's absolute dominance in Counter-Strike 1.6.
+    visual_label: "ARB '10"
+    source_url: "https://liquipedia.net/counterstrike/Arbalet/2010/Asia"
   alternatives: []
