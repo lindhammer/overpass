@@ -19,7 +19,11 @@ def _async_playwright_factory() -> Any:
 
 
 class HLTVBrowserClient:
-    """Small reusable browser client for HLTV collectors."""
+    """Manage a Playwright browser session for fragile HLTV scraping.
+
+    HLTV markup and bot defenses change frequently, so this client deliberately
+    keeps scraping behavior small, explicit, and easy to adjust.
+    """
 
     def __init__(
         self,

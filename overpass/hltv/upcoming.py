@@ -22,7 +22,17 @@ def parse_upcoming_listing(
     html: str,
     base_url: str = "https://www.hltv.org",
 ) -> list[HLTVUpcomingMatch]:
-    """Parse `/matches` and return upcoming (non-live) scheduled matches."""
+    """Parse HLTV `/matches` HTML into upcoming scheduled matches.
+
+    Args:
+        html: HTML containing `.matches-list-section .match` entries with
+            match links, Unix timestamps, teams, and optional event metadata.
+        base_url: Base URL used to resolve relative match and logo links.
+
+    Returns:
+        Unique upcoming matches; malformed, TBD, or duplicate entries are
+        skipped.
+    """
     soup = BeautifulSoup(html, "html.parser")
     out: list[HLTVUpcomingMatch] = []
     seen_ids: set[str] = set()

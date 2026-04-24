@@ -15,6 +15,16 @@ _ARTICLE_ID_PATTERN = re.compile(r"/news/(\d+)/")
 
 
 def parse_news_listing(html: str, base_url: str = "https://www.hltv.org") -> list[HLTVNewsListingItem]:
+    """Parse an HLTV news listing page into article summaries.
+
+    Args:
+        html: HTML containing `a.article` links with news titles, dates,
+            optional teasers, and thumbnails.
+        base_url: Base URL used to resolve relative article and image links.
+
+    Returns:
+        Parsed news listing items; incomplete article rows are skipped.
+    """
     soup = BeautifulSoup(html, "html.parser")
     items: list[HLTVNewsListingItem] = []
 
@@ -49,6 +59,22 @@ def parse_news_article(
     listing_item: HLTVNewsListingItem | None = None,
     base_url: str = "https://www.hltv.org",
 ) -> HLTVNewsArticle:
+    """Parse an HLTV news article page into article metadata and body text.
+
+    Args:
+        html: HTML for a news page with article metadata, a headline, and body
+            paragraphs or blockquotes.
+        article_url: Optional known article URL to use instead of page metadata.
+        listing_item: Optional listing item used to fill teaser/thumbnail data
+            and verify the parsed article id.
+        base_url: Base URL used to resolve relative article and image links.
+
+    Returns:
+        Parsed article metadata, tags, thumbnail URL, and body text.
+
+    Raises:
+        ValueError: If required article metadata, id, or body content is missing.
+    """
     soup = BeautifulSoup(html, "html.parser")
     title_node = soup.select_one("article.newsitem h1, h1.headline")
     author_node = soup.select_one(".article-info .author, .article-info .authorName")

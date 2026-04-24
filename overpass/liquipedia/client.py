@@ -16,10 +16,11 @@ logger = logging.getLogger("overpass.liquipedia.client")
 
 
 class LiquipediaClient:
-    """Polite, cached MediaWiki client for Liquipedia.
+    """Rate-limited MediaWiki API client for Liquipedia.
 
-    Soft-fails on HTTP and parse errors — callers receive empty results
-    so the surrounding pipeline degrades gracefully.
+    All API requests pass through the configured rate limiter and cached parse
+    or search responses are reused when available. HTTP and parse failures
+    soft-fail so callers receive empty results.
     """
 
     def __init__(
@@ -49,6 +50,16 @@ class LiquipediaClient:
         *,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> "LiquipediaClient":
+        """Build a client from Liquipedia configuration.
+
+        Args:
+            cfg: Liquipedia configuration with API, cache, timeout, and rate
+                limit settings.
+            transport: Optional httpx transport for tests or custom networking.
+
+        Returns:
+            A configured LiquipediaClient instance.
+        """
         cache = FileCache(
             root=Path(cfg.cache_dir),
             ttl_seconds=cfg.cache_ttl_minutes * 60,
@@ -64,10 +75,19 @@ class LiquipediaClient:
         )
 
     async def close(self) -> None:
+        """Close the underlying HTTP client."""
         await self._client.aclose()
 
     async def parse_page(self, page_title: str) -> str:
-        """Return rendered HTML for a wiki page, or "" on any failure."""
+        """Fetch rendered HTML for a wiki page through the MediaWiki API.
+
+        Args:
+            page_title: Liquipedia page title to parse.
+
+        Returns:
+            Rendered page HTML, or an empty string on request or response
+            parsing failure.
+        """
         cache_key = f"parse:{page_title}"
         cached = self._cache.get(cache_key)
         if cached is not None:
@@ -91,7 +111,15 @@ class LiquipediaClient:
         return html
 
     async def search_page_titles(self, query: str, limit: int = 5) -> list[str]:
-        """Return title suggestions, or [] on any failure."""
+        """Search Liquipedia page titles through MediaWiki search APIs.
+
+        Args:
+            query: Search query to send to Liquipedia.
+            limit: Maximum number of titles to request.
+
+        Returns:
+            Matching page titles, or an empty list on request failure.
+        """
         cache_key = f"search:v2:{query}:{limit}"
         cached = self._cache.get(cache_key)
         if cached is not None:

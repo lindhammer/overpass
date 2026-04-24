@@ -1,4 +1,4 @@
-"""Abstract base collector and shared data model."""
+"""Base collector interface implemented by all Overpass data collectors."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 
 class CollectorItem(BaseModel):
-    """Standardised output item produced by every collector."""
+    """Standardized item returned by collectors for downstream processing."""
 
     source: str
     type: str  # clip | episode | patch | video | article
@@ -23,7 +23,11 @@ class CollectorItem(BaseModel):
 
 
 class BaseCollector(abc.ABC):
-    """Abstract base class for all data collectors."""
+    """Base interface for collectors that return standardized collected items.
+
+    Subclasses provide a human-readable name and implement collect() to fetch
+    source data, normalize it, and return a list of CollectorItem instances.
+    """
 
     @property
     @abc.abstractmethod
@@ -36,5 +40,9 @@ class BaseCollector(abc.ABC):
 
     @abc.abstractmethod
     async def collect(self) -> list[CollectorItem]:
-        """Fetch data from the source and return normalised items."""
+        """Fetch source data and return standardized items.
+
+        Implementations should handle recoverable source failures internally and
+        return an empty list when no items can be collected.
+        """
         ...

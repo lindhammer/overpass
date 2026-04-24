@@ -29,11 +29,16 @@ _STOPWORDS = {"of", "the", "and"}
 async def find_match_page(
     client: _SupportsSearch, event_name: str
 ) -> str | None:
-    """Return the best-matching Liquipedia page title for *event_name*.
+    """Find the best Liquipedia page title for an HLTV event name.
 
-    Strategy: try the event name plus conservative variants, then choose
-    the title with the strongest normalized token overlap. Return None on
-    no plausible match / empty input.
+    Args:
+        client: Object that can search Liquipedia page titles.
+        event_name: HLTV event name used to generate conservative search
+            variants and token-overlap scoring.
+
+    Returns:
+        Best-matching Liquipedia page title, or None for empty input or no
+        plausible match.
     """
     if not event_name or not event_name.strip():
         return None

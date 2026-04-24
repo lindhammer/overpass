@@ -36,6 +36,15 @@ class FileCache:
         return self._root / key[:2] / f"{key}.json"
 
     def get(self, raw_key: str) -> str | None:
+        """Return a cached body when the filesystem entry exists and is fresh.
+
+        Args:
+            raw_key: Logical cache key before schema prefixing and hashing.
+
+        Returns:
+            Cached response body, or None for missing, expired, or invalid
+            cache entries.
+        """
         path = self._path_for(raw_key)
         if not path.exists():
             return None
@@ -50,6 +59,12 @@ class FileCache:
         return body
 
     def set(self, raw_key: str, body: str) -> None:
+        """Write a response body to the filesystem cache.
+
+        Args:
+            raw_key: Logical cache key before schema prefixing and hashing.
+            body: Response body to cache.
+        """
         path = self._path_for(raw_key)
         try:
             path.parent.mkdir(parents=True, exist_ok=True)

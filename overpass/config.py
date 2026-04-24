@@ -1,4 +1,8 @@
-"""Configuration loader – reads config.yaml and resolves env vars."""
+"""Configuration schema for Overpass using Pydantic models.
+
+load_config() is the single entry point for loading and validating startup
+configuration.
+"""
 
 from __future__ import annotations
 
@@ -21,21 +25,29 @@ HTTP_URL_ADAPTER = TypeAdapter(AnyHttpUrl)
 
 
 class YoutubeChannel(BaseModel):
+    """Configure a YouTube channel to collect from."""
+
     id: str
     name: str
 
 
 class YouTubeConfig(BaseModel):
+    """Configure YouTube API access and subscribed channels."""
+
     api_key_env: str = "YOUTUBE_API_KEY"
     channels: list[YoutubeChannel] = []
 
 
 class Podcast(BaseModel):
+    """Configure a podcast feed source."""
+
     name: str
     feed_url: str
 
 
 class RedditConfig(BaseModel):
+    """Configure Reddit collection settings."""
+
     subreddit: str
     sort: str = "top"
     time_filter: str = "day"
@@ -45,6 +57,8 @@ class RedditConfig(BaseModel):
 
 
 class LiveAlertsConfig(BaseModel):
+    """Configure which live alert categories are enabled."""
+
     watchlist_match_live: bool = True
     valve_patch: bool = True
     roster_moves: bool = True
@@ -52,26 +66,36 @@ class LiveAlertsConfig(BaseModel):
 
 
 class LLMProviderConfig(BaseModel):
+    """Configure one LLM provider and its API key source."""
+
     model: str
     api_key_env: str
 
 
 class LLMConfig(BaseModel):
+    """Configure available LLM providers and the default provider."""
+
     default_provider: str = "gemini"
     providers: dict[str, LLMProviderConfig] = {}
 
 
 class LiquipediaUpcomingConfig(BaseModel):
+    """Configure Liquipedia upcoming-match collection."""
+
     enabled: bool = False
     lookahead_hours: int = Field(default=36, gt=0)
 
 
 class LiquipediaTransfersConfig(BaseModel):
+    """Configure Liquipedia transfer collection."""
+
     enabled: bool = False
     lookback_hours: int = Field(default=48, gt=0)
 
 
 class LiquipediaConfig(BaseModel):
+    """Configure Liquipedia API access, caching, and collection behavior."""
+
     base_url: str = "https://liquipedia.net/counterstrike"
     api_url: str = "https://liquipedia.net/counterstrike/api.php"
     contact: str = ""
@@ -90,12 +114,16 @@ class LiquipediaConfig(BaseModel):
 
 
 class SocialHandle(BaseModel):
+    """Configure one social media handle to collect from."""
+
     handle: str
     display_name: str | None = None
     team_color: str | None = None
 
 
 class SocialConfig(BaseModel):
+    """Configure social post collection and filtering."""
+
     enabled: bool = False
     handles: list[SocialHandle] = []
     instances: list[str] = [
@@ -117,16 +145,22 @@ class SocialConfig(BaseModel):
 
 
 class TelegramConfig(BaseModel):
+    """Configure Telegram credential environment variables."""
+
     bot_token_env: str
     chat_id_env: str
 
 
 class ScheduleConfig(BaseModel):
+    """Configure recurring collection and digest schedules."""
+
     daily_digest: str = "07:00"
     live_poll_interval_minutes: int = 5
 
 
 class HLTVConfig(BaseModel):
+    """Configure HLTV scraping and match collection behavior."""
+
     base_url: str = "https://www.hltv.org"
     headless: bool = True
     news_limit: int = Field(default=20, ge=0)
@@ -149,6 +183,8 @@ class HLTVConfig(BaseModel):
 
 
 class AppConfig(BaseModel):
+    """Configure the complete Overpass application."""
+
     watchlist_teams: list[str] = []
     hltv_top_n: int = 30
     hltv: HLTVConfig = HLTVConfig()
@@ -195,7 +231,20 @@ def _resolve_env_vars(obj: Any) -> Any:
 
 
 def load_config(path: Path | None = None) -> AppConfig:
-    """Load and validate the application configuration."""
+    """Load, resolve, and validate the application configuration.
+
+    Args:
+        path: Optional path to a YAML config file. Defaults to config.yaml at
+            the project root.
+
+    Returns:
+        The validated application configuration.
+
+    Raises:
+        OSError: If the config file cannot be opened.
+        ValidationError: If Pydantic validation fails.
+        ValueError: If required contact or user-agent settings are missing.
+    """
     config_path = path or CONFIG_PATH
     with open(config_path, encoding="utf-8") as fh:
         raw: dict[str, Any] = yaml.safe_load(fh) or {}

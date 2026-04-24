@@ -6,8 +6,7 @@ import asyncio
 
 
 class AsyncRateLimiter:
-    """Serialises calls so consecutive ``acquire()`` invocations are at
-    least ``min_interval`` seconds apart, regardless of concurrency."""
+    """Serialize async callers with a minimum interval between acquisitions."""
 
     def __init__(self, min_interval: float) -> None:
         self._min_interval = float(min_interval)
@@ -15,6 +14,7 @@ class AsyncRateLimiter:
         self._last_at: float | None = None
 
     async def acquire(self) -> None:
+        """Wait until the next request slot is available."""
         async with self._lock:
             loop = asyncio.get_event_loop()
             if self._last_at is not None:

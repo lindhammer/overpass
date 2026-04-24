@@ -6,12 +6,16 @@ from pydantic import BaseModel, Field
 
 
 class LiquipediaMap(BaseModel):
+    """Per-map result parsed from a Liquipedia match."""
+
     name: str
     team1_score: int
     team2_score: int
 
 
 class LiquipediaMatch(BaseModel):
+    """Match result parsed from a Liquipedia tournament page."""
+
     team1_name: str
     team2_name: str
     team1_logo_url: str | None = None

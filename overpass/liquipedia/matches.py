@@ -49,7 +49,19 @@ def parse_match_from_tournament_page(
     team2_name: str,
     base_url: str = "https://liquipedia.net",
 ) -> LiquipediaMatch | None:
-    """Return the unique matchup of (team1, team2) on this page, or None."""
+    """Parse a tournament page for one requested Liquipedia matchup.
+
+    Args:
+        html: Tournament page HTML containing bracket or matchlist nodes with
+            opponent entries, scores, and optional map details.
+        team1_name: First team name to find and orient in the returned match.
+        team2_name: Second team name to find.
+        base_url: Base URL used to resolve relative team logo links.
+
+    Returns:
+        The unique matching matchup oriented to team1_name, or None when the
+        page has no match or multiple ambiguous matches.
+    """
     if not html or not team1_name or not team2_name:
         return None
 

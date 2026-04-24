@@ -1,4 +1,4 @@
-"""HTML briefing renderer – renders Jinja2 template and saves to disk."""
+"""Render the Jinja2 briefing template to a static HTML briefing file."""
 
 from __future__ import annotations
 
@@ -222,7 +222,20 @@ def render_briefing(
     upcoming_items: list[CollectorItem] | None = None,
     this_day: HistoryEntry | None = None,
 ) -> str:
-    """Render the briefing template and return the HTML string."""
+    """Render the briefing template to an HTML string.
+
+    Args:
+        digest: Editorial digest content grouped into briefing sections.
+        briefing_date: Date represented by the briefing.
+        social_items: Optional social posts to include in the template context.
+        upcoming_items: Optional upcoming matches to include in the template
+            context.
+        this_day: Optional history entry for the briefing date.
+
+    Returns:
+        Rendered briefing HTML. save_briefing() writes it to
+        output/briefings/{YYYY-MM-DD}.html.
+    """
     env = _make_env()
     template = env.get_template("briefing.html")
     social_posts = [_social_post_to_dict(it) for it in (social_items or [])]
@@ -248,7 +261,15 @@ def render_briefing(
 
 
 def save_briefing(html: str, briefing_date: date) -> Path:
-    """Write the rendered HTML to output/briefings/{date}.html and return its path."""
+    """Write rendered briefing HTML to the static output directory.
+
+    Args:
+        html: Rendered briefing HTML.
+        briefing_date: Date used for the output filename.
+
+    Returns:
+        Path to output/briefings/{YYYY-MM-DD}.html.
+    """
     _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     path = _OUTPUT_DIR / f"{briefing_date.isoformat()}.html"
     path.write_text(html, encoding="utf-8")

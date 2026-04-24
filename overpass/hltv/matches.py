@@ -26,6 +26,16 @@ _LEFTOVER_VETO_PATTERN = re.compile(r"(?P<map>.+?) was left over")
 
 
 def parse_results_listing(html: str, base_url: str = "https://www.hltv.org") -> list[HLTVMatchResult]:
+    """Parse an HLTV results listing page into match result summaries.
+
+    Args:
+        html: HTML containing result links with team, score, event, and time
+            nodes under anchors pointing at `/matches/`.
+        base_url: Base URL used to resolve relative match links.
+
+    Returns:
+        Parsed match results; malformed listing rows are skipped.
+    """
     soup = BeautifulSoup(html, "html.parser")
     items: list[HLTVMatchResult] = []
 
@@ -82,6 +92,15 @@ def parse_results_listing(html: str, base_url: str = "https://www.hltv.org") -> 
 
 
 def parse_ranked_team_names(html: str, limit: int) -> list[str]:
+    """Parse ranked team names from an HLTV ranking page.
+
+    Args:
+        html: HTML containing `.ranked-team` or `.teamLine` ranking entries.
+        limit: Maximum number of unique team names to return.
+
+    Returns:
+        Unique ranked team names in page order, capped by limit.
+    """
     if limit <= 0:
         return []
 
@@ -116,6 +135,22 @@ def parse_match_detail(
     listing_item: HLTVMatchResult | None = None,
     base_url: str = "https://www.hltv.org",
 ) -> HLTVMatchDetail:
+    """Parse an HLTV match detail page into complete match metadata.
+
+    Args:
+        html: HTML for a match page with team gradients, score nodes, optional
+            map holders, veto entries, and total stats tables.
+        match_url: Optional known match URL to use instead of page metadata.
+        listing_item: Optional listing result used to fill missing metadata and
+            verify the parsed match id.
+        base_url: Base URL used to resolve relative match links and assets.
+
+    Returns:
+        Detailed match metadata including maps, veto entries, and player stats.
+
+    Raises:
+        ValueError: If required match metadata is missing or inconsistent.
+    """
     soup = BeautifulSoup(html, "html.parser")
 
     canonical_node = soup.select_one("link[rel='canonical'][href]")

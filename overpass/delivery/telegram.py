@@ -1,4 +1,4 @@
-"""Telegram delivery – push notification for the daily digest."""
+"""Send Telegram notifications via python-telegram-bot."""
 
 from __future__ import annotations
 
@@ -12,10 +12,15 @@ logger = logging.getLogger("overpass.delivery.telegram")
 
 
 async def send_digest_notification(summary_line: str, briefing_url: str) -> None:
-    """Send the daily digest push notification to the configured Telegram chat.
+    """Send the daily digest notification to the configured Telegram chat.
 
-    The message contains the one-line summary and a link to the full briefing.
-    Silently skips if bot token or chat ID are not configured.
+    Args:
+        summary_line: One-line digest summary to include in the message.
+        briefing_url: URL for the full briefing.
+
+    Returns:
+        None. Skips sending and logs a warning when the bot token or chat ID is
+        not configured.
     """
     config = load_config()
     tg = config.telegram
