@@ -1,8 +1,7 @@
-"""Reddit collector – fetches top clips from r/GlobalOffensive via OAuth2."""
+"""Reddit collector - fetches top clips from r/GlobalOffensive via public JSON."""
 
 from __future__ import annotations
 
-import time
 from datetime import datetime, timezone
 
 import httpx
@@ -10,34 +9,18 @@ import httpx
 from overpass.collectors.base import BaseCollector, CollectorItem
 from overpass.config import load_config
 
-TOKEN_URL = "https://www.reddit.com/api/v1/access_token"
-OAUTH_BASE = "https://oauth.reddit.com"
+REDDIT_BASE = "https://www.reddit.com"
 
 
 class RedditCollector(BaseCollector):
     name = "reddit"
 
-    def __init__(self) -> None:
-        super().__init__()
-        self._access_token: str | None = None
-        self._token_expires_at: float = 0.0
-
     async def collect(self) -> list[CollectorItem]:
         config = load_config()
         reddit_cfg = config.reddit
 
-        if not reddit_cfg.client_id_env or not reddit_cfg.client_secret_env:
-            self.logger.warning("Reddit client ID or client secret not configured – skipping collection")
-            return []
-
         try:
-            token = await self._get_access_token(reddit_cfg)
-        except Exception:
-            self.logger.exception("Reddit OAuth2 authentication failed")
-            return []
-
-        try:
-            posts = await self._fetch_posts(reddit_cfg, token)
+            posts = await self._fetch_posts(reddit_cfg)
         except Exception:
             self.logger.exception("Failed to fetch Reddit posts")
             return []
@@ -54,44 +37,8 @@ class RedditCollector(BaseCollector):
         self.logger.info("Collected %d reddit clips", len(items))
         return items
 
-    async def _get_access_token(self, reddit_cfg) -> str:
-        now = time.monotonic()
-        if self._access_token and now < self._token_expires_at:
-            return self._access_token
-
-        client_id = reddit_cfg.client_id_env
-        client_secret = reddit_cfg.client_secret_env
-
-        if not client_id or not client_secret:
-            raise ValueError("Reddit client_id or client_secret not configured")
-
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.post(
-                TOKEN_URL,
-                auth=(client_id, client_secret),
-                data={
-                    "grant_type": "client_credentials",
-                },
-                headers={
-                    "User-Agent": reddit_cfg.user_agent,
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-
-        access_token = data.get("access_token")
-        if not access_token:
-            raise ValueError(f"Reddit OAuth2 response missing access_token: {data}")
-
-        expires_in = data.get("expires_in", 3600)
-        self._access_token = access_token
-        self._token_expires_at = now + expires_in - 60  # refresh 60s early
-
-        self.logger.info("Reddit OAuth2 token acquired (expires in %ds)", expires_in)
-        return access_token
-
-    async def _fetch_posts(self, reddit_cfg, token: str) -> list[dict]:
-        url = f"{OAUTH_BASE}/r/{reddit_cfg.subreddit}/{reddit_cfg.sort}"
+    async def _fetch_posts(self, reddit_cfg) -> list[dict]:
+        url = f"{REDDIT_BASE}/r/{reddit_cfg.subreddit}/{reddit_cfg.sort}.json"
 
         async with httpx.AsyncClient(timeout=15) as client:
             resp = await client.get(
@@ -101,7 +48,6 @@ class RedditCollector(BaseCollector):
                     "limit": reddit_cfg.limit,
                 },
                 headers={
-                    "Authorization": f"Bearer {token}",
                     "User-Agent": reddit_cfg.user_agent,
                 },
             )

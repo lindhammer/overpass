@@ -36,8 +36,6 @@ reddit:
   flair_filter:
     - "Highlight"
     - "Clip"
-  client_id_env: "REDDIT_CLIENT_ID"
-  client_secret_env: "REDDIT_CLIENT_SECRET"
   user_agent: "overpass:v0.1.0 (by /u/overpass-bot)"
 
 live_alerts:

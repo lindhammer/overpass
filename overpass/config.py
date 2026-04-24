@@ -41,8 +41,6 @@ class RedditConfig(BaseModel):
     time_filter: str = "day"
     limit: int = 10
     flair_filter: list[str] = []
-    client_id_env: str = "REDDIT_CLIENT_ID"
-    client_secret_env: str = "REDDIT_CLIENT_SECRET"
     user_agent: str = "overpass:v0.1.0 (by /u/overpass-bot)"
 
 

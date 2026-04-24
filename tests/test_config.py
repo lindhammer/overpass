@@ -47,6 +47,36 @@ def test_load_config_rejects_malformed_hltv_base_url(tmp_path, base_url: str):
         load_config(config_path)
 
 
+def test_reddit_config_has_no_credential_fields():
+    from overpass.config import RedditConfig
+
+    cfg = RedditConfig(subreddit="GlobalOffensive")
+
+    assert not hasattr(cfg, "client_id_env")
+    assert not hasattr(cfg, "client_secret_env")
+
+
+def test_load_config_reads_reddit_block_without_credentials(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        (
+            'reddit:\n'
+            '  subreddit: "GlobalOffensive"\n'
+            '  sort: "hot"\n'
+            '  time_filter: "day"\n'
+            '  limit: 25\n'
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = load_config(config_path)
+
+    assert cfg.reddit.subreddit == "GlobalOffensive"
+    assert cfg.reddit.sort == "hot"
+    assert cfg.reddit.time_filter == "day"
+    assert cfg.reddit.limit == 25
+
+
 def test_liquipedia_config_defaults():
     from overpass.config import LiquipediaConfig
 

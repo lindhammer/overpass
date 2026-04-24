@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-import logging
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -22,8 +21,6 @@ _REDDIT_CFG = RedditConfig(
     time_filter="day",
     limit=10,
     flair_filter=["Highlight", "Clip"],
-    client_id_env="fake-client-id",
-    client_secret_env="fake-client-secret",
     user_agent="overpass:v0.1.0 (by /u/test)",
 )
 
@@ -31,13 +28,6 @@ _APP_CONFIG = AppConfig(
     reddit=_REDDIT_CFG,
     telegram={"bot_token_env": "", "chat_id_env": ""},
 )
-
-TOKEN_RESPONSE = {
-    "access_token": "fake-token-abc123",
-    "token_type": "bearer",
-    "expires_in": 3600,
-    "scope": "*",
-}
 
 SAMPLE_LISTING = {
     "data": {
@@ -102,78 +92,57 @@ def _mock_config(cfg=_APP_CONFIG):
     return patch("overpass.collectors.reddit.load_config", return_value=cfg)
 
 
-def _mock_auth(token_resp=TOKEN_RESPONSE):
-    mock = AsyncMock(return_value=token_resp)
-    return patch.object(RedditCollector, "_get_access_token", mock)
-
-
 def _mock_fetch(listing=SAMPLE_LISTING):
     mock = AsyncMock(return_value=[c["data"] for c in listing["data"]["children"]])
     return patch.object(RedditCollector, "_fetch_posts", mock)
 
 
-# ── Tests: OAuth2 authentication ─────────────────────────────────
+@pytest.mark.asyncio
+async def test_fetch_posts_uses_public_json_listing():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = SAMPLE_LISTING
+
+    client = AsyncMock()
+    client.__aenter__.return_value = client
+    client.__aexit__.return_value = False
+    client.get.return_value = response
+
+    with patch("overpass.collectors.reddit.httpx.AsyncClient", return_value=client):
+        posts = await RedditCollector()._fetch_posts(_REDDIT_CFG)
+
+    client.get.assert_awaited_once_with(
+        "https://www.reddit.com/r/GlobalOffensive/top.json",
+        params={"t": "day", "limit": 10},
+        headers={"User-Agent": "overpass:v0.1.0 (by /u/test)"},
+    )
+    assert posts == [c["data"] for c in SAMPLE_LISTING["data"]["children"]]
 
 
 @pytest.mark.asyncio
-async def test_oauth_token_acquired():
-    """OAuth2 token is fetched and used for API requests."""
-    with _mock_config(), _mock_auth() as auth_mock, _mock_fetch():
-        collector = RedditCollector()
-        items = await collector.collect()
-
-    auth_mock.assert_awaited_once()
-    assert len(items) > 0
-
-
-@pytest.mark.asyncio
-async def test_auth_failure_returns_empty_list():
-    """When OAuth2 fails, the collector returns [] and logs the error."""
-    failing_auth = AsyncMock(side_effect=Exception("401 Unauthorized"))
-    with (
-        _mock_config(),
-        patch.object(RedditCollector, "_get_access_token", failing_auth),
-    ):
-        items = await RedditCollector().collect()
-
-    assert items == []
-
-
-@pytest.mark.asyncio
-async def test_missing_credentials_skip_without_auth_attempt(caplog):
-    """Missing Reddit credentials skip collection without logging a traceback."""
+async def test_collect_without_credentials_still_fetches_posts():
     cfg = AppConfig(
         reddit=RedditConfig(
             subreddit="GlobalOffensive",
-            client_id_env="",
-            client_secret_env="",
+            sort="top",
+            time_filter="day",
+            limit=10,
+            flair_filter=["Highlight", "Clip"],
+            user_agent="overpass:v0.1.0 (by /u/test)",
         ),
         telegram={"bot_token_env": "", "chat_id_env": ""},
     )
 
-    auth_mock = AsyncMock()
     with (
         patch("overpass.collectors.reddit.load_config", return_value=cfg),
-        patch.object(RedditCollector, "_get_access_token", auth_mock),
-        caplog.at_level(logging.WARNING, logger="overpass.collectors.reddit"),
+        _mock_fetch(),
     ):
         items = await RedditCollector().collect()
 
-    assert items == []
-    auth_mock.assert_not_awaited()
-    assert "Reddit client ID or client secret not configured" in caplog.text
-    assert not [record for record in caplog.records if record.exc_info]
-
-
-@pytest.mark.asyncio
-async def test_token_cached_across_calls():
-    """The access token is cached and not re-fetched within its lifetime."""
-    collector = RedditCollector()
-    collector._access_token = "cached-token"
-    collector._token_expires_at = 1e12  # far future
-
-    token = await collector._get_access_token(_REDDIT_CFG)
-    assert token == "cached-token"
+    assert [item.title for item in items] == [
+        "insane 1v5 clutch by s1mple",
+        "sick AWP ace on Inferno",
+    ]
 
 
 # ── Tests: flair filtering ───────────────────────────────────────
@@ -182,7 +151,7 @@ async def test_token_cached_across_calls():
 @pytest.mark.asyncio
 async def test_highlight_flair_collected():
     """Posts with 'Highlight' flair are included."""
-    with _mock_config(), _mock_auth(), _mock_fetch():
+    with _mock_config(), _mock_fetch():
         items = await RedditCollector().collect()
 
     titles = [i.title for i in items]
@@ -192,7 +161,7 @@ async def test_highlight_flair_collected():
 @pytest.mark.asyncio
 async def test_clip_flair_collected():
     """Posts with 'Clip' flair are included."""
-    with _mock_config(), _mock_auth(), _mock_fetch():
+    with _mock_config(), _mock_fetch():
         items = await RedditCollector().collect()
 
     titles = [i.title for i in items]
@@ -202,7 +171,7 @@ async def test_clip_flair_collected():
 @pytest.mark.asyncio
 async def test_non_matching_flair_filtered_out():
     """Posts with flair not in flair_filter are excluded."""
-    with _mock_config(), _mock_auth(), _mock_fetch():
+    with _mock_config(), _mock_fetch():
         items = await RedditCollector().collect()
 
     titles = [i.title for i in items]
@@ -216,14 +185,11 @@ async def test_flair_filter_empty_passes_all():
         reddit=RedditConfig(
             subreddit="GlobalOffensive",
             flair_filter=[],
-            client_id_env="id",
-            client_secret_env="secret",
         ),
         telegram={"bot_token_env": "", "chat_id_env": ""},
     )
     with (
         patch("overpass.collectors.reddit.load_config", return_value=cfg_no_filter),
-        _mock_auth(),
         _mock_fetch(),
     ):
         items = await RedditCollector().collect()
@@ -237,7 +203,7 @@ async def test_flair_filter_empty_passes_all():
 @pytest.mark.asyncio
 async def test_item_fields_correct():
     """CollectorItem has the expected source, type, and metadata."""
-    with _mock_config(), _mock_auth(), _mock_fetch():
+    with _mock_config(), _mock_fetch():
         items = await RedditCollector().collect()
 
     item = next(i for i in items if "s1mple" in i.title)
@@ -256,7 +222,7 @@ async def test_item_fields_correct():
 @pytest.mark.asyncio
 async def test_reddit_video_media_url_extracted():
     """Media URL is extracted from reddit_video when present."""
-    with _mock_config(), _mock_auth(), _mock_fetch():
+    with _mock_config(), _mock_fetch():
         items = await RedditCollector().collect()
 
     item = next(i for i in items if "AWP" in i.title)
@@ -266,7 +232,7 @@ async def test_reddit_video_media_url_extracted():
 @pytest.mark.asyncio
 async def test_self_thumbnail_ignored():
     """Thumbnail value 'self' is not used as thumbnail_url."""
-    with _mock_config(), _mock_auth(), _mock_fetch():
+    with _mock_config(), _mock_fetch():
         items = await RedditCollector().collect()
 
     item = next(i for i in items if "AWP" in i.title)
@@ -279,7 +245,7 @@ async def test_self_thumbnail_ignored():
 @pytest.mark.asyncio
 async def test_empty_listing_returns_empty():
     """An empty listing from Reddit returns no items."""
-    with _mock_config(), _mock_auth(), _mock_fetch(EMPTY_LISTING):
+    with _mock_config(), _mock_fetch(EMPTY_LISTING):
         items = await RedditCollector().collect()
 
     assert items == []
@@ -291,7 +257,6 @@ async def test_fetch_failure_returns_empty():
     failing_fetch = AsyncMock(side_effect=Exception("503 Service Unavailable"))
     with (
         _mock_config(),
-        _mock_auth(),
         patch.object(RedditCollector, "_fetch_posts", failing_fetch),
     ):
         items = await RedditCollector().collect()
@@ -302,9 +267,24 @@ async def test_fetch_failure_returns_empty():
 @pytest.mark.asyncio
 async def test_malformed_post_skipped():
     """A post that raises during parsing is skipped, others still collected."""
+    original_parse_post = RedditCollector._parse_post
+
     bad_listing = {
         "data": {
             "children": [
+                {
+                    "data": {
+                        "title": "bad post",
+                        "permalink": "/r/GlobalOffensive/comments/bad123/bad/",
+                        "created_utc": _RECENT_TS,
+                        "score": 10,
+                        "num_comments": 1,
+                        "author": "broken_user",
+                        "link_flair_text": "Highlight",
+                        "thumbnail": "https://bad-thumb.jpg",
+                        "media": None,
+                    }
+                },
                 {
                     "data": {
                         "title": "good post",
@@ -321,8 +301,23 @@ async def test_malformed_post_skipped():
             ]
         }
     }
-    with _mock_config(), _mock_auth(), _mock_fetch(bad_listing):
+
+    def _parse_post_side_effect(post, flair_filter):
+        if post["title"] == "bad post":
+            raise ValueError("malformed post")
+        return original_parse_post(post, flair_filter)
+
+    with (
+        _mock_config(),
+        _mock_fetch(bad_listing),
+        patch.object(
+            RedditCollector,
+            "_parse_post",
+            side_effect=_parse_post_side_effect,
+        ) as mock_parse,
+    ):
         items = await RedditCollector().collect()
 
+    assert mock_parse.call_count == 2
     assert len(items) == 1
     assert items[0].title == "good post"
