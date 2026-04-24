@@ -184,16 +184,34 @@ def _social_post_to_dict(item: CollectorItem) -> dict[str, Any]:
     }
 
 
+def _upcoming_match_to_dict(item: CollectorItem) -> dict[str, Any]:
+    """Flatten an upcoming-match CollectorItem into the template dict shape."""
+    md = item.metadata or {}
+    return {
+        "starts_at": item.timestamp,
+        "team1": md.get("team1") or "",
+        "team2": md.get("team2") or "",
+        "team1_logo_url": md.get("team1_logo_url"),
+        "team2_logo_url": md.get("team2_logo_url"),
+        "event": md.get("event"),
+        "format": md.get("format"),
+        "stage": md.get("stage"),
+        "hltv_url": md.get("hltv_url") or item.url,
+    }
+
+
 def render_briefing(
     digest: DigestOutput,
     briefing_date: date,
     *,
     social_items: list[CollectorItem] | None = None,
+    upcoming_items: list[CollectorItem] | None = None,
 ) -> str:
     """Render the briefing template and return the HTML string."""
     env = _make_env()
     template = env.get_template("briefing.html")
     social_posts = [_social_post_to_dict(it) for it in (social_items or [])]
+    upcoming_matches = [_upcoming_match_to_dict(it) for it in (upcoming_items or [])]
     context: dict[str, Any] = {
         "digest": digest,
         "date": briefing_date,
@@ -202,6 +220,7 @@ def render_briefing(
         "ticker_chips": _build_ticker_chips(digest),
         "sources": _collect_sources(digest),
         "social_posts": social_posts,
+        "upcoming_matches": upcoming_matches,
         "per_match_blurbs": {
             url: blurb.model_dump() for url, blurb in digest.per_match_blurbs.items()
         },

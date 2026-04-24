@@ -14,6 +14,9 @@ hltv:
   request_timeout_seconds: 30
   min_request_interval_seconds: 2.0
   watchlist_only_matches: false
+  upcoming_enabled: true
+  upcoming_lookahead_hours: 36
+  upcoming_max_matches: 8
 
 youtube:
   api_key_env: "YOUTUBE_API_KEY"

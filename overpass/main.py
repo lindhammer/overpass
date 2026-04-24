@@ -10,6 +10,7 @@ from datetime import date
 from overpass.collectors.base import BaseCollector, CollectorItem
 from overpass.collectors.hltv_matches import HLTVMatchesCollector
 from overpass.collectors.hltv_news import HLTVNewsCollector
+from overpass.collectors.hltv_upcoming import HLTVUpcomingCollector
 from overpass.collectors.podcast import PodcastCollector
 from overpass.collectors.reddit import RedditCollector
 from overpass.collectors.social import NitterSocialCollector
@@ -51,6 +52,7 @@ def _build_collectors_with_shared_hltv_client() -> tuple[
                 liquipedia_client=liquipedia_client if liq_cfg.hltv_fallback else None,
             ),
             HLTVNewsCollector(browser_client=hltv_browser_client),
+            HLTVUpcomingCollector(browser_client=hltv_browser_client),
             PodcastCollector(),
             RedditCollector(),
             NitterSocialCollector(),
@@ -109,10 +111,11 @@ async def async_main() -> None:
     logger.info("=== Step 1/4: Collecting ===")
     items = await run_collectors()
 
-    # Social posts bypass the LLM digest – they are short, self-contained, and
-    # rendered in their own template block from `social_posts` context.
+    # Social posts and upcoming-match cards bypass the LLM digest – they are
+    # short, self-contained, and rendered in their own template blocks.
     social_items = [i for i in items if i.type == "social"]
-    digest_items = [i for i in items if i.type != "social"]
+    upcoming_items = [i for i in items if i.type == "upcoming"]
+    digest_items = [i for i in items if i.type not in {"social", "upcoming"}]
 
     # ── 2. Editorial ─────────────────────────────────────────────
     logger.info("=== Step 2/4: Editorial ===")
@@ -154,7 +157,12 @@ async def async_main() -> None:
     logger.info("=== Step 3/4: Rendering HTML ===")
     t0 = time.monotonic()
     today = date.today()
-    html = render_briefing(digest, today, social_items=social_items)
+    html = render_briefing(
+        digest,
+        today,
+        social_items=social_items,
+        upcoming_items=upcoming_items,
+    )
     path = save_briefing(html, today)
     logger.info("HTML saved to %s (%.1fs)", path, time.monotonic() - t0)
 

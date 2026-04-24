@@ -86,3 +86,18 @@ class HLTVMatchDetail(HLTVMatchResult):
     veto: list[HLTVMatchVetoEntry] = Field(default_factory=list)
     player_stats: list[HLTVMatchPlayerStat] = Field(default_factory=list)
     source_fallback: str | None = None
+
+
+class HLTVUpcomingMatch(BaseModel):
+    """Scheduled HLTV match parsed from /matches."""
+
+    external_id: str
+    url: str
+    starts_at: datetime
+    team1_name: str
+    team2_name: str
+    team1_logo_url: str | None = None
+    team2_logo_url: str | None = None
+    event_name: str | None = None
+    format: str | None = None
+    stage: str | None = None

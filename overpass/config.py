@@ -140,6 +140,9 @@ class HLTVConfig(BaseModel):
     request_timeout_seconds: int = Field(default=30, gt=0)
     min_request_interval_seconds: float = Field(default=2.0, ge=0)
     watchlist_only_matches: bool = False
+    upcoming_enabled: bool = True
+    upcoming_lookahead_hours: int = Field(default=36, gt=0)
+    upcoming_max_matches: int = Field(default=8, ge=1)
 
     @field_validator("base_url")
     @classmethod
