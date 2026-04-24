@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 from datetime import datetime, timezone
 
 import httpx
@@ -91,8 +92,26 @@ class RedditCollector(BaseCollector):
         permalink = post.get("permalink", "")
         url = f"https://www.reddit.com{permalink}" if permalink else ""
 
-        thumbnail = post.get("thumbnail", "")
+        # Reddit's JSON returns thumbnail and preview URLs HTML-escaped
+        # (e.g. "&amp;" instead of "&"). Jinja2's autoescape would then
+        # double-escape them at render time, producing broken images.
+        # Decode here so the value stored in the digest is raw.
+        thumbnail = html.unescape(post.get("thumbnail", "") or "")
         thumbnail_url = thumbnail if thumbnail.startswith("http") else None
+
+        # Prefer a higher-resolution preview image when available; fall back
+        # to the (often tiny) thumbnail otherwise.
+        preview = post.get("preview")
+        if isinstance(preview, dict):
+            images = preview.get("images") or []
+            if images and isinstance(images[0], dict):
+                source = images[0].get("source")
+                if isinstance(source, dict):
+                    src_url = html.unescape(source.get("url") or "")
+                    if src_url.startswith("http"):
+                        thumbnail_url = src_url
+
+        score = post.get("score", 0)
 
         return CollectorItem(
             source="reddit",
@@ -102,7 +121,9 @@ class RedditCollector(BaseCollector):
             timestamp=timestamp,
             thumbnail_url=thumbnail_url,
             metadata={
-                "score": post.get("score", 0),
+                "subreddit": post.get("subreddit", ""),
+                "score": score,
+                "upvotes": score,
                 "num_comments": post.get("num_comments", 0),
                 "author": post.get("author", "[deleted]"),
                 "flair": flair,

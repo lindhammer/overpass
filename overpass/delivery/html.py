@@ -166,7 +166,109 @@ def _make_env() -> Environment:
     env.filters["first_paragraph"] = _first_paragraph
     env.filters["team_code"] = _team_code
     env.filters["fmt_date"] = _fmt_date
+    env.filters["news_category"] = _classify_news
+    env.filters["news_category_label"] = _news_category_label
+    env.filters["pluralize"] = _pluralize
     return env
+
+
+# Heuristic news classification.
+# - "alert" (red): integrity / bans / cheating / suspensions / leaks
+# - "trade" (yellow): roster moves, signings, departures, free agency
+# - "default" (amber): everything else
+_NEWS_ALERT_PATTERNS = re.compile(
+    r"\b(esic|ban|bans|banned|cheat|cheating|cheater|suspend|suspended|"
+    r"suspension|integrity|match[- ]fix|matchfixing|leak|leaked|doxx|"
+    r"vac|valve ban|investigation)\b",
+    re.IGNORECASE,
+)
+_NEWS_TRADE_PATTERNS = re.compile(
+    r"\b(sign|signs|signed|signing|join|joins|joined|part ways|parts ways|"
+    r"depart|departs|departure|leave|leaves|left|free agency|free agent|"
+    r"benched?|bench|stand[- ]in|stands? in|stand-in|loan|loaned|trial|"
+    r"transfer|transfers|trade|trades|coach|coaches|return|returns|"
+    r"reveal|unveil|announce roster|new roster|rebuild|disband|disbands)\b",
+    re.IGNORECASE,
+)
+
+
+def _classify_news(item: CollectorItem | dict[str, Any] | None) -> str:
+    """Return 'alert' | 'trade' | 'default' for a news item.
+
+    Honours an explicit ``metadata.category`` if present; otherwise classifies
+    heuristically from the headline.
+    """
+    if item is None:
+        return "default"
+    if isinstance(item, dict):
+        md = item.get("metadata") or {}
+        title = item.get("title") or ""
+    else:
+        md = item.metadata or {}
+        title = item.title or ""
+    category = (md.get("category") or "").strip().lower()
+    if category in ("alert", "trade", "default"):
+        return category
+    if _NEWS_ALERT_PATTERNS.search(title):
+        return "alert"
+    if _NEWS_TRADE_PATTERNS.search(title):
+        return "trade"
+    return "default"
+
+
+def _news_category_label(item: CollectorItem | dict[str, Any] | None) -> str:
+    """Return a short uppercase ribbon label for a news item."""
+    if item is None:
+        return "News"
+    if isinstance(item, dict):
+        md = item.get("metadata") or {}
+    else:
+        md = item.metadata or {}
+    explicit = (md.get("category_label") or "").strip()
+    if explicit:
+        return explicit
+    return {
+        "alert": "Alert",
+        "trade": "Roster",
+        "default": "News",
+    }[_classify_news(item)]
+
+
+def _pluralize(count: int, singular: str, plural: str | None = None) -> str:
+    """Return ``singular`` if count == 1, else ``plural`` (or singular + 's')."""
+    if count == 1:
+        return singular
+    return plural if plural is not None else f"{singular}s"
+
+
+def _timezone_label(value: datetime) -> str:
+    """Return a short timezone label (e.g. 'CET', 'UTC+02:00') for a datetime.
+
+    On Windows ``datetime.tzname()`` returns the long zone name
+    ("Mitteleuropäische Sommerzeit"), which is unsuitable for a header line.
+    We prefer a short alphabetic abbreviation when the platform provides one,
+    otherwise fall back to a UTC offset.  ``LOCAL`` is the last resort for
+    naive datetimes on platforms that report nothing.
+    """
+    aware = value if value.tzinfo else None
+    if aware is None:
+        try:
+            aware = datetime.now().astimezone()
+        except Exception:
+            return "LOCAL"
+
+    name = aware.tzname() or ""
+    # Accept short alphabetic abbreviations like "CET", "CEST", "UTC", "PDT".
+    if name and len(name) <= 5 and name.replace("+", "").replace("-", "").isalnum():
+        return name
+
+    offset = aware.utcoffset()
+    if offset is None:
+        return name or "LOCAL"
+    total_minutes = int(offset.total_seconds() // 60)
+    sign = "+" if total_minutes >= 0 else "-"
+    hours, minutes = divmod(abs(total_minutes), 60)
+    return f"UTC{sign}{hours:02d}:{minutes:02d}"
 
 
 def _social_post_to_dict(item: CollectorItem) -> dict[str, Any]:
@@ -243,10 +345,12 @@ def render_briefing(
     this_day_ctx = (
         _history_entry_to_dict(this_day, briefing_date) if this_day is not None else None
     )
+    generated_at = datetime.now()
     context: dict[str, Any] = {
         "digest": digest,
         "date": briefing_date,
-        "generated_at": datetime.now(),
+        "generated_at": generated_at,
+        "tz_label": _timezone_label(generated_at),
         "issue_no": _compute_issue_number(briefing_date),
         "ticker_chips": _build_ticker_chips(digest),
         "sources": _collect_sources(digest),
