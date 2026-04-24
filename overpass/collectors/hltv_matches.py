@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from overpass.config import load_config
 from overpass.collectors.base import BaseCollector, CollectorItem
-from overpass.hltv.browser import HLTVBrowserClient
+from overpass.hltv.browser import HLTVBrowserClient, _looks_like_challenge
 from overpass.hltv.matches import parse_match_detail, parse_ranked_team_names, parse_results_listing
 from overpass.hltv.models import HLTVMatchDetail, HLTVMatchMapResult, HLTVMatchResult
 from overpass.liquipedia.client import LiquipediaClient
@@ -38,6 +38,7 @@ class HLTVMatchesCollector(BaseCollector):
         "checking your browser before accessing",
         "cf-browser-verification",
         "cf-challenge",
+        "challenges.cloudflare.com",
     )
 
     def __init__(
@@ -138,47 +139,68 @@ class HLTVMatchesCollector(BaseCollector):
             await headful_client.close()
 
     async def _collect_match_detail(self, listing_item: HLTVMatchResult) -> HLTVMatchDetail:
+        # Try headless first; escalate to headful if Cloudflare blocks us, then
+        # to Liquipedia only as a last resort (Liquipedia can resolve to the
+        # wrong tournament page, so prefer the real HLTV detail when possible).
         detail_html = await self._browser_client.fetch_page_content(listing_item.url)
-        try:
-            return parse_match_detail(
-                detail_html,
-                listing_item=listing_item,
-                base_url=self._base_url,
-            )
-        except ValueError as first_error:
-            try:
-                headless_detail_html = await self._fetch_with_load_fallback(
-                    self._browser_client, listing_item.url
-                )
-                return parse_match_detail(
-                    headless_detail_html,
-                    listing_item=listing_item,
-                    base_url=self._base_url,
-                )
-            except ValueError as headless_error:
-                if self._liquipedia_client is not None:
-                    return await self._maybe_fallback_or_raise(listing_item, headless_error)
-                if not getattr(self._browser_client, "headless", False):
-                    return await self._maybe_fallback_or_raise(listing_item, first_error)
+        cf_blocked = _looks_like_challenge(detail_html)
+        first_error: BaseException | None = None
 
-        headful_client = HLTVBrowserClient(
-            base_url=self._base_url,
-            headless=False,
-            request_timeout_seconds=self._hltv_config.request_timeout_seconds,
-            min_request_interval_seconds=self._hltv_config.min_request_interval_seconds,
-        )
-        try:
+        if not cf_blocked:
             try:
-                headful_detail_html = await self._fetch_with_load_fallback(headful_client, listing_item.url)
                 return parse_match_detail(
-                    headful_detail_html,
+                    detail_html,
                     listing_item=listing_item,
                     base_url=self._base_url,
                 )
-            except ValueError as headful_error:
-                return await self._maybe_fallback_or_raise(listing_item, headful_error)
-        finally:
-            await headful_client.close()
+            except ValueError as error:
+                first_error = error
+                try:
+                    detail_html = await self._fetch_with_load_fallback(
+                        self._browser_client, listing_item.url
+                    )
+                    if _looks_like_challenge(detail_html):
+                        cf_blocked = True
+                    else:
+                        return parse_match_detail(
+                            detail_html,
+                            listing_item=listing_item,
+                            base_url=self._base_url,
+                        )
+                except ValueError as rendered_error:
+                    first_error = rendered_error
+
+        if cf_blocked:
+            self.logger.warning(
+                "HLTV match page %s blocked by Cloudflare in headless mode; escalating to headful",
+                listing_item.url,
+            )
+
+        if getattr(self._browser_client, "headless", False):
+            headful_client = HLTVBrowserClient(
+                base_url=self._base_url,
+                headless=False,
+                request_timeout_seconds=self._hltv_config.request_timeout_seconds,
+                min_request_interval_seconds=self._hltv_config.min_request_interval_seconds,
+            )
+            try:
+                try:
+                    headful_detail_html = await self._fetch_with_load_fallback(
+                        headful_client, listing_item.url
+                    )
+                    return parse_match_detail(
+                        headful_detail_html,
+                        listing_item=listing_item,
+                        base_url=self._base_url,
+                    )
+                except ValueError as headful_error:
+                    first_error = headful_error
+            finally:
+                await headful_client.close()
+
+        if first_error is None:
+            first_error = ValueError("HLTV match page could not be retrieved")
+        return await self._maybe_fallback_or_raise(listing_item, first_error)
 
     async def _maybe_fallback_or_raise(
         self,

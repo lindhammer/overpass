@@ -18,6 +18,15 @@ def _async_playwright_factory() -> Any:
     return async_playwright()
 
 
+# Cloudflare's interactive "Just a moment..." challenge resolves itself in a
+# real browser within a few seconds. We poll for it to clear so the caller
+# receives the real page content instead of the interstitial HTML.
+_CHALLENGE_TITLE_MARKERS = ("just a moment", "attention required")
+_CHALLENGE_BODY_MARKERS = ("challenges.cloudflare.com", "cf-browser-verification", "cf-challenge")
+_CHALLENGE_CLEAR_TIMEOUT_SECONDS = 15.0
+_CHALLENGE_POLL_INTERVAL_SECONDS = 0.5
+
+
 class HLTVBrowserClient:
     """Manage a Playwright browser session for fragile HLTV scraping.
 
@@ -133,12 +142,43 @@ class HLTVBrowserClient:
                 if use_response_text:
                     if response is None:
                         raise RuntimeError("Navigation did not return a response")
-                    return await response.text()
+                    text = await response.text()
+                    if _looks_like_challenge(text):
+                        await self._wait_for_challenge_to_clear(page)
+                        text = await page.content()
+                    return text
+                await self._wait_for_challenge_to_clear(page)
                 return await page.content()
             finally:
                 if page is not None:
                     await page.close()
                 self._last_request_finished_at = self._monotonic()
+
+    async def _wait_for_challenge_to_clear(self, page: Any) -> None:
+        """Poll the page until any Cloudflare interstitial is gone.
+
+        Returns immediately if the page does not look like a challenge. Gives
+        up silently after ``_CHALLENGE_CLEAR_TIMEOUT_SECONDS``; the caller is
+        responsible for handling pages that still fail to parse.
+        """
+        try:
+            content = await page.content()
+        except Exception:
+            return
+        if not _looks_like_challenge(content):
+            return
+
+        deadline = self._monotonic() + _CHALLENGE_CLEAR_TIMEOUT_SECONDS
+        while self._monotonic() < deadline:
+            sleep_result = self._sleep(_CHALLENGE_POLL_INTERVAL_SECONDS)
+            if inspect.isawaitable(sleep_result):
+                await sleep_result
+            try:
+                content = await page.content()
+            except Exception:
+                continue
+            if not _looks_like_challenge(content):
+                return
 
     async def _wait_for_request_slot(self) -> None:
         if self._last_request_finished_at is None:
@@ -152,3 +192,21 @@ class HLTVBrowserClient:
         sleep_result = self._sleep(remaining)
         if inspect.isawaitable(sleep_result):
             await sleep_result
+
+
+def _looks_like_challenge(html: str) -> bool:
+    """Return True if HTML looks like a Cloudflare interstitial.
+
+    Conservative on purpose: matches both the legacy ``<title>Just a moment``
+    interstitial and the newer challenge platform markup. Lower-cased once and
+    scanned for any known marker.
+    """
+    lowered = html.lower()
+    if any(marker in lowered for marker in _CHALLENGE_BODY_MARKERS):
+        return True
+    title_start = lowered.find("<title>")
+    if title_start == -1:
+        return False
+    title_end = lowered.find("</title>", title_start)
+    title_text = lowered[title_start + len("<title>") : title_end if title_end != -1 else title_start + 200]
+    return any(marker in title_text for marker in _CHALLENGE_TITLE_MARKERS)

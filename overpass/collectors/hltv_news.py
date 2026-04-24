@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from overpass.config import load_config
 from overpass.collectors.base import BaseCollector, CollectorItem
-from overpass.hltv.browser import HLTVBrowserClient
+from overpass.hltv.browser import HLTVBrowserClient, _looks_like_challenge
 from overpass.hltv.models import HLTVNewsArticle
 from overpass.hltv.news import parse_news_article, parse_news_listing
 
@@ -16,10 +16,11 @@ class HLTVNewsCollector(BaseCollector):
     name = "hltv_news"
     _MAX_RENDERED_ARTICLE_ATTEMPTS = 3
     _CHALLENGE_MARKERS = (
-        "<title>Just a moment",
+        "<title>just a moment",
         "checking your browser before accessing",
         "cf-browser-verification",
         "cf-challenge",
+        "challenges.cloudflare.com",
     )
 
     def __init__(
@@ -101,21 +102,34 @@ class HLTVNewsCollector(BaseCollector):
 
     async def _collect_article(self, listing_item) -> HLTVNewsArticle:
         article_html = await self._browser_client.fetch_response_text(listing_item.url)
-        try:
-            return parse_news_article(
-                article_html,
-                article_url=listing_item.url,
-                listing_item=listing_item,
-                base_url=self._base_url,
+        if not _looks_like_challenge(article_html):
+            try:
+                return parse_news_article(
+                    article_html,
+                    article_url=listing_item.url,
+                    listing_item=listing_item,
+                    base_url=self._base_url,
+                )
+            except ValueError as first_error:
+                last_error: ValueError = first_error
+        else:
+            self.logger.warning(
+                "HLTV article %s returned a Cloudflare challenge; retrying with full render",
+                listing_item.url,
             )
-        except ValueError as first_error:
-            last_error = first_error
+            last_error = ValueError("Cloudflare challenge intercepted article fetch")
 
+        cf_blocked = _looks_like_challenge(article_html)
         for _ in range(self._MAX_RENDERED_ARTICLE_ATTEMPTS):
             rendered_article_html = await self._browser_client.fetch_page_content(
                 listing_item.url,
                 wait_until="load",
             )
+            if _looks_like_challenge(rendered_article_html):
+                cf_blocked = True
+                last_error = ValueError("Cloudflare challenge persisted after rendered fetch")
+                continue
+            cf_blocked = False
             try:
                 return parse_news_article(
                     rendered_article_html,
@@ -125,6 +139,36 @@ class HLTVNewsCollector(BaseCollector):
                 )
             except ValueError as rendered_error:
                 last_error = rendered_error
+
+        # Final escalation: headless Chromium is fingerprinted as a bot by
+        # Cloudflare and the JS challenge never resolves. A headful browser
+        # bypasses this reliably, so it is worth the cost on the rare article
+        # that triggers a challenge.
+        if cf_blocked and getattr(self._browser_client, "headless", False):
+            hltv_config = load_config().hltv
+            headful_client = HLTVBrowserClient(
+                base_url=self._base_url,
+                headless=False,
+                request_timeout_seconds=hltv_config.request_timeout_seconds,
+                min_request_interval_seconds=hltv_config.min_request_interval_seconds,
+            )
+            try:
+                self.logger.warning(
+                    "HLTV article %s blocked by Cloudflare in headless mode; escalating to headful",
+                    listing_item.url,
+                )
+                headful_html = await headful_client.fetch_page_content(
+                    listing_item.url, wait_until="load"
+                )
+                if not _looks_like_challenge(headful_html):
+                    return parse_news_article(
+                        headful_html,
+                        article_url=listing_item.url,
+                        listing_item=listing_item,
+                        base_url=self._base_url,
+                    )
+            finally:
+                await headful_client.close()
 
         raise last_error
 

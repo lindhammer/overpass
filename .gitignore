@@ -42,6 +42,9 @@ docs/superpowers/
 # Dev tools
 tools/
 
+# Playwright MCP local cache
+.playwright-mcp/
+
 # Coverage
 .coverage
 coverage.xml
