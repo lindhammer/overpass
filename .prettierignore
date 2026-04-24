@@ -1,0 +1,5 @@
+# Jinja2 templates contain `{% ... %}` and `{{ ... }}` constructs that
+# Prettier cannot parse safely. Wrapping long lines breaks string literals
+# inside `{% set ... %}` blocks (e.g. "Match Results" → "Match\nResults"),
+# which then renders as broken HTML.
+overpass/templates/

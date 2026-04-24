@@ -13,7 +13,7 @@ from overpass.delivery.html import (
     _team_code,
     render_briefing,
 )
-from overpass.editorial.digest import DigestOutput, SectionOutput
+from overpass.editorial.digest import DigestOutput, MatchBlurb, SectionOutput
 
 # ── Fixtures ─────────────────────────────────────────────────────
 
@@ -30,12 +30,9 @@ def _clip() -> CollectorItem:
         timestamp=_NOW,
         thumbnail_url="https://example.com/thumb.jpg",
         metadata={
-            "score": 4200,
-            "num_comments": 87,
-            "duration": "0:38",
-            "rank": 1,
+            "subreddit": "GlobalOffensive",
             "author": "clipper123",
-            "flair": "Highlight",
+            "upvotes": 4200,
         },
     )
 
@@ -48,7 +45,10 @@ def _episode() -> CollectorItem:
         url="https://example.com/ep300",
         timestamp=_NOW,
         thumbnail_url=None,
-        metadata={"podcast_name": "HLTV Confirmed", "duration": "1:42:10", "description": "Full recap."},
+        metadata={
+            "description": "Full recap of the major final.",
+            "duration": "1:42:10",
+        },
     )
 
 
@@ -61,11 +61,9 @@ def _video() -> CollectorItem:
         timestamp=_NOW,
         thumbnail_url="https://img.youtube.com/vi/xyz/maxresdefault.jpg",
         metadata={
-            "channel_name": "HLTV",
-            "channel_id": "UC_SgBkrOEFVnJkBMKcpp5lg",
-            "video_id": "xyz",
+            "channel": "HLTV",
             "duration": "12:34",
-            "is_new": True,
+            "description": "Best plays from the past week.",
         },
     )
 
@@ -80,9 +78,7 @@ def _article() -> CollectorItem:
         thumbnail_url="https://www.hltv.org/gallery/12345/cover.jpg",
         metadata={
             "teaser": "Finn \"karrigan\" Andersen's side opened the event with a comfortable series win.",
-            "author": "Striker",
-            "tags": ["CS2", "IEM Cologne"],
-            "flag": "confirmed",
+            "category_label": "Match Recap",
         },
     )
 
@@ -101,12 +97,13 @@ def _match() -> CollectorItem:
             "team2_score": 1,
             "winner_name": "Spirit",
             "event_name": "BLAST Open Lisbon 2026",
-            "format": "bo3",
+            "event": "BLAST Open Lisbon 2026",
+            "format": "Best of 3",
             "flags": ["watch", "final"],
             "maps": [
-                {"name": "Mirage", "team1_score": 13, "team2_score": 9},
-                {"name": "Ancient", "team1_score": 11, "team2_score": 13},
-                {"name": "Anubis", "team1_score": 13, "team2_score": 8},
+                {"name": "Mirage", "team1_score": 13, "team2_score": 9, "winner_name": "Spirit"},
+                {"name": "Ancient", "team1_score": 11, "team2_score": 13, "winner_name": "FaZe"},
+                {"name": "Anubis", "team1_score": 13, "team2_score": 8, "winner_name": "Spirit"},
             ],
         },
     )
@@ -121,9 +118,9 @@ def _patch() -> CollectorItem:
         timestamp=_NOW,
         metadata={
             "version": "1.40.1.9",
-            "entries": [
-                {"tag": "Maps", "body": "Fixed a pixel walk on Inferno banana."},
-                {"tag": "Weapons", "body": "XM1014 rate of fire reduced by 6%."},
+            "changes": [
+                "Fixed a pixel walk on Inferno banana.",
+                "XM1014 rate of fire reduced by 6%.",
             ],
         },
     )
@@ -164,11 +161,21 @@ def test_summary_line_appears_in_html():
     assert digest.summary_line in html
 
 
-def test_section_labels_appear():
+def test_section_titles_appear_uppercased():
+    """Section blocks render with their title uppercased in the section header."""
     digest = _full_digest()
     html = render_briefing(digest, _DATE)
-    for label in ["Top Clips", "Patch Notes", "Podcasts &amp; Content"]:
-        assert label in html, f"Section label {label!r} missing from HTML"
+    # Both Videos + Podcasts present → merged into "Content Drops"
+    for label in ("TOP CLIPS", "PATCH NOTES", "CONTENT DROPS"):
+        assert label in html, f"Section title {label!r} missing from HTML"
+
+
+def test_match_and_news_section_titles_render():
+    digest = _digest_with_hltv_sections()
+    html = render_briefing(digest, _DATE)
+    assert "MATCH RESULTS" in html
+    # "Roster Moves & News" — ampersand gets HTML-escaped.
+    assert "ROSTER MOVES" in html
 
 
 def test_all_item_titles_appear():
@@ -183,30 +190,33 @@ def test_all_item_titles_appear():
         assert title in html, f"Item title {title!r} missing from HTML"
 
 
-def test_clip_score_and_comments_appear():
+def test_clip_upvotes_appear():
     digest = _full_digest()
     html = render_briefing(digest, _DATE)
-    assert "4.2k" in html
-    assert "87 comments" in html
+    assert "4200" in html
+    assert "r/GlobalOffensive" in html
+    assert "u/clipper123" in html
 
 
-def test_podcast_name_and_duration_appear():
+def test_podcast_duration_appears_in_drop():
     digest = _full_digest()
     html = render_briefing(digest, _DATE)
-    assert "HLTV Confirmed" in html
     assert "1:42:10" in html
+    assert "PODCAST" in html  # drop-kind ribbon
 
 
-def test_video_hero_renders():
+def test_video_drop_renders_channel_and_duration():
     digest = _full_digest()
     html = render_briefing(digest, _DATE)
     assert "Top 10 Plays This Week" in html
+    assert "12:34" in html
+    assert "HLTV" in html
 
 
-def test_patch_entries_render():
+def test_patch_entries_render_version_and_changes():
     digest = _full_digest()
     html = render_briefing(digest, _DATE)
-    assert "Build 1.40.1.9 · Valve" in html
+    assert "1.40.1.9" in html
     assert "Fixed a pixel walk on Inferno banana." in html
     assert "XM1014 rate of fire reduced by 6%." in html
 
@@ -222,8 +232,8 @@ def test_empty_digest_renders_only_lede_and_chrome():
     digest = DigestOutput(summary_line="Quiet day in CS2.", sections={})
     html = render_briefing(digest, _DATE)
     assert "Quiet day in CS2." in html
-    assert "Overpass" in html
-    for label in ["Top Clips", "Match Results", "Patch Notes"]:
+    assert "OVERPASS" in html
+    for label in ("TOP CLIPS", "MATCH RESULTS", "PATCH NOTES"):
         assert label not in html
 
 
@@ -234,15 +244,16 @@ def test_only_patches_section_renders():
     )
     html = render_briefing(digest, _DATE)
     assert "CS2 Update – April 10" in html
-    assert "Top Clips" not in html
-    assert "Match Results" not in html
+    assert "TOP CLIPS" not in html
+    assert "MATCH RESULTS" not in html
 
 
 def test_date_appears_in_html():
     digest = _full_digest()
     html = render_briefing(digest, _DATE)
     assert "2026" in html
-    assert "April" in html
+    # Topbar uses upper-case abbreviated date e.g. "FRI 10 APR 2026"
+    assert "APR" in html
 
 
 def test_thumbnail_url_used_in_clip_card():
@@ -263,11 +274,13 @@ def test_match_section_renders_teams_score_and_event():
     digest = _digest_with_hltv_sections()
     html = html_lib.unescape(render_briefing(digest, _DATE))
 
-    assert "Match Results" in html
+    assert "MATCH RESULTS" in html
     assert "Spirit" in html
     assert "FaZe" in html
     assert "BLAST Open Lisbon 2026" in html
-    assert "Mirage" in html
+    # Map breakdown is rendered inline as "<MapName> <s1>-<s2>".
+    assert "Mirage 13-9" in html
+    assert "Anubis 13-8" in html
 
 
 def test_match_section_renders_team_logos_when_available():
@@ -282,13 +295,12 @@ def test_match_section_renders_team_logos_when_available():
     html = html_lib.unescape(render_briefing(digest, _DATE))
     collapsed = " ".join(html.split())
 
-    assert 'class="team-logo"' in collapsed
+    # Logos render inside the .crest.has-logo wrapper.
+    assert 'class="crest has-logo"' in collapsed
     assert 'src="https://img.example/spirit.png"' in collapsed
     assert 'alt="Spirit logo"' in collapsed
     assert 'src="https://img.example/faze.png"' in collapsed
     assert 'alt="FaZe logo"' in collapsed
-    assert ">SP</span>" not in html
-    assert ">FAZE</span>" not in html
 
 
 def test_match_section_falls_back_to_initial_crest_without_team_logos():
@@ -297,17 +309,18 @@ def test_match_section_falls_back_to_initial_crest_without_team_logos():
     html = html_lib.unescape(render_briefing(digest, _DATE))
     collapsed = " ".join(html.split())
 
+    # Without logo URL → bare crest with the short team code as text.
     assert 'class="crest" data-team="SP"' in collapsed
-    assert ">SP</span>" in html
+    assert ">SP<" in collapsed
 
 
 def test_news_section_renders_article():
     digest = _digest_with_hltv_sections()
     html = html_lib.unescape(render_briefing(digest, _DATE))
 
-    assert "Roster & News" in html
+    assert "ROSTER MOVES" in html
     assert "FaZe win Cologne opener" in html
-    assert "Striker" in html
+    assert "Match Recap" in html  # category_label ribbon
     assert (
         "Finn \"karrigan\" Andersen's side opened the event with a comfortable series win."
         in html
@@ -317,27 +330,44 @@ def test_news_section_renders_article():
 def test_match_section_renders_before_clips():
     digest = _digest_with_hltv_sections()
     html = render_briefing(digest, _DATE)
-    assert html.index("Match Results") < html.index("Top Clips")
+    assert html.index("MATCH RESULTS") < html.index("TOP CLIPS")
 
 
-def test_lede_bold_markdown_wraps_in_highlight_span():
+def test_per_match_blurbs_are_rendered():
+    match = _match()
     digest = DigestOutput(
-        summary_line="ropz **MVP run** continues at PGL Bucharest.",
-        sections={},
+        summary_line="x",
+        sections={"Matches": SectionOutput(intro="", items=[match])},
+        per_match_blurbs={
+            match.url: MatchBlurb(
+                tagline="THREE-MAP DECIDER",
+                highlight="ZywOo carried the late Ancient comeback.",
+            ),
+        },
+    )
+
+    html = render_briefing(digest, _DATE)
+
+    assert "THREE-MAP DECIDER" in html
+    assert "ZywOo carried the late Ancient comeback." in html
+
+
+def test_match_renders_fallback_tagline_when_blurb_missing():
+    """No per-match blurb → falls back to deterministic tagline based on score diff."""
+    digest = DigestOutput(
+        summary_line="x",
+        sections={"Matches": SectionOutput(intro="", items=[_match()])},
     )
     html = render_briefing(digest, _DATE)
-    collapsed = " ".join(html.split())
-    assert 'class="hl"' in collapsed
-    assert "MVP run</span" in collapsed
-    assert "**" not in html
+    # Score diff = 1 (2-1) with non-"1"-format → "DECIDER".
+    assert "DECIDER" in html
 
 
-def test_issue_number_appears_in_masthead_and_colophon():
+def test_issue_number_appears_in_topbar():
     digest = _full_digest()
     html = render_briefing(digest, _DATE)
     expected = _compute_issue_number(_DATE)
-    assert f"No. {expected}" in html
-    assert f"Issue No. {expected}" in html
+    assert f"Issue {expected}" in html
 
 
 # ── Unit tests ────────────────────────────────────────────────────

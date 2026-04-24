@@ -24,34 +24,12 @@ this_day | default(none) -%} {%- set route_stops = route_stops | default([]) -%}
 {%- set per_match_blurbs = per_match_blurbs | default({}) -%} {%- set
 videos_and_podcasts_both = ("Videos" in digest.sections) and ("Podcasts" in
 digest.sections) -%} {%- set ns = namespace(blocks=[]) -%} {%- if "Matches" in
-digest.sections -%} {%- set _ = ns.blocks.append({"key":"Matches","title":"Match
-Results","kind":"matches","blurb":"Last 24h. Taglines and key-player
-highlights."}) -%} {%- endif -%} {%- if "Clips" in digest.sections -%} {%- set _
-= ns.blocks.append({"key":"Clips","title":"Top
-Clips","kind":"clips","blurb":"Reddit moments worth opening before the algorithm
-buries them."}) -%} {%- endif -%} {%- if social_posts -%} {%- set _ =
-ns.blocks.append({"key":"Social","title":"Social","kind":"social","blurb":"Notable
-pro posts from the last 24 hours."}) -%} {%- endif -%} {%- if "News" in
-digest.sections -%} {%- set _ = ns.blocks.append({"key":"News","title":"Roster
-Moves & News","kind":"news","blurb":"Team changes, management hints,
-announcement smoke."}) -%} {%- endif -%} {%- if upcoming_matches -%} {%- set _ =
-ns.blocks.append({"key":"Upcoming","title":"Upcoming","kind":"upcoming","blurb":"Scheduled
-fixtures. Click through to HLTV for streams and stats."}) -%} {%- endif -%} {%-
-if videos_and_podcasts_both -%} {%- set _ =
-ns.blocks.append({"key":"Drops","title":"Content
-Drops","kind":"drops","blurb":"Long-form videos and podcasts from the last
-cycle."}) -%} {%- elif "Videos" in digest.sections -%} {%- set _ =
-ns.blocks.append({"key":"Videos","title":"Videos","kind":"videos","blurb":"Long-form
-videos worth your watch-later list."}) -%} {%- elif "Podcasts" in
-digest.sections -%} {%- set _ =
-ns.blocks.append({"key":"Podcasts","title":"Podcasts","kind":"podcasts","blurb":"Episodes
-dropped in the last cycle."}) -%} {%- endif -%} {%- if "Patches" in
-digest.sections -%} {%- set _ = ns.blocks.append({"key":"Patches","title":"Patch
-Notes","kind":"patches","blurb":"Latest game updates and balance changes."}) -%}
-{%- endif -%} {%- if this_day -%} {%- set _ =
-ns.blocks.append({"key":"History","title":"This Day in
-CS","kind":"history","blurb":"A moment from this date in Counter-Strike
-history."}) -%} {%- endif -%} {%- macro crest(name, logo_url) -%}
+digest.sections -%} {%- set _ = ns.blocks.append({"key":"Matches","title":"Match Results","kind":"matches","blurb":"Last 24h. Taglines and key-player highlights."}) -%} {%- endif -%} {%- if "Clips" in digest.sections -%} {%- set _ = ns.blocks.append({"key":"Clips","title":"Top Clips","kind":"clips","blurb":"Reddit moments worth opening before the algorithm buries them."}) -%} {%- endif -%} {%- if social_posts -%} {%- set _ = ns.blocks.append({"key":"Social","title":"Social","kind":"social","blurb":"Notable pro posts from the last 24 hours."}) -%} {%- endif -%} {%- if "News" in
+digest.sections -%} {%- set _ = ns.blocks.append({"key":"News","title":"Roster Moves & News","kind":"news","blurb":"Team changes, management hints, announcement smoke."}) -%} {%- endif -%} {%- if upcoming_matches -%} {%- set _ = ns.blocks.append({"key":"Upcoming","title":"Upcoming","kind":"upcoming","blurb":"Scheduled fixtures. Click through to HLTV for streams and stats."}) -%} {%- endif -%} {%-
+if videos_and_podcasts_both -%} {%- set _ = ns.blocks.append({"key":"Drops","title":"Content Drops","kind":"drops","blurb":"Long-form videos and podcasts from the last cycle."}) -%} {%- elif "Videos" in digest.sections -%} {%- set _ = ns.blocks.append({"key":"Videos","title":"Videos","kind":"videos","blurb":"Long-form videos worth your watch-later list."}) -%} {%- elif "Podcasts" in
+digest.sections -%} {%- set _ = ns.blocks.append({"key":"Podcasts","title":"Podcasts","kind":"podcasts","blurb":"Episodes dropped in the last cycle."}) -%} {%- endif -%} {%- if "Patches" in
+digest.sections -%} {%- set _ = ns.blocks.append({"key":"Patches","title":"Patch Notes","kind":"patches","blurb":"Latest game updates and balance changes."}) -%}
+{%- endif -%} {%- if this_day -%} {%- set _ = ns.blocks.append({"key":"History","title":"This Day in CS","kind":"history","blurb":"A moment from this date in Counter-Strike history."}) -%} {%- endif -%} {%- macro crest(name, logo_url) -%}
 <span
   class="crest{% if logo_url %} has-logo{% endif %}"
   data-team="{{ name | team_code }}"
