@@ -12,6 +12,7 @@ from overpass.collectors.hltv_matches import HLTVMatchesCollector
 from overpass.collectors.hltv_news import HLTVNewsCollector
 from overpass.collectors.podcast import PodcastCollector
 from overpass.collectors.reddit import RedditCollector
+from overpass.collectors.social import NitterSocialCollector
 from overpass.collectors.steam import SteamCollector
 from overpass.collectors.youtube import YouTubeCollector
 from overpass.config import load_config
@@ -52,6 +53,7 @@ def _build_collectors_with_shared_hltv_client() -> tuple[
             HLTVNewsCollector(browser_client=hltv_browser_client),
             PodcastCollector(),
             RedditCollector(),
+            NitterSocialCollector(),
             SteamCollector(),
             YouTubeCollector(),
         ],
@@ -107,6 +109,11 @@ async def async_main() -> None:
     logger.info("=== Step 1/4: Collecting ===")
     items = await run_collectors()
 
+    # Social posts bypass the LLM digest – they are short, self-contained, and
+    # rendered in their own template block from `social_posts` context.
+    social_items = [i for i in items if i.type == "social"]
+    digest_items = [i for i in items if i.type != "social"]
+
     # ── 2. Editorial ─────────────────────────────────────────────
     logger.info("=== Step 2/4: Editorial ===")
     t0 = time.monotonic()
@@ -121,7 +128,7 @@ async def async_main() -> None:
         api_key=provider_cfg.api_key_env,
     )
     try:
-        digest = await generate_digest(items, provider)
+        digest = await generate_digest(digest_items, provider)
         logger.info(
             "Editorial done in %.1fs – summary: %s",
             time.monotonic() - t0,
@@ -133,7 +140,7 @@ async def async_main() -> None:
         )
         from overpass.editorial.digest import _group_items, DigestOutput, SectionOutput, SECTION_NAMES
 
-        groups = _group_items(items)
+        groups = _group_items(digest_items)
         sections = {
             SECTION_NAMES.get(k, k.title()): SectionOutput(intro="", items=v)
             for k, v in groups.items()
@@ -147,7 +154,7 @@ async def async_main() -> None:
     logger.info("=== Step 3/4: Rendering HTML ===")
     t0 = time.monotonic()
     today = date.today()
-    html = render_briefing(digest, today)
+    html = render_briefing(digest, today, social_items=social_items)
     path = save_briefing(html, today)
     logger.info("HTML saved to %s (%.1fs)", path, time.monotonic() - t0)
 

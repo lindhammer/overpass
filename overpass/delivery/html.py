@@ -11,6 +11,7 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from overpass.editorial.digest import DigestOutput
+from overpass.collectors.base import CollectorItem
 
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 _OUTPUT_DIR = Path(__file__).resolve().parent.parent.parent / "output" / "briefings"
@@ -167,10 +168,32 @@ def _make_env() -> Environment:
     return env
 
 
-def render_briefing(digest: DigestOutput, briefing_date: date) -> str:
+def _social_post_to_dict(item: CollectorItem) -> dict[str, Any]:
+    """Flatten a social CollectorItem into the dict shape the template expects."""
+    md = item.metadata or {}
+    return {
+        "url": item.url,
+        "handle": md.get("handle") or "",
+        "display_name": md.get("display_name") or md.get("handle") or "",
+        "verified": bool(md.get("verified", False)),
+        "posted_at": item.timestamp,
+        "body": md.get("body") or item.title,
+        "context": md.get("context"),
+        "avatar_seed": md.get("avatar_seed") or md.get("handle"),
+        "team_color": md.get("team_color"),
+    }
+
+
+def render_briefing(
+    digest: DigestOutput,
+    briefing_date: date,
+    *,
+    social_items: list[CollectorItem] | None = None,
+) -> str:
     """Render the briefing template and return the HTML string."""
     env = _make_env()
     template = env.get_template("briefing.html")
+    social_posts = [_social_post_to_dict(it) for it in (social_items or [])]
     context: dict[str, Any] = {
         "digest": digest,
         "date": briefing_date,
@@ -178,6 +201,7 @@ def render_briefing(digest: DigestOutput, briefing_date: date) -> str:
         "issue_no": _compute_issue_number(briefing_date),
         "ticker_chips": _build_ticker_chips(digest),
         "sources": _collect_sources(digest),
+        "social_posts": social_posts,
         "per_match_blurbs": {
             url: blurb.model_dump() for url, blurb in digest.per_match_blurbs.items()
         },

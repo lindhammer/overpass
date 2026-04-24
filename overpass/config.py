@@ -93,6 +93,35 @@ class LiquipediaConfig(BaseModel):
             object.__setattr__(self, "user_agent", self.user_agent.format(contact=self.contact))
 
 
+class SocialHandle(BaseModel):
+    handle: str
+    display_name: str | None = None
+    team_color: str | None = None
+
+
+class SocialConfig(BaseModel):
+    enabled: bool = False
+    handles: list[SocialHandle] = []
+    instances: list[str] = [
+        "xcancel.com",
+        "nitter.poast.org",
+        "nitter.privacyredirect.com",
+        "lightbrd.com",
+        "nitter.space",
+        "nitter.tiekoetter.com",
+    ]
+    lookback_hours: int = Field(default=24, gt=0)
+    max_per_handle: int = Field(default=5, ge=1)
+    max_total_posts: int = Field(default=12, ge=1)
+    request_timeout_seconds: int = Field(default=8, gt=0)
+    skip_retweets: bool = True
+    skip_replies: bool = True
+    cache_dir: str = ".cache/nitter"
+    user_agent: str = (
+        "overpass/0.1.0 (+https://github.com/lindhammer/overpass)"
+    )
+
+
 class TelegramConfig(BaseModel):
     bot_token_env: str
     chat_id_env: str
@@ -133,6 +162,7 @@ class AppConfig(BaseModel):
     live_alerts: LiveAlertsConfig = LiveAlertsConfig()
     llm: LLMConfig = LLMConfig()
     liquipedia: LiquipediaConfig = LiquipediaConfig()
+    social: SocialConfig = SocialConfig()
     telegram: TelegramConfig = TelegramConfig(bot_token_env="TELEGRAM_BOT_TOKEN", chat_id_env="TELEGRAM_CHAT_ID")
     schedule: ScheduleConfig = ScheduleConfig()
     timezone: str = "Europe/Berlin"

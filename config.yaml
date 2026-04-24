@@ -79,3 +79,46 @@ liquipedia:
   transfers:
     enabled: false
     lookback_hours: 48
+
+social:
+  # Disabled by default: as of 2026-04, every public Nitter mirror is either
+  # gated behind Cloudflare/Anubis bot challenges (poast.org, lightbrd.com,
+  # nitter.space, nitter.tiekoetter.com) or behind reader-whitelisting
+  # (xcancel.com → rss.xcancel.com). Re-enable once a working mirror exists,
+  # you self-host Nitter, or you swap in a different backend.
+  enabled: false
+  lookback_hours: 24
+  max_per_handle: 5
+  max_total_posts: 12
+  request_timeout_seconds: 8
+  skip_retweets: true
+  skip_replies: true
+  cache_dir: ".cache/nitter"
+  instances:
+    - "xcancel.com"
+    - "nitter.poast.org"
+    - "nitter.privacyredirect.com"
+    - "lightbrd.com"
+    - "nitter.space"
+    - "nitter.tiekoetter.com"
+  handles:
+    - handle: "s1mpleO"
+      display_name: "s1mple"
+    - handle: "ZywOo"
+      display_name: "ZywOo"
+    - handle: "donk_s1"
+      display_name: "donk"
+    - handle: "device"
+      display_name: "device"
+    - handle: "ropz"
+      display_name: "ropz"
+    - handle: "karrigan"
+      display_name: "karrigan"
+    - handle: "blameF"
+      display_name: "blameF"
+    - handle: "m0NESYyy"
+      display_name: "m0NESY"
+    - handle: "NiKoCSGO"
+      display_name: "NiKo"
+    - handle: "broky"
+      display_name: "broky"
