@@ -452,3 +452,54 @@ def test_ticker_chips_count_live_upset_and_watch():
     assert "live" in kinds
     assert "amber" in kinds
     assert "up" in kinds
+
+
+# ── This Day in CS ──────────────────────────────
+
+from overpass.history.models import HistoryEntry
+
+
+def _digest_with_one_section() -> DigestOutput:
+    """Minimal digest the renderer accepts (reuses existing fixtures upstream)."""
+    return DigestOutput(
+        summary_line="Test summary.",
+        sections={"Reddit Clips": SectionOutput(intro="", items=[_clip()])},
+    )
+
+
+def test_render_briefing_includes_this_day_section_when_entry_passed():
+    digest = _digest_with_one_section()
+    entry = HistoryEntry(
+        year=2018,
+        headline="Cloud9 win the ELEAGUE Boston Major",
+        narrative="C9 beat FaZe 2-1 in Boston after triple OT on Inferno.",
+        visual_label="BOS '18",
+        source_url="https://liquipedia.net/counterstrike/ELEAGUE/Major/2018",
+    )
+    html = render_briefing(digest, _DATE, this_day=entry)
+    assert "This Day in CS" in html
+    assert "Cloud9 win the ELEAGUE Boston Major" in html
+    assert "C9 beat FaZe 2-1 in Boston" in html
+    assert "BOS &#39;18" in html or "BOS '18" in html
+    # date_label is computed from the entry year + briefing month/day:
+    assert "April 10, 2018" in html
+    assert "https://liquipedia.net/counterstrike/ELEAGUE/Major/2018" in html
+
+
+def test_render_briefing_omits_this_day_section_when_none():
+    digest = _digest_with_one_section()
+    html = render_briefing(digest, _DATE)
+    assert "This Day in CS" not in html
+
+
+def test_render_briefing_falls_back_to_year_when_no_visual_label():
+    digest = _digest_with_one_section()
+    entry = HistoryEntry(
+        year=2018,
+        headline="x",
+        narrative="y",
+    )
+    html = render_briefing(digest, _DATE, this_day=entry)
+    # The template renders `visual_label or year`; with no label, "2018" appears.
+    assert "2018" in html
+

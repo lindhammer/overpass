@@ -12,6 +12,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from overpass.editorial.digest import DigestOutput
 from overpass.collectors.base import CollectorItem
+from overpass.history.models import HistoryEntry
 
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 _OUTPUT_DIR = Path(__file__).resolve().parent.parent.parent / "output" / "briefings"
@@ -200,18 +201,35 @@ def _upcoming_match_to_dict(item: CollectorItem) -> dict[str, Any]:
     }
 
 
+def _history_entry_to_dict(entry: HistoryEntry, briefing_date: date) -> dict[str, Any]:
+    """Flatten a HistoryEntry into the dict shape the template expects."""
+    label_date = date(entry.year, briefing_date.month, briefing_date.day)
+    return {
+        "year": entry.year,
+        "date_label": _fmt_date(label_date, "%B %-d, %Y"),
+        "headline": entry.headline,
+        "narrative": entry.narrative,
+        "visual_label": entry.visual_label,
+        "source_url": entry.source_url,
+    }
+
+
 def render_briefing(
     digest: DigestOutput,
     briefing_date: date,
     *,
     social_items: list[CollectorItem] | None = None,
     upcoming_items: list[CollectorItem] | None = None,
+    this_day: HistoryEntry | None = None,
 ) -> str:
     """Render the briefing template and return the HTML string."""
     env = _make_env()
     template = env.get_template("briefing.html")
     social_posts = [_social_post_to_dict(it) for it in (social_items or [])]
     upcoming_matches = [_upcoming_match_to_dict(it) for it in (upcoming_items or [])]
+    this_day_ctx = (
+        _history_entry_to_dict(this_day, briefing_date) if this_day is not None else None
+    )
     context: dict[str, Any] = {
         "digest": digest,
         "date": briefing_date,
@@ -221,6 +239,7 @@ def render_briefing(
         "sources": _collect_sources(digest),
         "social_posts": social_posts,
         "upcoming_matches": upcoming_matches,
+        "this_day": this_day_ctx,
         "per_match_blurbs": {
             url: blurb.model_dump() for url, blurb in digest.per_match_blurbs.items()
         },
