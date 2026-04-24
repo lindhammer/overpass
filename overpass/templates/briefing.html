@@ -1,37 +1,94 @@
 {#- Overpass — CS2 Daily Briefing Jinja2 template. Render once per day to a
-static HTML file. Context: digest DigestOutput .summary_line, .sections
-(dict[str, SectionOutput]) date date generated_at datetime issue_no int
-ticker_chips list[{kind: "live"|"up"|"amber"|"plain", text: str}] Filter:
-team_code(name) -> 2-letter code used as crest label + data-team attr. -#} {%-
-set section_order = ["Matches", "Clips", "News", "Videos", "Podcasts",
-"Patches"] -%} {%- set present_sections = [] -%} {%- for key in section_order
--%} {%- if key in digest.sections -%} {%- set _ = present_sections.append(key)
--%} {%- endif -%} {%- endfor -%} {#- Merge Videos + Podcasts into a single
-rendered section when both exist -#} {%- set videos_and_podcasts_both =
-("Videos" in digest.sections) and ("Podcasts" in digest.sections) -%} {%- set
-render_keys = [] -%} {%- set merge_ns = namespace(seen=false) -%} {%- for key in
-present_sections -%} {%- if videos_and_podcasts_both and key in ["Videos",
-"Podcasts"] -%} {%- if not merge_ns.seen -%} {%- set _ =
-render_keys.append("VideosPodcasts") -%} {%- set merge_ns.seen = true -%} {%-
-endif -%} {%- else -%} {%- set _ = render_keys.append(key) -%} {%- endif -%} {%-
-endfor -%} {%- macro team_crest(name, logo_url) -%}
-<div
+static HTML file. REQUIRED context (provided by overpass/delivery/html.py):
+digest DigestOutput with .summary_line, .sections (dict[str, SectionOutput])
+date date generated_at datetime issue_no int ticker_chips list[{kind:
+"live"|"up"|"amber"|"plain", text: str}] sources list[{label, url}] (footer
+credits) OPTIONAL context — Phase 1 placeholders (template renders cleanly when
+absent): social_posts list[dict] pro-player social posts (X/Twitter) fields:
+handle, display_name, verified (bool), posted_at (datetime), body, context
+(str|None), avatar_seed (str|None), team_color (str|None), url (str)
+upcoming_matches list[dict] scheduled matches (Liquipedia → HLTV link) fields:
+starts_at (datetime), team1, team2, team1_logo_url, team2_logo_url, event,
+format (e.g. "BO3"), hltv_url (str) this_day dict | None historical CS moment
+for today's date fields: year (int), date_label (str), headline (str), narrative
+(str), visual_label (str|None), source_url (str|None) route_stops list[dict]
+sidebar "Route through the day" stops fields: title, body, hot (bool)
+Auto-derived from sections if empty. per_match_blurbs dict[url, dict] per-match
+LLM blurbs fields: tagline, highlight (keyed by item.url) Filters provided by
+html.py: team_code(name) -> 2-letter code fmt_date(value, fmt) -> formatted date
+first_paragraph(s) -> first
+<p>...</p>
+block -#} {%- set social_posts = social_posts | default([]) -%} {%- set
+upcoming_matches = upcoming_matches | default([]) -%} {%- set this_day =
+this_day | default(none) -%} {%- set route_stops = route_stops | default([]) -%}
+{%- set per_match_blurbs = per_match_blurbs | default({}) -%} {%- set
+videos_and_podcasts_both = ("Videos" in digest.sections) and ("Podcasts" in
+digest.sections) -%} {%- set ns = namespace(blocks=[]) -%} {%- if "Matches" in
+digest.sections -%} {%- set _ = ns.blocks.append({"key":"Matches","title":"Match
+Results","kind":"matches","blurb":"Last 24h. Taglines and key-player
+highlights."}) -%} {%- endif -%} {%- if "Clips" in digest.sections -%} {%- set _
+= ns.blocks.append({"key":"Clips","title":"Top
+Clips","kind":"clips","blurb":"Reddit moments worth opening before the algorithm
+buries them."}) -%} {%- endif -%} {%- if social_posts -%} {%- set _ =
+ns.blocks.append({"key":"Social","title":"Social","kind":"social","blurb":"Notable
+pro posts from the last 24 hours."}) -%} {%- endif -%} {%- if "News" in
+digest.sections -%} {%- set _ = ns.blocks.append({"key":"News","title":"Roster
+Moves & News","kind":"news","blurb":"Team changes, management hints,
+announcement smoke."}) -%} {%- endif -%} {%- if upcoming_matches -%} {%- set _ =
+ns.blocks.append({"key":"Upcoming","title":"Upcoming","kind":"upcoming","blurb":"Scheduled
+fixtures. Click through to HLTV for streams and stats."}) -%} {%- endif -%} {%-
+if videos_and_podcasts_both -%} {%- set _ =
+ns.blocks.append({"key":"Drops","title":"Content
+Drops","kind":"drops","blurb":"Long-form videos and podcasts from the last
+cycle."}) -%} {%- elif "Videos" in digest.sections -%} {%- set _ =
+ns.blocks.append({"key":"Videos","title":"Videos","kind":"videos","blurb":"Long-form
+videos worth your watch-later list."}) -%} {%- elif "Podcasts" in
+digest.sections -%} {%- set _ =
+ns.blocks.append({"key":"Podcasts","title":"Podcasts","kind":"podcasts","blurb":"Episodes
+dropped in the last cycle."}) -%} {%- endif -%} {%- if "Patches" in
+digest.sections -%} {%- set _ = ns.blocks.append({"key":"Patches","title":"Patch
+Notes","kind":"patches","blurb":"Latest game updates and balance changes."}) -%}
+{%- endif -%} {%- if this_day -%} {%- set _ =
+ns.blocks.append({"key":"History","title":"This Day in
+CS","kind":"history","blurb":"A moment from this date in Counter-Strike
+history."}) -%} {%- endif -%} {%- macro crest(name, logo_url) -%}
+<span
   class="crest{% if logo_url %} has-logo{% endif %}"
   data-team="{{ name | team_code }}"
 >
-  {%- if logo_url -%}
-  <img
-    class="team-logo"
+  {%- if logo_url -%}<img
     src="{{ logo_url }}"
     alt="{{ name }} logo"
     loading="lazy"
     decoding="async"
   />
-  {%- else -%}
-  <span>{{ name | team_code }}</span>
-  {%- endif -%}
-</div>
-{%- endmacro -%}
+  {%- else -%}<span>{{ name | team_code }}</span>{%- endif -%}
+</span>
+{%- endmacro -%} {%- macro fallback_tagline(s1, s2, fmt) -%} {%- set s1 = s1 |
+int(0) -%}{%- set s2 = s2 | int(0) -%} {%- set diff = (s1 - s2) | abs -%} {%- if
+fmt and "1" in fmt -%} {%- if diff <= 2 -%}CLOSE CALL{%- elif diff >= 8
+-%}ONE-SIDED{%- else -%}RESULT{%- endif -%} {%- else -%} {%- if diff == 0 -%}OT
+THRILLER{%- elif diff == 1 -%}DECIDER{%- elif diff >= 2 -%}CLEAN CLOSE{%- else
+-%}RESULT{%- endif -%} {%- endif -%} {%- endmacro -%} {%- macro
+match_tagline(item) -%} {%- set bl = per_match_blurbs.get(item.url, {}) -%} {%-
+if bl.get("tagline") -%}{{ bl.tagline }} {%- else -%}{{
+fallback_tagline(item.metadata.get("team1_score"),
+item.metadata.get("team2_score"), item.metadata.get("format")) | trim }} {%-
+endif -%} {%- endmacro -%} {%- macro match_highlight(item) -%} {%- set bl =
+per_match_blurbs.get(item.url, {}) -%} {%- if bl.get("highlight") -%}{{
+bl.highlight }} {%- elif item.metadata.get("event") -%}<span class="dim"
+  >{{ item.metadata.event }}</span
+>
+{%- endif -%} {%- endmacro -%} {%- if not route_stops -%} {%- set ns2 =
+namespace(stops=[]) -%} {%- for b in ns.blocks[:4] -%} {%- set count = 0 -%} {%-
+if b.key in digest.sections -%}{%- set count = digest.sections[b.key].items |
+length -%} {%- elif b.kind == "social" -%}{%- set count = social_posts | length
+-%} {%- elif b.kind == "upcoming" -%}{%- set count = upcoming_matches | length
+-%} {%- endif -%} {%- set _ = ns2.stops.append({ "title": b.title, "body":
+(count ~ " items queued.") if count else "Briefing stop.", "hot": loop.first })
+-%} {%- endfor -%} {%- set route_stops = ns2.stops -%} {%- endif -%} {%- set ns3
+= namespace(total=0) -%} {%- for sec in digest.sections.values() -%}{%- set
+ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
 <!doctype html>
 <html lang="en" data-palette="dark">
   <head>
@@ -40,33 +97,41 @@ endfor -%} {%- macro team_crest(name, logo_url) -%}
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <title>Overpass — CS2 Daily · {{ date | fmt_date("%a %-d %b %Y") }}</title>
+    <title>
+      OVERPASS — CS2 DAILY · {{ date | fmt_date("%a %-d %b %Y") | upper }}
+    </title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto+Condensed:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-
     <style>
-      /* ---------- Palette ---------- */
+      /* ── DARK TACTICAL BRIEFING / SPORTS WIRE ─────────────────────────── */
+
       :root[data-palette="dark"] {
-        --bg: #0b0c0e;
-        --surface-1: #131519;
-        --surface-2: #1b1e24;
-        --surface-3: #242830;
-        --rule: #262a32;
-        --rule-strong: #353a45;
-        --ink: #f1f2f4;
-        --ink-2: #c6c9d0;
-        --ink-mute: #8b8f99;
-        --ink-dim: #5b5f69;
-        --accent: #e8894f; /* warm terracotta - brand */
-        --accent-ink: #0b0c0e;
-        --live: #e5484d; /* live/alert */
-        --win: #3fb950; /* watchlist win / positive */
-        --loss: #5b5f69;
-        --upset: #f5b84a; /* upset flag */
+        /* Near-black with cool blue cast */
+        --bg: oklch(0.15 0.005 255); /* page ground */
+        --surface: oklch(0.2 0.005 255); /* card body */
+        --surface-2: oklch(0.23 0.005 255); /* card hover */
+        --rule: oklch(0.3 0.005 255); /* hairline border */
+        --rule-strong: oklch(0.4 0.005 255); /* emphasized border */
+
+        --ink: oklch(0.98 0 0); /* primary text */
+        --ink-2: oklch(0.78 0.005 255); /* secondary text */
+        --ink-mute: oklch(0.6 0.005 255); /* metadata, slugs */
+        --ink-dim: oklch(0.42 0.005 255); /* disabled, faint */
+
+        --primary: oklch(0.72 0.18 45); /* warm amber/orange */
+        --primary-ink: oklch(0.15 0.005 255);
+        --primary-soft: oklch(0.72 0.18 45 / 0.1);
+        --primary-line: oklch(0.72 0.18 45 / 0.35);
+
+        --signal: oklch(0.85 0.15 95); /* yellow-green: upvotes only */
+        --live: oklch(0.66 0.22 25); /* red, used for "alert" news */
+
+        --max: 1100px;
+
         color-scheme: dark;
       }
 
@@ -79,1939 +144,1591 @@ endfor -%} {%- macro team_crest(name, logo_url) -%}
         padding: 0;
       }
       html {
-        background: var(--bg);
+        scroll-behavior: smooth;
         -webkit-text-size-adjust: 100%;
       }
+
       body {
+        min-height: 100vh;
         background: var(--bg);
         color: var(--ink);
         font-family:
-          "Inter",
+          "Roboto",
+          system-ui,
           -apple-system,
-          BlinkMacSystemFont,
-          "Helvetica Neue",
-          Arial,
+          "Segoe UI",
           sans-serif;
+        font-weight: 400;
         font-size: 15px;
-        line-height: 1.5;
-        font-feature-settings: "ss01", "cv11", "cv05";
-        letter-spacing: -0.005em;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
       }
+
+      /* Subtle 5% diagonal hatch over the whole page */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image: repeating-linear-gradient(
+          45deg,
+          transparent 0,
+          transparent 6px,
+          oklch(0.55 0.005 255 / 0.3) 6px,
+          oklch(0.55 0.005 255 / 0.3) 7px
+        );
+        opacity: 0.05;
+      }
+
+      main,
+      header,
+      footer {
+        position: relative;
+        z-index: 1;
+      }
+
       a {
         color: inherit;
         text-decoration: none;
       }
       ::selection {
-        background: color-mix(in oklab, var(--accent) 40%, transparent);
+        background: var(--primary);
+        color: var(--primary-ink);
       }
 
-      :root {
-        --f-display:
-          "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial,
-          sans-serif;
-        --f-sans:
-          "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial,
-          sans-serif;
-        --f-mono:
-          "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-      }
-
-      .display {
-        font-family: var(--f-display);
-        font-weight: 700;
-        letter-spacing: -0.04em;
-        font-feature-settings: "ss01", "ss03", "cv11";
-      }
-
-      /* ---------- Page ---------- */
-      .page {
-        max-width: 760px;
+      .wrap {
+        width: min(var(--max), calc(100% - 40px));
         margin: 0 auto;
-        padding: 28px 20px 120px;
       }
-      @media (min-width: 720px) {
-        .page {
-          padding: 40px 28px 140px;
-        }
+      .dim {
+        color: var(--ink-mute);
+      }
+      .slug {
+        font-family: "Roboto Condensed", system-ui, sans-serif;
+        font-weight: 500;
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
       }
 
-      /* ---------- Masthead ---------- */
-      .masthead {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        gap: 12px;
-        align-items: center;
-        padding-bottom: 14px;
+      /* ── TOPBAR ────────────────────────────────────────────────────────── */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background: var(--bg);
         border-bottom: 1px solid var(--rule);
-        margin-bottom: 16px;
       }
-      .wm {
+      .topbar::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -3px;
+        height: 2px;
+        background: var(--primary);
+      }
+      .nav {
         display: flex;
         align-items: center;
-        gap: 10px;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 18px 0;
+        border-left: 4px solid var(--primary);
+        padding-left: 20px;
       }
-      .wm-glyph {
-        width: 28px;
-        height: 28px;
-        background: var(--accent);
-        color: var(--accent-ink);
-        display: grid;
-        place-items: center;
-        font-family: var(--f-mono);
-        font-weight: 700;
-        font-size: 14px;
-        letter-spacing: -0.04em;
-        border-radius: 4px;
-      }
-      .wm-title {
-        font-family: var(--f-display);
-        font-weight: 700;
-        font-size: 22px;
-        letter-spacing: -0.035em;
+      .brand h1 {
+        margin: 0;
+        font-family: "Bebas Neue", sans-serif;
+        font-weight: 400;
+        font-size: clamp(1.7rem, 2.6vw, 2.4rem);
+        letter-spacing: 0.02em;
+        line-height: 0.92;
         color: var(--ink);
       }
-      .wm-sub {
-        font-family: var(--f-mono);
-        font-size: 11px;
-        color: var(--ink-mute);
-        letter-spacing: 0;
-        justify-self: center;
-      }
-      .wm-date {
-        font-family: var(--f-mono);
-        font-size: 11px;
-        color: var(--ink-2);
-        text-align: right;
-        justify-self: end;
-      }
-      .wm-date .day {
-        color: var(--ink);
-      }
-      .wm-date .time {
+      .brand p {
+        margin: 2px 0 0;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.72rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
         color: var(--ink-mute);
       }
-
-      /* status strip under masthead */
-      .ticker {
+      .datebox {
         display: flex;
+        align-items: center;
         gap: 14px;
-        align-items: center;
-        flex-wrap: wrap;
-        padding: 10px 0 18px;
-        font-family: var(--f-mono);
-        font-size: 11.5px;
-        color: var(--ink-mute);
-        border-bottom: 1px solid var(--rule);
-        margin-bottom: 32px;
-      }
-      .ticker .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        color: var(--ink-2);
-      }
-      .ticker .dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--ink-dim);
-        display: inline-block;
-      }
-      .ticker .dot.live {
-        background: var(--live);
-        box-shadow: 0 0 0 3px color-mix(in oklab, var(--live) 20%, transparent);
-        animation: pulse 1.6s ease-in-out infinite;
-      }
-      .ticker .dot.up {
-        background: var(--win);
-      }
-      .ticker .dot.amber {
-        background: var(--upset);
-      }
-      .ticker .sep {
-        color: var(--ink-dim);
-      }
-      @keyframes pulse {
-        0%,
-        100% {
-          box-shadow: 0 0 0 3px
-            color-mix(in oklab, var(--live) 22%, transparent);
-        }
-        50% {
-          box-shadow: 0 0 0 6px color-mix(in oklab, var(--live) 0%, transparent);
-        }
-      }
-
-      /* ---------- Lede ---------- */
-      .lede-wrap {
-        padding: 8px 0 36px;
-        border-bottom: 1px solid var(--rule);
-        margin-bottom: 40px;
-      }
-      .lede-kicker {
-        font-family: var(--f-mono);
-        font-size: 10.5px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.78rem;
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--accent);
-        margin-bottom: 14px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        color: var(--ink-mute);
+        text-align: right;
       }
-      .lede-kicker::before {
-        content: "";
-        width: 18px;
-        height: 1px;
-        background: var(--accent);
-        display: inline-block;
+      .datebox strong {
+        color: var(--ink);
+        font-weight: 600;
       }
-      .lede {
-        font-family: var(--f-display);
-        font-weight: 700;
-        font-size: clamp(28px, 5.2vw, 40px);
-        line-height: 1.05;
-        letter-spacing: -0.035em;
-        margin: 0;
+      .pulse {
+        width: 9px;
+        height: 9px;
+        background: var(--primary);
+        box-shadow: 0 0 0 0 var(--primary-line);
+        animation: ping 1.8s infinite;
+      }
+      @keyframes ping {
+        0% {
+          box-shadow: 0 0 0 0 oklch(0.72 0.18 45 / 0.5);
+        }
+        72% {
+          box-shadow: 0 0 0 12px oklch(0.72 0.18 45 / 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 oklch(0.72 0.18 45 / 0);
+        }
+      }
+
+      /* ── HERO ─────────────────────────────────────────────────────────── */
+      .hero {
+        padding: clamp(40px, 6vw, 80px) 0 36px;
+      }
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+        gap: 40px;
+      }
+      @media (max-width: 880px) {
+        .hero-grid {
+          grid-template-columns: 1fr;
+          gap: 28px;
+        }
+      }
+
+      .lead {
+        border-left: 4px solid var(--primary);
+        padding: 4px 0 4px 24px;
+      }
+      .lead .slug {
+        color: var(--primary);
+        margin-bottom: 18px;
+        display: block;
+      }
+      .lead h2 {
+        margin: 0 0 24px;
+        font-family: "Bebas Neue", sans-serif;
+        font-weight: 400;
+        font-size: clamp(2.6rem, 6.5vw, 5.6rem);
+        line-height: 0.92;
+        letter-spacing: 0.005em;
         color: var(--ink);
         text-wrap: balance;
       }
-      .lede .hl {
-        background: linear-gradient(
-          180deg,
-          transparent 62%,
-          color-mix(in oklab, var(--accent) 40%, transparent) 62% 92%,
-          transparent 92%
-        );
-        padding: 0 2px;
+      .lead p {
+        margin: 0;
+        font-size: clamp(1rem, 1.4vw, 1.18rem);
+        line-height: 1.55;
+        color: var(--ink-2);
+        max-width: 60ch;
+      }
+      .lead p strong {
+        color: var(--ink);
+        font-weight: 700;
       }
 
-      /* ---------- Section header ---------- */
-      .section {
-        margin: 56px 0 0;
+      .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0;
+        margin-top: 32px;
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
       }
-      .section:first-of-type {
-        margin-top: 0;
+      .meta-row .stat {
+        flex: 1 1 auto;
+        min-width: 120px;
+        padding: 14px 18px;
+        border-right: 1px solid var(--rule);
       }
-      .section-head {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        column-gap: 18px;
-        row-gap: 6px;
-        align-items: end;
-        padding-bottom: 14px;
-        border-bottom: 2px solid var(--rule-strong);
-        margin-bottom: 22px;
+      .meta-row .stat:last-child {
+        border-right: 0;
       }
-      .section-idx {
-        font-family: var(--f-display);
+      .meta-row .stat b {
+        display: block;
+        font-family: "Bebas Neue", sans-serif;
+        font-weight: 400;
+        font-size: 1.8rem;
+        color: var(--primary);
+        line-height: 1;
+        letter-spacing: 0.02em;
+      }
+      .meta-row .stat span {
+        display: block;
+        margin-top: 4px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+
+      .jumpbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0;
+        margin-top: 24px;
+      }
+      .jumpbar a {
+        padding: 10px 16px;
+        border: 1px solid var(--rule);
+        border-right: 0;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        transition:
+          color 0.15s,
+          background 0.15s,
+          border-color 0.15s;
+      }
+      .jumpbar a:last-child {
+        border-right: 1px solid var(--rule);
+      }
+      .jumpbar a:hover {
+        color: var(--primary);
+        background: var(--primary-soft);
+        border-color: var(--primary-line);
+      }
+
+      /* Route panel — editorial sidebar with timeline */
+      .route {
+        background: oklch(0.2 0.005 255 / 0.5);
+        border: 1px solid var(--rule);
+        border-left: 4px solid var(--primary);
+        padding: 24px;
+      }
+      .route h3 {
+        margin: 0 0 18px;
+        font-family: "Roboto Condensed", sans-serif;
         font-weight: 700;
-        font-size: 44px;
-        line-height: 0.9;
-        letter-spacing: -0.06em;
-        color: var(--ink-dim);
-        font-variant-numeric: tabular-nums;
+        font-size: 0.78rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
       }
-      .section-labels {
+      .route-stops {
+        position: relative;
+        padding-left: 22px;
+        border-left: 2px solid var(--rule);
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 18px;
       }
-      .section-label {
-        font-family: var(--f-display);
-        font-weight: 700;
-        font-size: 22px;
-        line-height: 1;
-        letter-spacing: -0.025em;
-        color: var(--ink);
-      }
-      .section-intro {
-        font-size: 13px;
-        color: var(--ink-mute);
-        line-height: 1.45;
-        text-wrap: pretty;
-      }
-      .section-count {
-        font-family: var(--f-mono);
-        font-size: 11px;
-        color: var(--ink-mute);
-        letter-spacing: 0;
-        padding: 3px 8px;
-        background: var(--surface-2);
-        border-radius: 3px;
-        white-space: nowrap;
-        align-self: start;
-      }
-      @media (max-width: 520px) {
-        .section-idx {
-          font-size: 34px;
-        }
-        .section-label {
-          font-size: 18px;
-        }
-        .section-head {
-          column-gap: 12px;
-        }
-      }
-
-      /* ---------- Team crest (placeholder) ---------- */
-      .crest {
-        display: inline-grid;
-        place-items: center;
-        background: var(--surface-3);
-        color: var(--ink);
-        font-family: var(--f-display);
-        font-weight: 700;
-        letter-spacing: -0.03em;
-        border-radius: 6px;
+      .route-stop {
         position: relative;
-        overflow: hidden;
-        flex: none;
       }
-      .crest::after {
+      .route-stop::before {
         content: "";
         position: absolute;
-        inset: 0;
-        background: linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.07),
-          transparent 60%
-        );
-        pointer-events: none;
+        left: -29px;
+        top: 4px;
+        width: 12px;
+        height: 12px;
+        background: var(--surface);
+        border: 3px solid var(--rule-strong);
+        border-radius: 999px;
       }
-      .crest span {
-        position: relative;
-        z-index: 1;
+      .route-stop.hot::before {
+        background: var(--primary);
+        border-color: var(--bg);
+        box-shadow: 0 0 0 2px var(--primary);
       }
-      .crest.has-logo {
-        background: var(--surface-2);
-      }
-      .crest.has-logo::after {
-        background: linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.05),
-          transparent 65%
-        );
-      }
-      .team-logo {
-        position: relative;
-        z-index: 1;
+      .route-stop b {
         display: block;
-        width: 78%;
-        height: 78%;
-        object-fit: contain;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--ink);
       }
-
-      /* specific team tints (subtle, desaturated) */
-      .crest[data-team="VIT"] {
-        background: #2a1a0a;
-        color: #ffcf66;
-      }
-      .crest[data-team="MZ"] {
-        background: #0f1a2a;
-        color: #e8d27a;
-      }
-      .crest[data-team="PV"] {
-        background: #1a0f1f;
-        color: #d9a8ff;
-      }
-      .crest[data-team="SP"] {
-        background: #1a0d0d;
-        color: #ff8c8c;
-      }
-      .crest[data-team="NAVI"] {
-        background: #0f1a14;
-        color: #ffd84a;
-      }
-      .crest[data-team="FAZE"] {
-        background: #0f141f;
-        color: #ff3a3a;
-      }
-      .crest[data-team="G2"] {
-        background: #1a1610;
-        color: #f4d35e;
-      }
-      .crest[data-team="FUR"] {
-        background: #0d1410;
-        color: #4fd181;
-      }
-      .crest[data-team="AST"] {
-        background: #101820;
-        color: #e0443b;
-      }
-      .crest[data-team="LIQ"] {
-        background: #0c1118;
-        color: #4aa8ff;
-      }
-      .crest[data-team="HER"] {
-        background: #12100f;
-        color: #e9e4d7;
-      }
-      .crest[data-team="PAI"] {
-        background: #1f0e0e;
-        color: #e84141;
-      }
-      .crest[data-team="ENC"] {
-        background: #0f1320;
-        color: #ff8a3c;
-      }
-      .crest[data-team="NIP"] {
-        background: #141a12;
-        color: #ffe74a;
-      }
-
-      /* ---------- MATCH HERO (lead card) ---------- */
-      .match-hero {
-        background: var(--surface-1);
-        border: 1px solid var(--rule);
-        border-radius: 8px;
-        overflow: hidden;
-        margin-bottom: 14px;
-        position: relative;
-      }
-      .mh-flags {
-        position: absolute;
-        top: 14px;
-        left: 14px;
-        display: flex;
-        gap: 6px;
-        z-index: 2;
-      }
-      .flag {
-        font-family: var(--f-mono);
-        font-size: 10px;
-        letter-spacing: 0.08em;
-        padding: 4px 7px;
-        border-radius: 3px;
-        text-transform: uppercase;
-        font-weight: 600;
-      }
-      .flag.upset {
-        background: color-mix(in oklab, var(--upset) 20%, var(--bg));
-        color: var(--upset);
-        border: 1px solid color-mix(in oklab, var(--upset) 40%, transparent);
-      }
-      .flag.watch {
-        background: color-mix(in oklab, var(--win) 18%, var(--bg));
-        color: var(--win);
-        border: 1px solid color-mix(in oklab, var(--win) 40%, transparent);
-      }
-      .flag.final {
-        background: var(--surface-3);
+      .route-stop .body {
+        display: block;
+        margin-top: 4px;
+        font-size: 0.86rem;
+        line-height: 1.45;
         color: var(--ink-2);
       }
-      .flag.live {
-        background: color-mix(in oklab, var(--live) 20%, var(--bg));
-        color: var(--live);
-        border: 1px solid color-mix(in oklab, var(--live) 40%, transparent);
+
+      /* ── TICKER ───────────────────────────────────────────────────────── */
+      .ticker {
+        margin-top: 48px;
+        padding: 12px 0;
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        overflow: hidden;
+        mask-image: linear-gradient(
+          90deg,
+          transparent 0,
+          #000 5%,
+          #000 95%,
+          transparent 100%
+        );
+      }
+      .ticker-track {
+        display: inline-flex;
+        gap: 48px;
+        white-space: nowrap;
+        animation: scroll 60s linear infinite;
+      }
+      .ticker-track span {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 12px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.84rem;
+        letter-spacing: 0.06em;
+        color: var(--ink-2);
       }
-      .flag.live::before {
+      .ticker-track span::before {
         content: "";
         width: 6px;
         height: 6px;
-        border-radius: 50%;
+        background: var(--ink-dim);
+        flex: 0 0 auto;
+      }
+      .ticker-track .live::before {
         background: var(--live);
-        animation: pulse 1.6s ease-in-out infinite;
+      }
+      .ticker-track .up::before,
+      .ticker-track .amber::before {
+        background: var(--primary);
+      }
+      @keyframes scroll {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(-50%);
+        }
       }
 
-      .mh-event {
+      /* ── SECTIONS ─────────────────────────────────────────────────────── */
+      .briefing {
+        padding: 36px 0 60px;
+      }
+      .section {
+        padding: 48px 0;
+      }
+      .section + .section {
+        border-top: 1px solid var(--rule);
+      }
+
+      .section-head {
         display: flex;
+        align-items: flex-end;
         justify-content: space-between;
-        align-items: center;
-        padding: 14px 18px;
-        border-bottom: 1px solid var(--rule);
-        font-family: var(--f-mono);
-        font-size: 11px;
-        color: var(--ink-mute);
-        position: relative;
+        gap: 24px;
+        margin-bottom: 8px;
+        border-left: 4px solid var(--primary);
+        padding-left: 20px;
       }
-      /* When flags float over the event bar (no keyart), reserve space on the left */
-      .match-hero > .mh-flags + .mh-event {
-        padding-left: 18px;
-        padding-top: 36px;
-      }
-      .mh-event .name {
-        color: var(--ink-2);
-      }
-      .mh-event .fmt {
-        color: var(--ink-mute);
-      }
-
-      .mh-board {
-        display: grid;
-        grid-template-columns: 1fr auto 1fr;
-        align-items: center;
-        gap: 18px;
-        padding: 22px 18px 20px;
-      }
-      .mh-team {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-        text-align: center;
-      }
-      .mh-team .crest {
-        width: 72px;
-        height: 72px;
-        font-size: 24px;
-        border-radius: 10px;
-      }
-      .mh-team .tname {
-        font-family: var(--f-display);
-        font-weight: 700;
-        font-size: 18px;
-        letter-spacing: -0.02em;
-        color: var(--ink);
-      }
-      .mh-team .rank {
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        color: var(--ink-mute);
-        letter-spacing: 0;
-      }
-      .mh-score {
+      .section-head .title-row {
         display: flex;
         align-items: center;
-        gap: 10px;
-        font-family: var(--f-display);
-        font-weight: 700;
-        font-size: clamp(56px, 13vw, 88px);
-        line-height: 1;
-        letter-spacing: -0.06em;
-        font-variant-numeric: tabular-nums;
+        gap: 16px;
       }
-      .mh-score .w {
-        color: var(--ink);
+      .section-head .num {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        color: var(--primary);
       }
-      .mh-score .w.accent {
-        color: var(--accent);
-      }
-      .mh-score .l {
-        color: var(--ink-dim);
-      }
-      .mh-score .sep {
-        font-size: 0.4em;
-        color: var(--ink-dim);
-        font-weight: 500;
-        transform: translateY(-0.4em);
-      }
-      @media (max-width: 520px) {
-        .mh-board {
-          padding: 18px 14px 16px;
-          gap: 10px;
-        }
-        .mh-team .crest {
-          width: 56px;
-          height: 56px;
-          font-size: 19px;
-          border-radius: 8px;
-        }
-        .mh-team .tname {
-          font-size: 14px;
-        }
-      }
-
-      .mh-maps {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1px;
-        background: var(--rule);
-        border-top: 1px solid var(--rule);
-      }
-      .mh-map {
-        background: var(--surface-1);
-        padding: 12px 14px;
-        display: grid;
-        grid-template-rows: auto auto;
-        gap: 4px;
-        min-height: 58px;
-      }
-      .mh-map .mname {
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        color: var(--ink-mute);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
-      .mh-map .mscore {
-        font-family: var(--f-display);
-        font-weight: 700;
-        font-size: 18px;
-        letter-spacing: -0.02em;
-        font-variant-numeric: tabular-nums;
-        display: flex;
-        gap: 4px;
-        align-items: baseline;
-      }
-      .mh-map .mscore .w {
-        color: var(--ink);
-      }
-      .mh-map .mscore .l {
-        color: var(--ink-dim);
-      }
-      .mh-map .mscore .d {
-        color: var(--ink-dim);
-        font-weight: 500;
-      }
-      .mh-map.ot::after {
-        content: "OT";
-        font-family: var(--f-mono);
-        font-size: 9.5px;
-        color: var(--upset);
-        letter-spacing: 0.08em;
-        margin-top: -2px;
-      }
-      @media (max-width: 520px) {
-        .mh-maps {
-          grid-template-columns: 1fr 1fr;
-        }
-      }
-
-      .mh-note {
-        padding: 14px 18px 16px;
-        border-top: 1px solid var(--rule);
-        font-size: 13.5px;
-        color: var(--ink-2);
-        line-height: 1.5;
-        display: grid;
-        grid-template-columns: 20px 1fr;
-        gap: 10px;
-        align-items: start;
-      }
-      .mh-note .q {
-        font-family: var(--f-display);
-        font-size: 28px;
-        line-height: 0.7;
-        color: var(--accent);
-        font-weight: 700;
-      }
-      .mh-note b {
-        color: var(--ink);
-        font-weight: 600;
-      }
-
-      /* ---------- Match grid (secondary matches) ---------- */
-      .match-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
-      }
-      @media (max-width: 560px) {
-        .match-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      .mc {
-        background: var(--surface-1);
-        border: 1px solid var(--rule);
-        border-radius: 8px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-      }
-      .mc-event {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--rule);
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        color: var(--ink-mute);
-      }
-      .mc-event .flag-slot {
-        display: flex;
-        gap: 5px;
-      }
-      .mc-board {
-        display: block;
-        padding: 10px 12px 10px;
-      }
-      .mc-row {
-        display: grid;
-        grid-template-columns: 32px 1fr auto;
-        align-items: center;
-        gap: 10px;
-        padding: 6px 0;
-      }
-      .mc-row + .mc-row {
-        border-top: 1px solid var(--rule);
-      }
-      .mc-row .crest {
-        width: 28px;
-        height: 28px;
-        font-size: 10px;
-        border-radius: 5px;
-      }
-      .mc-row .name {
-        font-family: var(--f-display);
-        font-weight: 600;
-        font-size: 14px;
-        color: var(--ink);
-        letter-spacing: -0.015em;
-      }
-      .mc-row .name.l {
-        color: var(--ink-mute);
-      }
-      .mc-row .name .rank-inline {
-        color: var(--ink-dim);
-        font-weight: 500;
-        font-size: 11px;
-        font-family: var(--f-mono);
-        margin-left: 6px;
-      }
-      .mc-row .score {
-        font-family: var(--f-display);
-        font-weight: 700;
-        font-size: 22px;
-        letter-spacing: -0.03em;
-        color: var(--ink);
-        font-variant-numeric: tabular-nums;
-      }
-      .mc-row .score.l {
-        color: var(--ink-dim);
-      }
-      .mc-row .score.w.accent {
-        color: var(--accent);
-      }
-      .mc-maps {
-        padding: 8px 12px 12px;
-        border-top: 1px solid var(--rule);
-        background: var(--bg);
-        display: flex;
-        gap: 14px;
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        color: var(--ink-mute);
-        flex-wrap: wrap;
-      }
-      .mc-maps .m span.w {
-        color: var(--ink);
-      }
-      .mc-maps .m span.l {
-        color: var(--ink-dim);
-      }
-      .mc-maps .m .mn {
-        color: var(--ink-dim);
-      }
-
-      /* ---------- CLIP panel grid ---------- */
-      .clip-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
-      }
-      @media (max-width: 560px) {
-        .clip-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-      .clip-card {
-        background: var(--surface-1);
-        border: 1px solid var(--rule);
-        border-radius: 8px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-      }
-      .clip-card:hover .ct-title {
-        color: var(--accent);
-      }
-      .ct-thumb {
-        aspect-ratio: 16/10;
-        position: relative;
-        overflow: hidden;
-        background: var(--surface-2);
-      }
-      .ct-thumb.c1 {
-        background:
-          radial-gradient(
-            circle at 30% 35%,
-            color-mix(in oklab, var(--accent) 50%, var(--surface-2)),
-            var(--surface-2) 55%
-          ),
-          var(--surface-2);
-      }
-      .ct-thumb.c2 {
-        background: radial-gradient(
-          circle at 70% 60%,
-          #3a3a2a,
-          var(--surface-2) 55%
-        );
-      }
-      .ct-thumb.c3 {
-        background: radial-gradient(
-          circle at 50% 40%,
-          #2a2130,
-          var(--surface-2) 60%
-        );
-      }
-      .ct-thumb::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background:
-          linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.55) 100%),
-          repeating-linear-gradient(
-            45deg,
-            transparent 0 12px,
-            rgba(255, 255, 255, 0.02) 12px 13px
-          );
-      }
-      .ct-thumb .badge {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        font-family: var(--f-mono);
-        font-size: 10px;
-        padding: 3px 6px;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(4px);
-        color: var(--ink);
-        border-radius: 3px;
-        letter-spacing: 0.04em;
-      }
-      .ct-thumb .dur {
-        position: absolute;
-        bottom: 8px;
-        right: 8px;
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        padding: 2px 5px;
-        background: rgba(0, 0, 0, 0.7);
-        color: var(--ink);
-        border-radius: 2px;
-        letter-spacing: 0;
-      }
-      .ct-thumb .play {
-        position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        color: var(--ink);
-      }
-      .ct-thumb .play::before {
-        content: "";
-        width: 0;
-        height: 0;
-        border-left: 16px solid rgba(255, 255, 255, 0.9);
-        border-top: 10px solid transparent;
-        border-bottom: 10px solid transparent;
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
-      }
-      .ct-body {
-        padding: 12px 14px 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        flex: 1;
-      }
-      .ct-rank {
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        color: var(--ink-mute);
-        display: flex;
-        justify-content: space-between;
-        letter-spacing: 0;
-      }
-      .ct-rank .up {
-        color: var(--win);
-        font-weight: 500;
-      }
-      .ct-title {
-        font-family: var(--f-display);
-        font-weight: 600;
-        font-size: 15px;
-        line-height: 1.3;
-        letter-spacing: -0.015em;
-        color: var(--ink);
+      .section-head h2 {
         margin: 0;
-        text-wrap: balance;
-        transition: color 120ms ease;
+        font-family: "Bebas Neue", sans-serif;
+        font-weight: 400;
+        font-size: clamp(2rem, 3.6vw, 2.8rem);
+        letter-spacing: 0.02em;
+        line-height: 1;
+        color: var(--ink);
       }
-      .ct-foot {
-        margin-top: auto;
-        font-family: var(--f-mono);
-        font-size: 10.5px;
+      .section-head p {
+        margin: 0;
+        max-width: 38ch;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.84rem;
         color: var(--ink-mute);
-        display: flex;
-        gap: 12px;
+        text-align: right;
+      }
+      @media (max-width: 720px) {
+        .section-head {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .section-head p {
+          text-align: left;
+        }
       }
 
-      /* ---------- VIDEO hero ---------- */
-      .video-hero {
-        background: var(--surface-1);
-        border: 1px solid var(--rule);
-        border-radius: 8px;
-        overflow: hidden;
-        display: block;
+      .section-rule {
+        height: 1px;
+        background: var(--rule);
+        margin: 24px 0 28px;
       }
-      .vh-thumb {
-        aspect-ratio: 16/9;
-        position: relative;
-        background:
-          radial-gradient(ellipse at 50% 100%, #2a1810, var(--surface-2) 70%),
-          repeating-linear-gradient(
-            -35deg,
-            transparent 0 18px,
-            rgba(255, 255, 255, 0.025) 18px 19px
-          );
+
+      .lane {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
       }
-      .vh-thumb::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(
-          180deg,
-          transparent 45%,
-          rgba(0, 0, 0, 0.7)
-        );
+      .lane > * + * {
+        border-top: 1px solid var(--rule);
       }
-      .vh-thumb .label {
-        position: absolute;
-        top: 14px;
-        left: 14px;
-        font-family: var(--f-mono);
-        font-size: 10.5px;
+
+      .lane-intro {
+        padding: 16px 20px;
+        border-left: 2px solid var(--primary);
+        background: var(--primary-soft);
         color: var(--ink);
-        letter-spacing: 0.08em;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
-        padding: 5px 9px;
-        border-radius: 3px;
-        text-transform: uppercase;
-        font-weight: 500;
+        font-size: 0.95rem;
+        margin-bottom: 24px;
+      }
+
+      /* ── CRESTS ───────────────────────────────────────────────────────── */
+      .crest {
         display: inline-flex;
         align-items: center;
-        gap: 7px;
-        z-index: 1;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background: oklch(0.25 0.005 255);
+        border: 1px solid var(--rule);
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 0.76rem;
+        color: var(--ink);
+        letter-spacing: 0.04em;
+        flex: 0 0 auto;
       }
-      .vh-thumb .label::before {
+      .crest.has-logo {
+        background: #fff;
+        padding: 3px;
+      }
+      .crest img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      /* ── MATCH ROWS ───────────────────────────────────────────────────── */
+      .match {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) 140px minmax(0, 1.4fr);
+        gap: 28px;
+        align-items: center;
+        padding: 22px 20px;
+        border-left: 2px solid transparent;
+        transition:
+          background 0.15s,
+          border-left-color 0.15s;
+      }
+      .match:hover {
+        background: oklch(0.2 0.005 255 / 0.5);
+        border-left-color: var(--primary);
+      }
+      @media (max-width: 720px) {
+        .match {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+      }
+
+      .teams {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 0;
+      }
+      .team-line {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+      .team-line strong {
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--ink);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .team-line .rank {
+        margin-left: auto;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.72rem;
+        color: var(--ink-mute);
+        padding: 2px 6px;
+        border: 1px solid var(--rule);
+      }
+
+      .scorebox {
+        text-align: center;
+      }
+      .scorebox .score {
+        font-family: "Bebas Neue", sans-serif;
+        font-weight: 400;
+        font-size: 2.6rem;
+        line-height: 1;
+        color: var(--ink);
+        letter-spacing: 0.04em;
+      }
+      .scorebox .score em {
+        font-style: normal;
+        color: var(--ink-dim);
+        margin: 0 6px;
+        font-size: 1.7rem;
+      }
+      .scorebox .maps {
+        margin-top: 8px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+
+      .highlight {
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        color: var(--ink-2);
+      }
+      .highlight b {
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .tagline {
+        display: inline-block;
+        padding: 4px 10px;
+        margin-bottom: 8px;
+        background: var(--primary);
+        color: var(--primary-ink);
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 0.7rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      /* ── CLIP ROWS ────────────────────────────────────────────────────── */
+      .clip {
+        display: grid;
+        grid-template-columns: 132px minmax(0, 1fr) auto;
+        gap: 22px;
+        align-items: center;
+        padding: 18px 20px;
+        border-left: 2px solid transparent;
+        transition:
+          background 0.15s,
+          border-left-color 0.15s;
+      }
+      .clip:hover {
+        background: oklch(0.2 0.005 255 / 0.5);
+        border-left-color: var(--primary);
+      }
+      @media (max-width: 640px) {
+        .clip {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .thumb {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        background: oklch(0.2 0.005 255);
+        border: 1px solid var(--rule);
+        overflow: hidden;
+      }
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .thumb::after {
+        content: "▶";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink);
+        font-size: 1.1rem;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+      }
+      .clip h3 {
+        margin: 0 0 6px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 1.02rem;
+        line-height: 1.3;
+        color: var(--ink);
+      }
+      .clip p {
+        margin: 0;
+        font-size: 0.84rem;
+        color: var(--ink-mute);
+        line-height: 1.45;
+      }
+
+      .upvote {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 64px;
+        padding: 8px 12px;
+        border: 1px solid var(--rule);
+        color: var(--signal);
+      }
+      .upvote b {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 1.05rem;
+        line-height: 1;
+      }
+      .upvote span {
+        margin-top: 4px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.66rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+
+      /* ── SOCIAL / STORY ROWS ─────────────────────────────────────────── */
+      .story {
+        display: grid;
+        grid-template-columns: 56px 1fr;
+        gap: 18px;
+        padding: 20px;
+        border-left: 2px solid var(--primary);
+        transition: background 0.15s;
+      }
+      .story:hover {
+        background: oklch(0.2 0.005 255 / 0.5);
+      }
+      .avatar {
+        width: 48px;
+        height: 48px;
+        background: oklch(0.25 0.005 255);
+        border: 1px solid var(--rule);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 0.8rem;
+        color: var(--ink);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .avatar.warm {
+        color: var(--primary);
+        border-color: var(--primary-line);
+      }
+      .handle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.84rem;
+        color: var(--ink-mute);
+      }
+      .handle b {
+        color: var(--ink);
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
+      }
+      .handle .verified {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        background: var(--primary);
+        color: var(--primary-ink);
+        font-size: 0.6rem;
+        font-weight: 700;
+      }
+      .story h3 {
+        margin: 8px 0 6px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 1.05rem;
+        line-height: 1.4;
+        color: var(--ink);
+      }
+      .story p {
+        margin: 0;
+        font-size: 0.86rem;
+        color: var(--ink-mute);
+        line-height: 1.5;
+      }
+
+      /* ── NEWS / ROSTER ───────────────────────────────────────────────── */
+      .news {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 24px;
+        padding: 20px;
+        border-left: 2px solid var(--primary);
+        transition:
+          background 0.15s,
+          border-left-color 0.15s;
+      }
+      .news:hover {
+        background: oklch(0.2 0.005 255 / 0.5);
+      }
+      .news.alert {
+        border-left-color: var(--live);
+      }
+      .news.trade {
+        border-left-color: var(--signal);
+      }
+      @media (max-width: 640px) {
+        .news {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .news-ribbon {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding-right: 20px;
+        border-right: 1px solid var(--rule);
+      }
+      @media (max-width: 640px) {
+        .news-ribbon {
+          border-right: 0;
+          padding-right: 0;
+        }
+      }
+      .news-type {
+        display: inline-block;
+        width: max-content;
+        padding: 3px 9px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 0.68rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--primary);
+        border: 1px solid var(--primary-line);
+      }
+      .news.alert .news-type {
+        color: var(--live);
+        border-color: oklch(0.66 0.22 25 / 0.45);
+      }
+      .news.trade .news-type {
+        color: var(--signal);
+        border-color: oklch(0.85 0.15 95 / 0.4);
+      }
+      .news-when {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.78rem;
+        color: var(--ink-mute);
+      }
+      .news-body h3 {
+        margin: 0 0 6px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 1.05rem;
+        line-height: 1.35;
+        color: var(--ink);
+      }
+      .news-body p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--ink-mute);
+        line-height: 1.5;
+      }
+
+      /* ── SCHEDULE / UPCOMING ─────────────────────────────────────────── */
+      .schedule {
+        display: grid;
+        grid-template-columns: 110px minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: center;
+        padding: 18px 20px;
+        border-left: 2px solid transparent;
+        transition:
+          background 0.15s,
+          border-left-color 0.15s;
+      }
+      .schedule:hover {
+        background: oklch(0.2 0.005 255 / 0.5);
+        border-left-color: var(--primary);
+      }
+      @media (max-width: 640px) {
+        .schedule {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .schedule .when {
+        font-family: "Bebas Neue", sans-serif;
+        font-weight: 400;
+        font-size: 1.7rem;
+        line-height: 1;
+        color: var(--ink);
+        letter-spacing: 0.04em;
+      }
+      .schedule .when small {
+        display: block;
+        margin-top: 4px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        font-weight: 500;
+      }
+      .schedule .fixture {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--ink);
+      }
+      .schedule .vs {
+        color: var(--ink-dim);
+        padding: 0 4px;
+        font-weight: 400;
+      }
+      .schedule .event {
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.82rem;
+        color: var(--ink-mute);
+        letter-spacing: 0.08em;
+        text-align: right;
+        text-transform: uppercase;
+      }
+
+      /* ── CONTENT DROPS (videos / podcasts) ───────────────────────────── */
+      .drop {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        gap: 20px;
+        padding: 20px;
+        border-left: 2px solid transparent;
+        transition:
+          background 0.15s,
+          border-left-color 0.15s;
+      }
+      .drop:hover {
+        background: oklch(0.2 0.005 255 / 0.5);
+        border-left-color: var(--primary);
+      }
+      @media (max-width: 640px) {
+        .drop {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .drop-kind {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 0;
+        background: var(--primary);
+        color: var(--primary-ink);
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 0.74rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+      }
+      .drop-kind.video {
+        background: var(--ink);
+        color: var(--bg);
+      }
+      .drop-kind.podcast {
+        background: var(--surface-2);
+        color: var(--primary);
+        border: 1px solid var(--primary-line);
+      }
+      .drop h3 {
+        margin: 0 0 8px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 1.05rem;
+        line-height: 1.35;
+        color: var(--ink);
+      }
+      .drop p {
+        margin: 0 0 12px;
+        font-size: 0.88rem;
+        color: var(--ink-mute);
+        line-height: 1.5;
+      }
+      .drop-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .drop-meta span {
+        padding: 3px 8px;
+        border: 1px solid var(--rule);
+      }
+
+      /* ── PATCH ────────────────────────────────────────────────────────── */
+      .patch {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 28px;
+        padding: 24px;
+        border-left: 4px solid var(--primary);
+        background: oklch(0.2 0.005 255 / 0.4);
+      }
+      @media (max-width: 720px) {
+        .patch {
+          grid-template-columns: 1fr;
+        }
+      }
+      .patch .ver {
+        display: inline-block;
+        padding: 3px 10px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.78rem;
+        color: var(--primary);
+        border: 1px solid var(--primary-line);
+        margin-bottom: 12px;
+      }
+      .patch h3 {
+        margin: 0 0 10px;
+        font-family: "Bebas Neue", sans-serif;
+        font-weight: 400;
+        font-size: 1.6rem;
+        line-height: 1.05;
+        color: var(--ink);
+        letter-spacing: 0.02em;
+      }
+      .patch h3 a {
+        color: var(--ink);
+      }
+      .patch h3 a:hover {
+        color: var(--primary);
+      }
+      .patch .meta {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--ink-mute);
+      }
+      .patch ul.changes {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .patch ul.changes li {
+        display: grid;
+        grid-template-columns: 12px 1fr;
+        gap: 12px;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        color: var(--ink-2);
+      }
+      .patch ul.changes li::before {
         content: "";
         width: 8px;
         height: 8px;
-        background: var(--live);
-        border-radius: 50%;
-      }
-      .vh-thumb .dur {
-        position: absolute;
-        bottom: 14px;
-        right: 14px;
-        font-family: var(--f-mono);
-        font-size: 12px;
-        color: var(--ink);
-        background: rgba(0, 0, 0, 0.75);
-        padding: 4px 8px;
-        border-radius: 3px;
-        z-index: 1;
-      }
-      .vh-thumb .play-big {
-        position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
-      }
-      .vh-thumb .play-big::before {
-        content: "";
-        width: 0;
-        height: 0;
-        border-left: 28px solid rgba(255, 255, 255, 0.95);
-        border-top: 17px solid transparent;
-        border-bottom: 17px solid transparent;
-        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
-      }
-      .vh-body {
-        padding: 16px 18px 18px;
-      }
-      .vh-channel {
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--accent);
-        margin-bottom: 8px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .vh-channel::before {
-        content: "";
-        width: 16px;
-        height: 16px;
-        background: var(--accent);
-        border-radius: 50%;
-        display: inline-block;
-      }
-      .vh-title {
-        font-family: var(--f-display);
-        font-weight: 700;
-        font-size: 20px;
-        line-height: 1.2;
-        letter-spacing: -0.025em;
-        color: var(--ink);
-        margin: 0 0 8px;
-        text-wrap: balance;
-      }
-      .vh-meta {
-        font-family: var(--f-mono);
-        font-size: 11px;
-        color: var(--ink-mute);
-        display: flex;
-        gap: 14px;
+        margin-top: 8px;
+        background: var(--primary);
       }
 
-      /* ---------- EPISODES (compact rows) ---------- */
-      .episodes {
-        margin-top: 14px;
-        background: var(--surface-1);
+      /* ── HISTORY ──────────────────────────────────────────────────────── */
+      .history {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 0;
         border: 1px solid var(--rule);
-        border-radius: 8px;
-        overflow: hidden;
+        border-left: 4px solid var(--primary);
       }
-      .ep {
-        display: grid;
-        grid-template-columns: 44px 1fr auto;
-        align-items: center;
-        gap: 14px;
-        padding: 14px 14px;
-        border-top: 1px solid var(--rule);
-      }
-      .ep:first-child {
-        border-top: none;
-      }
-      .ep-art {
-        width: 44px;
-        height: 44px;
-        border-radius: 6px;
-        background: linear-gradient(135deg, var(--surface-3), var(--surface-2));
-        display: grid;
-        place-items: center;
-        font-family: var(--f-display);
-        font-weight: 700;
-        font-size: 16px;
-        color: var(--ink);
-        letter-spacing: -0.03em;
-      }
-      .ep-art.c1 {
-        background: linear-gradient(135deg, #3a2a1a, #1a1410);
-        color: #f0c878;
-      }
-      .ep-art.c2 {
-        background: linear-gradient(135deg, #1a2a3a, #101820);
-        color: #8acbf0;
-      }
-      .ep-art.c3 {
-        background: linear-gradient(135deg, #2a1a2a, #180f18);
-        color: #e8a8f0;
-      }
-      .ep-body .show {
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--ink-mute);
-        margin-bottom: 3px;
-      }
-      .ep-body .title {
-        font-family: var(--f-display);
-        font-weight: 600;
-        font-size: 14.5px;
-        line-height: 1.3;
-        letter-spacing: -0.012em;
-        color: var(--ink);
-      }
-      .ep-dur {
-        font-family: var(--f-mono);
-        font-size: 11px;
-        color: var(--ink-2);
-        white-space: nowrap;
-        padding: 4px 9px;
-        background: var(--surface-3);
-        border-radius: 3px;
-      }
-
-      /* ---------- ROSTER / ARTICLES ---------- */
-      .articles {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
-      }
-      @media (max-width: 560px) {
-        .articles {
+      @media (max-width: 720px) {
+        .history {
           grid-template-columns: 1fr;
         }
       }
-      .art {
-        background: var(--surface-1);
-        border: 1px solid var(--rule);
-        border-radius: 8px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-      }
-      .art-img {
-        aspect-ratio: 16/10;
+      .history .visual {
         position: relative;
-        overflow: hidden;
-        background: radial-gradient(circle at 30% 60%, #1a2030, #0f1218 70%);
+        min-height: 200px;
+        background: oklch(0.18 0.005 255);
+        border-right: 1px solid var(--rule);
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
-      .art-img.portrait {
-        background:
-          radial-gradient(circle at 50% 45%, #3a2a1e, #14110e 70%),
-          linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.4));
+      @media (max-width: 720px) {
+        .history .visual {
+          border-right: 0;
+          border-bottom: 1px solid var(--rule);
+        }
       }
-      .art-img.team {
-        background: radial-gradient(circle at 30% 60%, #1a2030, #0f1218 70%);
+      .history .watermark {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 5rem;
+        letter-spacing: 0.05em;
+        color: var(--primary);
+        opacity: 0.4;
+        line-height: 1;
       }
-      .art-img::after {
+      .history .crosshair {
+        position: absolute;
+        width: 64px;
+        height: 64px;
+        border: 2px solid var(--primary);
+        border-radius: 999px;
+      }
+      .history .crosshair::before,
+      .history .crosshair::after {
         content: "";
         position: absolute;
-        inset: 0;
-        background: linear-gradient(
-          180deg,
-          transparent 55%,
-          rgba(0, 0, 0, 0.6)
-        );
+        background: var(--primary);
       }
-      .art-img .caption {
-        position: absolute;
-        bottom: 8px;
-        left: 10px;
-        font-family: var(--f-mono);
-        font-size: 9.5px;
-        letter-spacing: 0.08em;
-        color: var(--ink-dim);
+      .history .crosshair::before {
+        left: 50%;
+        top: -10px;
+        bottom: -10px;
+        width: 2px;
+        transform: translateX(-50%);
+      }
+      .history .crosshair::after {
+        top: 50%;
+        left: -10px;
+        right: -10px;
+        height: 2px;
+        transform: translateY(-50%);
+      }
+      .history .copy {
+        padding: 24px 28px;
+      }
+      .history .when {
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.74rem;
+        letter-spacing: 0.2em;
         text-transform: uppercase;
-        z-index: 1;
-      }
-      .art-img .tag {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        font-family: var(--f-mono);
-        font-size: 10px;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        padding: 3px 7px;
-        border-radius: 3px;
-        z-index: 1;
-      }
-      .art-img .tag.confirmed {
-        background: color-mix(in oklab, var(--win) 20%, var(--bg));
-        color: var(--win);
-        border: 1px solid color-mix(in oklab, var(--win) 40%, transparent);
-      }
-      .art-img .tag.rumor {
-        background: color-mix(in oklab, var(--upset) 20%, var(--bg));
-        color: var(--upset);
-        border: 1px solid color-mix(in oklab, var(--upset) 40%, transparent);
-      }
-
-      .art-body {
-        padding: 14px 16px 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        flex: 1;
-      }
-      .art-byline {
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        letter-spacing: 0.04em;
-        color: var(--ink-mute);
-      }
-      .art-byline .author {
-        color: var(--accent);
-      }
-      .art-title {
-        font-family: var(--f-display);
+        color: var(--primary);
         font-weight: 700;
-        font-size: 17px;
-        line-height: 1.22;
-        letter-spacing: -0.025em;
+      }
+      .history h3 {
+        margin: 8px 0 12px;
+        font-family: "Bebas Neue", sans-serif;
+        font-weight: 400;
+        font-size: clamp(1.6rem, 3vw, 2.2rem);
+        line-height: 1.05;
+        letter-spacing: 0.01em;
         color: var(--ink);
-        margin: 0;
-        text-wrap: balance;
       }
-      .art-teaser {
-        font-size: 13.5px;
-        line-height: 1.5;
+      .history p {
+        margin: 0;
         color: var(--ink-2);
-        margin: 0;
-      }
-      .art-tags {
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        color: var(--ink-mute);
-        letter-spacing: 0.02em;
-        margin-top: auto;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-      .art-tags .tag::before {
-        content: "#";
-        color: var(--ink-dim);
+        max-width: 60ch;
+        line-height: 1.6;
       }
 
-      /* ---------- PATCH ---------- */
-      .patch {
-        background: var(--surface-1);
-        border: 1px solid var(--rule);
-        border-radius: 8px;
-        overflow: hidden;
-      }
-      .patch-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 14px 16px;
-        border-bottom: 1px solid var(--rule);
-      }
-      .patch-title-wrap {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .patch-ver {
-        font-family: var(--f-mono);
-        font-size: 11px;
-        color: var(--accent);
-        letter-spacing: 0.02em;
-      }
-      .patch-title {
-        font-family: var(--f-display);
-        font-weight: 700;
-        font-size: 18px;
-        letter-spacing: -0.025em;
-        color: var(--ink);
-        margin: 0;
-      }
-      .patch-date {
-        font-family: var(--f-mono);
-        font-size: 11px;
+      /* ── EMPTY STATE ─────────────────────────────────────────────────── */
+      .empty {
+        padding: 24px;
+        border: 1px dashed var(--rule);
         color: var(--ink-mute);
-      }
-      .patch-list {
-        padding: 6px 0;
-      }
-      .patch-row {
-        display: grid;
-        grid-template-columns: 80px 1fr;
-        gap: 14px;
-        padding: 10px 16px;
-        border-top: 1px solid var(--rule);
-        align-items: baseline;
-      }
-      .patch-row:first-child {
-        border-top: none;
-      }
-      .patch-row .tag {
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--ink-mute);
-        padding-top: 1px;
-      }
-      .patch-row .tag.maps {
-        color: var(--win);
-      }
-      .patch-row .tag.weapons {
-        color: var(--upset);
-      }
-      .patch-row .tag.audio {
-        color: var(--accent);
-      }
-      .patch-row .tag.misc {
-        color: var(--ink-mute);
-      }
-      .patch-row .body {
-        font-family: var(--f-mono);
-        font-size: 12.5px;
-        line-height: 1.55;
-        color: var(--ink-2);
-      }
-
-      /* ---------- Colophon ---------- */
-      .colophon {
-        margin-top: 72px;
-        padding-top: 24px;
-        border-top: 1px solid var(--rule);
-        font-family: var(--f-mono);
-        font-size: 11px;
-        color: var(--ink-mute);
-        line-height: 1.7;
-        letter-spacing: 0;
-      }
-      .colophon .wm-glyph-sm {
-        width: 20px;
-        height: 20px;
-        font-size: 10px;
-        margin-right: 6px;
-        display: inline-grid;
-        place-items: center;
-        background: var(--accent);
-        color: var(--accent-ink);
-        font-family: var(--f-mono);
-        font-weight: 700;
-        border-radius: 3px;
-        vertical-align: -5px;
-      }
-      .colophon-end {
-        margin-top: 24px;
-        padding: 18px 0 4px;
         text-align: center;
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        letter-spacing: 0.24em;
-        color: var(--ink-dim);
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.9rem;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
+      }
+
+      /* ── FOOTER ──────────────────────────────────────────────────────── */
+      footer {
+        margin-top: 36px;
+        padding: 32px 0 60px;
         border-top: 1px solid var(--rule);
+      }
+      footer::before {
+        content: "";
+        display: block;
+        height: 2px;
+        background: var(--primary);
+        margin: -33px 0 32px;
+        width: 80px;
+      }
+      .foot {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 18px;
+        align-items: end;
+      }
+      @media (max-width: 720px) {
+        .foot {
+          grid-template-columns: 1fr;
+        }
+      }
+      .foot .meta {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.78rem;
+        color: var(--ink-dim);
+      }
+      .foot .meta b {
+        color: var(--ink-mute);
+        font-weight: 600;
+      }
+      .foot nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0;
+      }
+      .foot nav a {
+        padding: 8px 12px;
+        border: 1px solid var(--rule);
+        border-right: 0;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .foot nav a:last-child {
+        border-right: 1px solid var(--rule);
+      }
+      .foot nav a:hover {
+        color: var(--primary);
+        border-color: var(--primary-line);
       }
     </style>
   </head>
-
   <body>
-    <article class="page">
-      {# ============ MASTHEAD ============ #}
-      <header class="masthead">
-        <div class="wm">
-          <div class="wm-glyph">OP</div>
-          <div class="wm-title">Overpass</div>
-        </div>
-        <div class="wm-sub">CS2 DAILY · No. {{ issue_no }}</div>
-        <div class="wm-date">
-          <div class="day">{{ date | fmt_date("%a %-d %b %Y") }}</div>
-          <div class="time">{{ generated_at.strftime("%H:%M") }} CET</div>
-        </div>
-      </header>
-
-      {# ============ TICKER ============ #} {%- if ticker_chips %}
-      <div class="ticker">
-        {%- for chip in ticker_chips %} {%- if not loop.first %}<span
-          class="sep"
-          >·</span
-        >{% endif %}
-        <span class="chip">
-          {%- if chip.kind != "plain" %}<span class="dot {{ chip.kind }}"></span
-          >{% endif -%} {{ chip.text }}
-        </span>
-        {%- endfor %}
-      </div>
-      {%- endif %} {# ============ LEDE ============ #}
-      <div class="lede-wrap">
-        <div class="lede-kicker">The Morning Line</div>
-        <h2 class="lede">
-          {%- set s = digest.summary_line -%} {%- if "**" in s -%} {%- set parts
-          = s.split("**") -%} {#- parts alternate plain, bold, plain, bold, ...
-          -#} {%- for p in parts -%} {%- if loop.index0 is odd -%}<span
-            class="hl"
-            >{{ p }}</span
-          >{%- else -%}{{ p }}{%- endif -%} {%- endfor -%} {%- else -%} {{ s }}
-          {%- endif -%}
-        </h2>
-      </div>
-
-      {# ============ SECTIONS ============ #} {%- for key in render_keys %} {%-
-      set idx = "%02d" | format(loop.index) %} {%- if key == "Matches" %} {%-
-      set section = digest.sections["Matches"] %} {%- set items = section.items
-      %} {#- pick lead: upset > watch > items[0] -#} {%- set ns =
-      namespace(lead=none, lead_idx=-1) %} {%- for it in items %} {%- if ns.lead
-      is none and "upset" in (it.metadata.flags or []) %} {%- set ns.lead = it
-      %}{% set ns.lead_idx = loop.index0 %} {%- endif %} {%- endfor %} {%- if
-      ns.lead is none %} {%- for it in items %} {%- if ns.lead is none and
-      "watch" in (it.metadata.flags or []) %} {%- set ns.lead = it %}{% set
-      ns.lead_idx = loop.index0 %} {%- endif %} {%- endfor %} {%- endif %} {%-
-      if ns.lead is none and items %} {%- set ns.lead = items[0] %}{% set
-      ns.lead_idx = 0 %} {%- endif %}
-
-      <section class="section">
-        <div class="section-head">
-          <div class="section-idx">{{ idx }}</div>
-          <div class="section-labels">
-            <div class="section-label">Match Results</div>
-            {%- if section.intro %}
-            <div class="section-intro">{{ section.intro }}</div>
-            {% endif %}
-          </div>
-          <div class="section-count">
-            {{ "%02d"|format(items|length) }} · 24h
-          </div>
-        </div>
-
-        {%- if ns.lead is not none %} {%- set lead = ns.lead %} {%- set m =
-        lead.metadata %} {%- set has_keyart = lead.thumbnail_url %}
-        <a href="{{ lead.url }}" class="match-hero" style="display: block">
-          {%- if has_keyart %}
-          <div
-            class="mh-art"
-            style="aspect-ratio:16/7;background:
-                  linear-gradient(180deg, transparent 20%, color-mix(in oklab, var(--surface-1) 92%, black) 100%),
-                  url('{{ lead.thumbnail_url }}') center/cover no-repeat,
-                  var(--surface-2);
-                  position:relative;"
-          >
-            <div class="mh-flags">
-              {%- for f in (m.flags or []) %}<span class="flag {{ f }}"
-                >{{ f | capitalize }}</span
-              >{% endfor %}
-            </div>
-          </div>
-          <div class="mh-event">
-            <span class="name">{{ m.event_name }}</span>
-            <span class="fmt"
-              >{{ (m.format or "") | upper }} · {{
-              lead.timestamp.strftime("%H:%M") }} CET</span
-            >
-          </div>
-          {%- else %} {%- if m.flags %}
-          <div class="mh-flags">
-            {%- for f in m.flags %}<span class="flag {{ f }}"
-              >{{ f | capitalize }}</span
-            >{% endfor %}
-          </div>
-          {%- endif %}
-          <div class="mh-event">
-            <span class="name">{{ m.event_name }}</span>
-            <span class="fmt"
-              >{{ (m.format or "") | upper }} · {{
-              lead.timestamp.strftime("%H:%M") }} CET</span
-            >
-          </div>
-          {%- endif %}
-
-          <div class="mh-board">
-            {%- set t1_win = (m.team1_score or 0) > (m.team2_score or 0) %} {%-
-            set t2_win = (m.team2_score or 0) > (m.team1_score or 0) %}
-            <div class="mh-team">
-              {{ team_crest(m.team1_name, m.team1_logo_url) }}
-              <div class="tname">{{ m.team1_name }}</div>
-              {%- if m.team1_rank %}
-              <div class="rank">#{{ "%02d"|format(m.team1_rank) }}</div>
-              {% endif %}
-            </div>
-            <div class="mh-score">
-              <span class="{{ 'w accent' if t1_win else 'l' }}"
-                >{{ m.team1_score }}</span
-              >
-              <span class="sep">–</span>
-              <span class="{{ 'w accent' if t2_win else 'l' }}"
-                >{{ m.team2_score }}</span
-              >
-            </div>
-            <div class="mh-team">
-              {{ team_crest(m.team2_name, m.team2_logo_url) }}
-              <div class="tname">{{ m.team2_name }}</div>
-              {%- if m.team2_rank %}
-              <div class="rank">#{{ "%02d"|format(m.team2_rank) }}</div>
-              {% endif %}
-            </div>
-          </div>
-
-          {%- if m.maps %}
-          <div class="mh-maps">
-            {%- for mp in m.maps %} {%- set w1 = (mp.team1_score or 0) >
-            (mp.team2_score or 0) %}
-            <div class="mh-map{% if mp.ot %} ot{% endif %}">
-              <div class="mname">{{ mp.name }}</div>
-              <div class="mscore">
-                <span class="{{ 'w' if w1 else 'l' }}"
-                  >{{ mp.team1_score }}</span
-                >
-                <span class="d">–</span>
-                <span class="{{ 'w' if not w1 else 'l' }}"
-                  >{{ mp.team2_score }}</span
-                >
-              </div>
-            </div>
-            {%- endfor %}
-          </div>
-          {%- endif %} {%- if m.note %}
-          <div class="mh-note">
-            <span class="q">&ldquo;</span>
-            <div>{{ m.note | safe }}</div>
-          </div>
-          {%- endif %}
+    <header class="topbar">
+      <div class="wrap nav">
+        <a class="brand" href="#top" aria-label="Overpass home">
+          <span>
+            <h1>OVERPASS</h1>
+            <p>CS2 Daily Briefing · Issue {{ issue_no }}</p>
+          </span>
         </a>
-        {%- endif %} {%- set secondaries = [] %} {%- for it in items %} {%- if
-        loop.index0 != ns.lead_idx %}{% set _ = secondaries.append(it) %}{%
-        endif %} {%- endfor %} {%- if secondaries %}
-        <div class="match-grid">
-          {%- for it in secondaries %} {%- set m = it.metadata %} {%- set t1_win
-          = (m.team1_score or 0) > (m.team2_score or 0) %} {%- set t2_win =
-          (m.team2_score or 0) > (m.team1_score or 0) %}
-          <a
-            href="{{ it.url }}"
-            class="mc"
-            {%
-            if
-            loop.last
-            and
-            secondaries|length
-            is
-            odd
-            and
-            loop.index
-          >
-            1 %} style="grid-column: 1 / -1;"{% endif %}>
-            <div class="mc-event">
-              <span
-                >{{ m.event_name }} · {{ it.timestamp.strftime("%H:%M") }}</span
+        <div class="datebox">
+          <span class="pulse" aria-hidden="true"></span>
+          <span>
+            <strong>{{ date | fmt_date("%a %-d %b %Y") | upper }}</strong><br />
+            Filed {{ generated_at | fmt_date("%H:%M") }} CET · Personal Edition
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <main id="top">
+      {# ─── HERO ──────────────────────────────────────────────────────── #}
+      <section class="hero">
+        <div class="wrap">
+          <div class="hero-grid">
+            <div class="lead">
+              <span class="slug"
+                >Morning Route · {{ date | fmt_date("%A") | upper }}</span
               >
-              <span class="flag-slot">
-                {%- for f in (m.flags or []) %}<span class="flag {{ f }}"
-                  >{{ f | capitalize }}</span
-                >{% endfor %}
-              </span>
+              <h2>{{ digest.summary_line }}</h2>
+              <p>
+                Today's briefing draws from <strong>{{ ns3.total }}</strong>
+                item{{ '' if ns3.total == 1 else 's' }} across
+                <strong>{{ digest.sections | length }}</strong>
+                section{{ '' if (digest.sections | length) == 1 else 's' }}.
+                Built for the first coffee and the second monitor.
+              </p>
+
+              <div class="meta-row">
+                <div class="stat">
+                  <b>{{ ns3.total }}</b><span>Stories Scanned</span>
+                </div>
+                {%- for b in ns.blocks[:3] %} {%- set count =
+                digest.sections[b.key].items | length if b.key in
+                digest.sections else (social_posts | length if b.kind ==
+                'social' else (upcoming_matches | length if b.kind == 'upcoming'
+                else 0)) -%} {%- if count -%}
+                <div class="stat">
+                  <b>{{ count }}</b><span>{{ b.title }}</span>
+                </div>
+                {%- endif -%} {%- endfor %}
+              </div>
+
+              <nav class="jumpbar" aria-label="Jump to briefing sections">
+                {%- for b in ns.blocks %}
+                <a href="#{{ b.key | lower }}">{{ b.title }}</a>
+                {%- endfor %}
+              </nav>
             </div>
-            <div class="mc-board">
-              <div class="mc-row">
-                {{ team_crest(m.team1_name, m.team1_logo_url) }}
-                <div class="name{% if not t1_win %} l{% endif %}">
-                  {{ m.team1_name }}{% if m.team1_rank %}<span
-                    class="rank-inline"
-                    >#{{ "%02d"|format(m.team1_rank) }}</span
-                  >{% endif %}
+
+            <aside class="route" aria-label="Briefing route">
+              <h3>Route Through The Day</h3>
+              <div class="route-stops">
+                {%- for stop in route_stops %}
+                <div class="route-stop{% if stop.hot %} hot{% endif %}">
+                  <b>{{ stop.title }}</b>
+                  <span class="body">{{ stop.body }}</span>
                 </div>
-                <div class="score {{ 'w accent' if t1_win else 'l' }}">
-                  {{ m.team1_score }}
-                </div>
+                {%- endfor %}
               </div>
-              <div class="mc-row">
-                {{ team_crest(m.team2_name, m.team2_logo_url) }}
-                <div class="name{% if not t2_win %} l{% endif %}">
-                  {{ m.team2_name }}{% if m.team2_rank %}<span
-                    class="rank-inline"
-                    >#{{ "%02d"|format(m.team2_rank) }}</span
-                  >{% endif %}
-                </div>
-                <div class="score {{ 'w accent' if t2_win else 'l' }}">
-                  {{ m.team2_score }}
-                </div>
-              </div>
-            </div>
-            {%- if m.maps %}
-            <div class="mc-maps">
-              {%- for mp in m.maps %} {%- set w1 = (mp.team1_score or 0) >
-              (mp.team2_score or 0) %}
-              <div class="m">
-                <span class="mn">{{ mp.name[:3] | upper }}</span>
-                <span class="{{ 'w' if w1 else 'l' }}"
-                  >{{ mp.team1_score }}</span
-                >–<span class="{{ 'l' if w1 else 'w' }}"
-                  >{{ mp.team2_score }}</span
-                >
-              </div>
+            </aside>
+          </div>
+
+          {%- if ticker_chips %}
+          <div class="ticker" aria-hidden="true">
+            <div class="ticker-track">
+              {%- for chip in ticker_chips %}
+              <span class="{{ chip.kind }}">{{ chip.text }}</span>
+              {%- endfor %} {%- for chip in ticker_chips %}
+              <span class="{{ chip.kind }}">{{ chip.text }}</span>
               {%- endfor %}
             </div>
+          </div>
+          {%- endif %}
+        </div>
+      </section>
+
+      {# ─── BODY SECTIONS ─────────────────────────────────────────────── #}
+      <div class="briefing">
+        <div class="wrap">
+          {%- for b in ns.blocks %}
+          <section class="section" id="{{ b.key | lower }}">
+            <header class="section-head">
+              <div class="title-row">
+                <span class="num">{{ "%02d" | format(loop.index) }} /</span>
+                <h2>{{ b.title | upper }}</h2>
+              </div>
+              <p>{{ b.blurb }}</p>
+            </header>
+            <div class="section-rule"></div>
+
+            {%- if b.key in digest.sections and digest.sections[b.key].intro %}
+            <p class="lane-intro">{{ digest.sections[b.key].intro }}</p>
             {%- endif %}
-          </a>
-          {%- endfor %}
-        </div>
-        {%- endif %}
-      </section>
 
-      {%- elif key == "Clips" %} {%- set section = digest.sections["Clips"] %}
-      <section class="section">
-        <div class="section-head">
-          <div class="section-idx">{{ idx }}</div>
-          <div class="section-labels">
-            <div class="section-label">Top Clips</div>
-            {%- if section.intro %}
-            <div class="section-intro">{{ section.intro }}</div>
-            {% endif %}
-          </div>
-          <div class="section-count">
-            {{ "%02d"|format(section.items|length) }} · reddit
-          </div>
-        </div>
-
-        <div class="clip-grid">
-          {%- for it in section.items %} {%- set md = it.metadata %} {%- set
-          tone = ["c1","c2","c3"][loop.index0 % 3] %}
-          <a
-            href="{{ it.url }}"
-            class="clip-card"
-            {%
-            if
-            loop.last
-            and
-            section.items|length
-            is
-            odd
-            and
-            loop.index
-          >
-            1 %} style="grid-column: 1 / -1;"{% endif %}>
-            <div
-              class="ct-thumb {{ tone }}"
-              {%
-              if
-              it.thumbnail_url
-              %}
-              style="background-image:url('{{ it.thumbnail_url }}');background-size:cover;background-position:center;"
-              {%
-              endif
-              %}
-            >
-              <span class="badge">r/GlobalOffensive</span>
-              {%- if md.duration %}<span class="dur">{{ md.duration }}</span>{%
-              endif %}
-              <div class="play"></div>
-            </div>
-            <div class="ct-body">
-              <div class="ct-rank">
-                <span
-                  >{%- if md.rank %}#{{ "%02d"|format(md.rank) }} · {% endif
-                  %}Highlight</span
-                >
-                {%- if md.score %}<span class="up"
-                  >↑ {{ "%.1f"|format(md.score / 1000) }}k</span
-                >{% endif %}
+            <div class="lane">
+              {# ─── MATCHES ─── #} {%- if b.kind == "matches" %} {%- for item
+              in digest.sections.Matches.items %} {%- set m = item.metadata or
+              {} %}
+              <article class="match">
+                <div class="teams">
+                  <div class="team-line">
+                    {{ crest(m.get("team1_name") or "?",
+                    m.get("team1_logo_url")) }}
+                    <strong>{{ m.get("team1_name") or "TBD" }}</strong>
+                    {%- if m.get("team1_rank") %}<span class="rank"
+                      >#{{ m.team1_rank }}</span
+                    >{%- endif %}
+                  </div>
+                  <div class="team-line">
+                    {{ crest(m.get("team2_name") or "?",
+                    m.get("team2_logo_url")) }}
+                    <strong>{{ m.get("team2_name") or "TBD" }}</strong>
+                    {%- if m.get("team2_rank") %}<span class="rank"
+                      >#{{ m.team2_rank }}</span
+                    >{%- endif %}
+                  </div>
+                </div>
+                <div class="scorebox">
+                  <div class="score">
+                    {{ m.get("team1_score", 0) }} <em>:</em> {{
+                    m.get("team2_score", 0) }}
+                  </div>
+                  <div class="maps">
+                    {%- if m.get("maps") -%}{{ m.maps | join(" · ") }} {%- elif
+                    m.get("format") -%}{{ m.format }} {%- endif -%}
+                  </div>
+                </div>
+                <p class="highlight">
+                  <a href="{{ item.url }}" target="_blank" rel="noopener">
+                    <span class="tagline">{{ match_tagline(item) }}</span> </a
+                  ><br />
+                  {{ match_highlight(item) }}
+                </p>
+              </article>
+              {%- endfor %} {# ─── CLIPS ─── #} {%- elif b.kind == "clips" %}
+              {%- for item in digest.sections.Clips.items %} {%- set m =
+              item.metadata or {} %}
+              <a
+                class="clip"
+                href="{{ item.url }}"
+                target="_blank"
+                rel="noopener"
+              >
+                <div class="thumb">
+                  {%- if item.thumbnail_url %}<img
+                    src="{{ item.thumbnail_url }}"
+                    alt=""
+                    loading="lazy"
+                  />{%- endif %}
+                </div>
+                <div class="clip-text">
+                  <h3>{{ item.title }}</h3>
+                  <p>
+                    {%- if m.get("subreddit") %}r/{{ m.subreddit }}{% endif -%}
+                    {%- if m.get("author") %} · u/{{ m.author }}{% endif -%}
+                  </p>
+                </div>
+                {%- if m.get("upvotes") is not none %}
+                <div class="upvote">
+                  <b>{{ m.upvotes }}</b><span>Upvotes</span>
+                </div>
+                {%- endif %}
+              </a>
+              {%- endfor %} {# ─── SOCIAL ─── #} {%- elif b.kind == "social" %}
+              {%- for post in social_posts %}
+              <a
+                class="story"
+                href="{{ post.url }}"
+                target="_blank"
+                rel="noopener"
+              >
+                <div class="avatar warm">
+                  {{ (post.avatar_seed or post.handle or '??')[:3] | upper }}
+                </div>
+                <div>
+                  <div class="handle">
+                    <b>{{ post.display_name or post.handle }}</b>
+                    {%- if post.verified %}<span
+                      class="verified"
+                      title="Verified"
+                      >✓</span
+                    >{%- endif %}
+                    <span
+                      >@{{ post.handle }}{% if post.posted_at %} · {{
+                      post.posted_at | fmt_date("%H:%M") }}{% endif %}</span
+                    >
+                  </div>
+                  <h3>{{ post.body }}</h3>
+                  {%- if post.context %}
+                  <p>{{ post.context }}</p>
+                  {%- endif %}
+                </div>
+              </a>
+              {%- endfor %} {# ─── NEWS / ROSTER ─── #} {%- elif b.kind ==
+              "news" %} {%- for item in digest.sections.News.items %} {%- set m
+              = item.metadata or {} %} {%- set variant = m.get("category") or
+              "default" %}
+              <a
+                class="news {{ variant }}"
+                href="{{ item.url }}"
+                target="_blank"
+                rel="noopener"
+              >
+                <div class="news-ribbon">
+                  <span class="news-type"
+                    >{{ m.get("category_label") or "News" }}</span
+                  >
+                  <span class="news-when"
+                    >{{ item.timestamp | fmt_date("%H:%M") }}</span
+                  >
+                </div>
+                <div class="news-body">
+                  <h3>{{ item.title }}</h3>
+                  {%- if m.get("teaser") %}
+                  <p>{{ m.teaser }}</p>
+                  {%- endif %}
+                </div>
+              </a>
+              {%- endfor %} {# ─── UPCOMING ─── #} {%- elif b.kind == "upcoming"
+              %} {%- for u in upcoming_matches %}
+              <a
+                class="schedule"
+                href="{{ u.hltv_url or '#' }}"
+                target="_blank"
+                rel="noopener"
+              >
+                <div class="when">
+                  {{ u.starts_at | fmt_date("%H:%M") }}
+                  <small>{{ u.starts_at | fmt_date("%a %d %b") }}</small>
+                </div>
+                <div class="fixture">
+                  {{ crest(u.team1, u.get("team1_logo_url")) }}
+                  <strong>{{ u.team1 }}</strong>
+                  <span class="vs">vs</span>
+                  {{ crest(u.team2, u.get("team2_logo_url")) }}
+                  <strong>{{ u.team2 }}</strong>
+                </div>
+                <div class="event">
+                  {{ u.event }}{% if u.format %} · {{ u.format }}{% endif %}
+                </div>
+              </a>
+              {%- endfor %} {# ─── DROPS (Videos + Podcasts merged) ─── #} {%-
+              elif b.kind == "drops" %} {%- set merged =
+              (digest.sections.Videos.items if 'Videos' in digest.sections else
+              []) + (digest.sections.Podcasts.items if 'Podcasts' in
+              digest.sections else []) %} {%- for item in merged %} {%- set m =
+              item.metadata or {} %} {%- set kind = "podcast" if item.type ==
+              "episode" else "video" %}
+              <a
+                class="drop"
+                href="{{ item.url }}"
+                target="_blank"
+                rel="noopener"
+              >
+                <div class="drop-kind {{ kind }}">{{ kind | upper }}</div>
+                <div>
+                  <h3>{{ item.title }}</h3>
+                  {%- if m.get("description") %}
+                  <p>{{ m.description }}</p>
+                  {%- endif %}
+                  <div class="drop-meta">
+                    <span>{{ item.source }}</span>
+                    {%- if m.get("duration") %}<span>{{ m.duration }}</span>{%-
+                    endif %} {%- if m.get("channel") %}<span
+                      >{{ m.channel }}</span
+                    >{%- endif %}
+                  </div>
+                </div>
+              </a>
+              {%- endfor %} {# ─── VIDEOS only ─── #} {%- elif b.kind ==
+              "videos" %} {%- for item in digest.sections.Videos.items %} {%-
+              set m = item.metadata or {} %}
+              <a
+                class="drop"
+                href="{{ item.url }}"
+                target="_blank"
+                rel="noopener"
+              >
+                <div class="drop-kind video">VIDEO</div>
+                <div>
+                  <h3>{{ item.title }}</h3>
+                  {%- if m.get("description") %}
+                  <p>{{ m.description }}</p>
+                  {%- endif %}
+                  <div class="drop-meta">
+                    <span>{{ item.source }}</span>
+                    {%- if m.get("duration") %}<span>{{ m.duration }}</span>{%-
+                    endif %}
+                  </div>
+                </div>
+              </a>
+              {%- endfor %} {# ─── PODCASTS only ─── #} {%- elif b.kind ==
+              "podcasts" %} {%- for item in digest.sections.Podcasts.items %}
+              {%- set m = item.metadata or {} %}
+              <a
+                class="drop"
+                href="{{ item.url }}"
+                target="_blank"
+                rel="noopener"
+              >
+                <div class="drop-kind podcast">PODCAST</div>
+                <div>
+                  <h3>{{ item.title }}</h3>
+                  {%- if m.get("description") %}
+                  <p>{{ m.description }}</p>
+                  {%- endif %}
+                  <div class="drop-meta">
+                    <span>{{ item.source }}</span>
+                    {%- if m.get("duration") %}<span>{{ m.duration }}</span>{%-
+                    endif %}
+                  </div>
+                </div>
+              </a>
+              {%- endfor %} {# ─── PATCHES ─── #} {%- elif b.kind == "patches"
+              %} {%- for item in digest.sections.Patches.items %} {%- set m =
+              item.metadata or {} %}
+              <div class="patch">
+                <div>
+                  {%- if m.get("version") %}<span class="ver"
+                    >{{ m.version }}</span
+                  >{%- endif %}
+                  <h3>
+                    <a href="{{ item.url }}" target="_blank" rel="noopener"
+                      >{{ item.title }}</a
+                    >
+                  </h3>
+                  <p class="meta">
+                    {{ item.timestamp | fmt_date("%d %b %Y") | upper }} · {{
+                    item.source }}
+                  </p>
+                </div>
+                <div>
+                  {%- if m.get("changes") %}
+                  <ul class="changes">
+                    {%- for change in m.changes %}
+                    <li>{{ change }}</li>
+                    {%- endfor %}
+                  </ul>
+                  {%- elif m.get("body") %} {{ m.body | first_paragraph | safe
+                  }} {%- endif %}
+                </div>
               </div>
-              <h4 class="ct-title">{{ it.title }}</h4>
-              <div class="ct-foot">
-                {%- if md.num_comments is defined %}<span
-                  >{{ md.num_comments }} comments</span
-                >{% endif %}
-                <span>{{ it.timestamp.strftime("%Hh ago") }}</span>
-              </div>
-            </div>
-          </a>
-          {%- endfor %}
-        </div>
-      </section>
-
-      {%- elif key == "News" %} {%- set section = digest.sections["News"] %}
-      <section class="section">
-        <div class="section-head">
-          <div class="section-idx">{{ idx }}</div>
-          <div class="section-labels">
-            <div class="section-label">Roster &amp; News</div>
-            {%- if section.intro %}
-            <div class="section-intro">{{ section.intro }}</div>
-            {% endif %}
-          </div>
-          <div class="section-count">
-            {{ "%02d"|format(section.items|length) }} · HLTV
-          </div>
-        </div>
-        <div class="articles">
-          {%- for it in section.items %} {%- set md = it.metadata %}
-          <a href="{{ it.url }}" class="art">
-            <div
-              class="art-img{% if md.flag == 'confirmed' %} portrait{% elif md.flag == 'rumor' %} team{% endif %}"
-              {%
-              if
-              it.thumbnail_url
+              {%- endfor %} {# ─── HISTORY ─── #} {%- elif b.kind == "history"
               %}
-              style="background-image:url('{{ it.thumbnail_url }}');background-size:cover;background-position:center;"
-              {%
-              endif
-              %}
-            >
-              {%- if md.flag %}<span class="tag {{ md.flag }}"
-                >{{ md.flag | capitalize }}</span
-              >{% endif %}
-              <span class="caption">Press photo</span>
-            </div>
-            <div class="art-body">
-              <div class="art-byline">
-                HLTV{% if md.author %} · by
-                <span class="author">{{ md.author }}</span>{% endif %}
-              </div>
-              <h3 class="art-title">{{ it.title }}</h3>
-              {%- if md.teaser %}
-              <p class="art-teaser">{{ md.teaser }}</p>
-              {% endif %} {%- if md.tags %}
-              <div class="art-tags">
-                {%- for t in md.tags %}<span class="tag">{{ t }}</span>{% endfor
-                %}
+              <div class="history">
+                <div class="visual">
+                  <span class="watermark"
+                    >{{ this_day.visual_label or this_day.year }}</span
+                  >
+                  <span class="crosshair" aria-hidden="true"></span>
+                </div>
+                <div class="copy">
+                  <span class="when">{{ this_day.date_label }}</span>
+                  <h3>{{ this_day.headline }}</h3>
+                  <p>{{ this_day.narrative }}</p>
+                  {%- if this_day.source_url %}
+                  <p style="margin-top: 14px">
+                    <a
+                      href="{{ this_day.source_url }}"
+                      target="_blank"
+                      rel="noopener"
+                      style="color: var(--primary)"
+                      >Read more →</a
+                    >
+                  </p>
+                  {%- endif %}
+                </div>
               </div>
               {%- endif %}
             </div>
-          </a>
-          {%- endfor %}
-        </div>
-      </section>
-
-      {%- elif key == "VideosPodcasts" %} {%- set videos =
-      digest.sections["Videos"].items %} {%- set podcasts =
-      digest.sections["Podcasts"].items %} {%- set hero = videos[0] if videos
-      else none %} {%- set extra_videos = videos[1:] if videos else [] %}
-      <section class="section">
-        <div class="section-head">
-          <div class="section-idx">{{ idx }}</div>
-          <div class="section-labels">
-            <div class="section-label">Podcasts &amp; Content</div>
-            {%- set intro = digest.sections["Videos"].intro or
-            digest.sections["Podcasts"].intro %} {%- if intro %}
-            <div class="section-intro">{{ intro }}</div>
-            {% endif %}
-          </div>
-          <div class="section-count">
-            {{ "%02d"|format((videos|length) + (podcasts|length)) }}
-          </div>
-        </div>
-
-        {%- if hero %} {%- set hm = hero.metadata %}
-        <a href="{{ hero.url }}" class="video-hero">
-          <div
-            class="vh-thumb"
-            {%
-            if
-            hero.thumbnail_url
-            %}
-            style="background-image:url('{{ hero.thumbnail_url }}');background-size:cover;background-position:center;"
-            {%
-            endif
-            %}
-          >
-            <span class="label"
-              >YouTube{% if hm.is_new %} · New{% endif %}</span
-            >
-            <div class="play-big"></div>
-            {%- if hm.duration %}<span class="dur">{{ hm.duration }}</span>{%
-            endif %}
-          </div>
-          <div class="vh-body">
-            {%- if hm.channel_name %}
-            <div class="vh-channel">{{ hm.channel_name }}</div>
-            {% endif %}
-            <h3 class="vh-title">{{ hero.title }}</h3>
-            <div class="vh-meta">
-              <span>Posted {{ hero.timestamp.strftime("%Hh ago") }}</span>
-              {%- if hm.views %}<span>{{ hm.views }} views</span>{% endif %}
-            </div>
-          </div>
-        </a>
-        {%- endif %} {%- if extra_videos or podcasts %}
-        <div class="episodes">
-          {%- for it in extra_videos %} {%- set md = it.metadata %} {%- set tone
-          = ["c1","c2","c3"][loop.index0 % 3] %}
-          <a href="{{ it.url }}" class="ep">
-            <div class="ep-art {{ tone }}">
-              {{ (md.channel_name or "YT")[:2] | upper }}
-            </div>
-            <div class="ep-body">
-              <div class="show">
-                {{ md.channel_name or "YouTube" }}{% if md.duration %} · {{
-                md.duration }}{% endif %}
-              </div>
-              <div class="title">{{ it.title }}</div>
-            </div>
-            {%- if md.duration %}
-            <div class="ep-dur">{{ md.duration }}</div>
-            {% endif %}
-          </a>
-          {%- endfor %} {%- for it in podcasts %} {%- set md = it.metadata %}
-          {%- set tone = ["c1","c2","c3"][loop.index0 % 3] %}
-          <a href="{{ it.url }}" class="ep">
-            <div class="ep-art {{ tone }}">
-              {{ (md.podcast_name or "PC")[:2] | upper }}
-            </div>
-            <div class="ep-body">
-              <div class="show">
-                {{ md.podcast_name or "Podcast" }}{% if md.episode_number %} ·
-                Ep. {{ md.episode_number }}{% endif %}
-              </div>
-              <div class="title">{{ it.title }}</div>
-            </div>
-            {%- if md.duration %}
-            <div class="ep-dur">{{ md.duration }}</div>
-            {% endif %}
-          </a>
-          {%- endfor %}
-        </div>
-        {%- endif %}
-      </section>
-
-      {%- elif key == "Videos" %} {%- set section = digest.sections["Videos"] %}
-      {%- set hero = section.items[0] if section.items else none %} {%- set
-      extra_videos = section.items[1:] if section.items else [] %}
-      <section class="section">
-        <div class="section-head">
-          <div class="section-idx">{{ idx }}</div>
-          <div class="section-labels">
-            <div class="section-label">Videos</div>
-            {%- if section.intro %}
-            <div class="section-intro">{{ section.intro }}</div>
-            {% endif %}
-          </div>
-          <div class="section-count">
-            {{ "%02d"|format(section.items|length) }}
-          </div>
-        </div>
-
-        {%- if hero %} {%- set hm = hero.metadata %}
-        <a href="{{ hero.url }}" class="video-hero">
-          <div
-            class="vh-thumb"
-            {%
-            if
-            hero.thumbnail_url
-            %}
-            style="background-image:url('{{ hero.thumbnail_url }}');background-size:cover;background-position:center;"
-            {%
-            endif
-            %}
-          >
-            <span class="label"
-              >YouTube{% if hm.is_new %} · New{% endif %}</span
-            >
-            <div class="play-big"></div>
-            {%- if hm.duration %}<span class="dur">{{ hm.duration }}</span>{%
-            endif %}
-          </div>
-          <div class="vh-body">
-            {%- if hm.channel_name %}
-            <div class="vh-channel">{{ hm.channel_name }}</div>
-            {% endif %}
-            <h3 class="vh-title">{{ hero.title }}</h3>
-            <div class="vh-meta">
-              <span>Posted {{ hero.timestamp.strftime("%Hh ago") }}</span>
-              {%- if hm.views %}<span>{{ hm.views }} views</span>{% endif %}
-            </div>
-          </div>
-        </a>
-        {%- endif %} {%- if extra_videos %}
-        <div class="episodes">
-          {%- for it in extra_videos %} {%- set md = it.metadata %} {%- set tone
-          = ["c1","c2","c3"][loop.index0 % 3] %}
-          <a href="{{ it.url }}" class="ep">
-            <div class="ep-art {{ tone }}">
-              {{ (md.channel_name or "YT")[:2] | upper }}
-            </div>
-            <div class="ep-body">
-              <div class="show">{{ md.channel_name or "YouTube" }}</div>
-              <div class="title">{{ it.title }}</div>
-            </div>
-            {%- if md.duration %}
-            <div class="ep-dur">{{ md.duration }}</div>
-            {% endif %}
-          </a>
-          {%- endfor %}
-        </div>
-        {%- endif %}
-      </section>
-
-      {%- elif key == "Podcasts" %} {%- set section =
-      digest.sections["Podcasts"] %}
-      <section class="section">
-        <div class="section-head">
-          <div class="section-idx">{{ idx }}</div>
-          <div class="section-labels">
-            <div class="section-label">Podcasts</div>
-            {%- if section.intro %}
-            <div class="section-intro">{{ section.intro }}</div>
-            {% endif %}
-          </div>
-          <div class="section-count">
-            {{ "%02d"|format(section.items|length) }}
-          </div>
-        </div>
-
-        <div class="episodes">
-          {%- for it in section.items %} {%- set md = it.metadata %} {%- set
-          tone = ["c1","c2","c3"][loop.index0 % 3] %}
-          <a href="{{ it.url }}" class="ep">
-            <div class="ep-art {{ tone }}">
-              {{ (md.podcast_name or "PC")[:2] | upper }}
-            </div>
-            <div class="ep-body">
-              <div class="show">
-                {{ md.podcast_name or "Podcast" }}{% if md.episode_number %} ·
-                Ep. {{ md.episode_number }}{% endif %}
-              </div>
-              <div class="title">{{ it.title }}</div>
-            </div>
-            {%- if md.duration %}
-            <div class="ep-dur">{{ md.duration }}</div>
-            {% endif %}
-          </a>
-          {%- endfor %}
-        </div>
-      </section>
-
-      {%- elif key == "Patches" %} {%- set section = digest.sections["Patches"]
-      %}
-      <section class="section">
-        <div class="section-head">
-          <div class="section-idx">{{ idx }}</div>
-          <div class="section-labels">
-            <div class="section-label">Patch Notes</div>
-            {%- if section.intro %}
-            <div class="section-intro">{{ section.intro }}</div>
-            {% endif %}
-          </div>
-          <div class="section-count">
-            {{ "%02d"|format(section.items|length) }} · Steam
-          </div>
-        </div>
-
-        {%- for it in section.items %} {%- set md = it.metadata %}
-        <div
-          class="patch"
-          {%
-          if
-          not
-          loop.first
-          %}
-          style="margin-top: 14px"
-          {%
-          endif
-          %}
-        >
-          <div class="patch-header">
-            <div class="patch-title-wrap">
-              {%- if md.version %}
-              <div class="patch-ver">Build {{ md.version }} · Valve</div>
-              {% endif %}
-              <h3 class="patch-title">{{ it.title }}</h3>
-            </div>
-            <div class="patch-date">
-              {{ it.timestamp.strftime("%H:%M") }} CET
-            </div>
-          </div>
-          {%- if md.entries %}
-          <div class="patch-list">
-            {%- for entry in md.entries %}
-            <div class="patch-row">
-              <span class="tag {{ entry.tag | lower }}">{{ entry.tag }}</span>
-              <div class="body">{{ entry.body }}</div>
-            </div>
-            {%- endfor %}
-          </div>
-          {%- elif md.body_text %}
-          <div class="patch-list">
-            {%- for line in md.body_text.split("\n") %}{%- if line.strip() %}
-            <div class="patch-row">
-              <span class="tag misc">—</span>
-              <div class="body">{{ line }}</div>
-            </div>
-            {%- endif %}{%- endfor %}
+          </section>
+          {%- endfor %} {%- if not ns.blocks %}
+          <div class="empty" style="margin: 80px 0">
+            No items collected today.
           </div>
           {%- endif %}
         </div>
-        {%- endfor %}
-      </section>
+      </div>
+    </main>
 
-      {%- endif %} {%- endfor %} {# ============ COLOPHON ============ #}
-      <footer class="colophon">
-        <div>
-          <span class="wm-glyph-sm">OP</span>Overpass · Issue No. {{ issue_no }}
-          · {{ date | fmt_date("%-d %B %Y") }}
+    <footer>
+      <div class="wrap foot">
+        <div class="meta">
+          <b>OVERPASS</b> · ISSUE {{ issue_no }} · GENERATED {{ generated_at |
+          fmt_date("%Y-%m-%d %H:%M") }}
         </div>
-        <div>Compiled at {{ generated_at.strftime("%H:%M") }} CET</div>
-        <div>Sources: {{ sources | join(" · ") }}</div>
-        <div class="colophon-end">— End of briefing · See you tomorrow —</div>
-      </footer>
-    </article>
+        <nav aria-label="Footer navigation">
+          <a href="#top">Top</a>
+          {%- for b in ns.blocks %}
+          <a href="#{{ b.key | lower }}">{{ b.title }}</a>
+          {%- endfor %}
+        </nav>
+      </div>
+    </footer>
   </body>
 </html>
+
