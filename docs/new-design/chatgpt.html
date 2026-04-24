@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overpass — CS2 Daily Briefing Mockup</title>
+  <style>
+    :root {
+      --bg: #0b0f10;
+      --bg-2: #111819;
+      --tunnel: #151d1e;
+      --panel: rgba(20, 30, 31, 0.82);
+      --panel-strong: rgba(28, 40, 42, 0.94);
+      --line: rgba(173, 198, 184, 0.18);
+      --line-strong: rgba(198, 230, 208, 0.38);
+      --text: #edf2e8;
+      --muted: #a9b5aa;
+      --faint: #6f7e76;
+      --lime: #c6ff6b;
+      --amber: #f6b44b;
+      --orange: #ff6d3a;
+      --blue: #6db8ff;
+      --red: #ff556f;
+      --green: #7affac;
+      --concrete: #8e9690;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --max: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background:
+        radial-gradient(circle at 15% 4%, rgba(198, 255, 107, 0.18), transparent 31%),
+        radial-gradient(circle at 85% 12%, rgba(109, 184, 255, 0.15), transparent 26%),
+        radial-gradient(circle at 55% 72%, rgba(255, 109, 58, 0.1), transparent 35%),
+        linear-gradient(140deg, #080b0c 0%, #0e1415 48%, #121617 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: radial-gradient(circle at 50% 10%, black 0%, transparent 72%);
+      opacity: 0.72;
+      z-index: -3;
+    }
+
+    body::after {
+      content: "OVERPASS";
+      position: fixed;
+      right: -3vw;
+      bottom: -4vw;
+      z-index: -2;
+      font-size: clamp(7rem, 18vw, 22rem);
+      font-weight: 950;
+      letter-spacing: -0.11em;
+      color: rgba(255,255,255,0.025);
+      line-height: 0.75;
+      pointer-events: none;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.08;
+      background-image:
+        repeating-radial-gradient(circle at 20% 30%, rgba(255,255,255,0.9) 0 1px, transparent 1px 4px),
+        repeating-linear-gradient(35deg, rgba(255,255,255,0.4) 0 1px, transparent 1px 9px);
+      mix-blend-mode: overlay;
+    }
+
+    .wrap {
+      width: min(var(--max), calc(100% - 34px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(18px);
+      background: linear-gradient(180deg, rgba(8, 12, 13, 0.86), rgba(8, 12, 13, 0.58));
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      border: 1px solid rgba(198, 255, 107, 0.38);
+      border-radius: 17px;
+      background:
+        linear-gradient(135deg, rgba(198,255,107,0.16), transparent 48%),
+        linear-gradient(315deg, rgba(109,184,255,0.13), transparent 50%),
+        #111a1b;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 10px 34px rgba(198,255,107,0.08);
+      overflow: hidden;
+      flex: 0 0 auto;
+    }
+
+    .brand-mark::before,
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      border: 2px solid rgba(237, 242, 232, 0.75);
+      border-radius: 50%;
+    }
+
+    .brand-mark::before {
+      width: 28px;
+      height: 18px;
+      left: 7px;
+      top: 8px;
+      transform: rotate(-24deg);
+      border-right-color: transparent;
+    }
+
+    .brand-mark::after {
+      width: 26px;
+      height: 20px;
+      right: 5px;
+      bottom: 7px;
+      transform: rotate(-21deg);
+      border-left-color: transparent;
+      border-top-color: rgba(198,255,107,0.92);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 2.6vw, 2.45rem);
+      line-height: 0.9;
+      letter-spacing: -0.075em;
+      text-transform: uppercase;
+    }
+
+    .brand p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .datebox {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      text-align: right;
+    }
+
+    .pulse {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--lime);
+      box-shadow: 0 0 0 0 rgba(198,255,107,0.7);
+      animation: ping 1.8s infinite;
+    }
+
+    @keyframes ping {
+      0% { box-shadow: 0 0 0 0 rgba(198,255,107,0.55); }
+      72% { box-shadow: 0 0 0 14px rgba(198,255,107,0); }
+      100% { box-shadow: 0 0 0 0 rgba(198,255,107,0); }
+    }
+
+    .hero {
+      position: relative;
+      padding: clamp(34px, 6vw, 78px) 0 34px;
+    }
+
+    .hero-shell {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(280px, 0.58fr);
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .briefing-main {
+      position: relative;
+      min-height: 430px;
+      padding: clamp(26px, 4vw, 48px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(140deg, rgba(18, 27, 28, 0.92), rgba(10, 14, 15, 0.88)),
+        radial-gradient(circle at 18% 18%, rgba(198,255,107,0.12), transparent 28%);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .briefing-main::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 24px;
+      pointer-events: none;
+    }
+
+    .briefing-main::after {
+      content: "";
+      position: absolute;
+      width: 520px;
+      height: 290px;
+      right: -95px;
+      bottom: -85px;
+      border-radius: 50%;
+      border: 28px solid rgba(198,255,107,0.07);
+      transform: rotate(-16deg);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 12px;
+      border: 1px solid rgba(198,255,107,0.28);
+      border-radius: 999px;
+      color: var(--lime);
+      background: rgba(198,255,107,0.08);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-weight: 850;
+      font-size: 0.74rem;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    .hero h2 {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 26px 0 18px;
+      font-size: clamp(2.35rem, 7vw, 6.1rem);
+      line-height: 0.88;
+      letter-spacing: -0.09em;
+    }
+
+    .editorial {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      margin: 0;
+      color: #d7dfd4;
+      font-size: clamp(1.1rem, 2vw, 1.55rem);
+      line-height: 1.35;
+      text-wrap: balance;
+    }
+
+    .editorial strong {
+      color: var(--lime);
+      font-weight: 850;
+    }
+
+    .hero-meta {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 34px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.045);
+      font-size: 0.86rem;
+    }
+
+    .chip b {
+      color: var(--text);
+    }
+
+    .route-panel {
+      position: relative;
+      padding: 24px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(180deg, rgba(25,36,37,0.85), rgba(11,14,15,0.85)),
+        radial-gradient(circle at 78% 12%, rgba(109,184,255,0.12), transparent 38%);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .route-panel::before {
+      content: "";
+      position: absolute;
+      left: 34px;
+      top: 86px;
+      bottom: 34px;
+      width: 3px;
+      border-radius: 999px;
+      background: linear-gradient(var(--lime), var(--amber), var(--blue), rgba(255,255,255,0.12));
+      opacity: 0.85;
+    }
+
+    .route-panel h3 {
+      margin: 0 0 22px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .route-stop {
+      position: relative;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 16px;
+      align-items: start;
+      padding: 0 0 21px;
+    }
+
+    .route-stop:last-child {
+      padding-bottom: 0;
+    }
+
+    .route-dot {
+      position: relative;
+      z-index: 1;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: #101718;
+      box-shadow: inset 0 0 0 5px rgba(198,255,107,0.15);
+    }
+
+    .route-dot.hot {
+      border-color: rgba(198,255,107,0.72);
+      box-shadow: 0 0 22px rgba(198,255,107,0.18), inset 0 0 0 5px rgba(198,255,107,0.28);
+    }
+
+    .route-stop b {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.96rem;
+      letter-spacing: -0.02em;
+    }
+
+    .route-stop span {
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.42;
+    }
+
+    .ticker {
+      margin-top: 18px;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .ticker-track {
+      display: flex;
+      width: max-content;
+      gap: 28px;
+      padding: 10px 18px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      white-space: nowrap;
+      animation: ticker 32s linear infinite;
+    }
+
+    .ticker-track span::before {
+      content: "//";
+      margin-right: 10px;
+      color: var(--lime);
+      opacity: 0.7;
+    }
+
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    .briefing {
+      position: relative;
+      padding: 16px 0 80px;
+    }
+
+    .briefing::before {
+      content: "";
+      position: absolute;
+      left: max(20px, calc((100vw - var(--max)) / 2 + 22px));
+      top: 50px;
+      bottom: 56px;
+      width: 2px;
+      background: linear-gradient(180deg, rgba(198,255,107,0), rgba(198,255,107,0.42) 8%, rgba(246,180,75,0.42) 42%, rgba(109,184,255,0.34) 68%, rgba(255,255,255,0));
+      opacity: 0.75;
+    }
+
+    .section {
+      position: relative;
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: clamp(18px, 4vw, 52px);
+      align-items: start;
+      padding: 34px 0;
+    }
+
+    .section + .section {
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .section-label {
+      position: sticky;
+      top: 92px;
+      align-self: start;
+      padding-left: 48px;
+    }
+
+    .section-label::before {
+      content: attr(data-index);
+      position: absolute;
+      left: 4px;
+      top: 3px;
+      display: grid;
+      place-items: center;
+      width: 31px;
+      height: 31px;
+      border-radius: 50%;
+      border: 1px solid rgba(198,255,107,0.42);
+      background: #0d1414;
+      color: var(--lime);
+      font-size: 0.72rem;
+      font-weight: 900;
+      box-shadow: 0 0 0 8px rgba(11, 15, 16, 0.82);
+    }
+
+    .section-label h2 {
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.1;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .section-label p {
+      margin: 10px 0 0;
+      color: var(--faint);
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    .content-lane {
+      min-width: 0;
+    }
+
+    .result-stack,
+    .text-stack,
+    .clip-stack,
+    .schedule-stack,
+    .patch-panel,
+    .history-panel {
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-xl);
+      background: var(--panel);
+      box-shadow: 0 16px 54px rgba(0,0,0,0.22);
+      overflow: hidden;
+    }
+
+    .match-row {
+      display: grid;
+      grid-template-columns: minmax(270px, 1fr) 150px minmax(240px, 0.86fr);
+      gap: 22px;
+      align-items: center;
+      padding: 22px clamp(18px, 3vw, 28px);
+      background: linear-gradient(90deg, rgba(255,255,255,0.035), transparent);
+    }
+
+    .match-row + .match-row,
+    .clip-row + .clip-row,
+    .story-row + .story-row,
+    .schedule-row + .schedule-row {
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .teams {
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+
+    .team-line {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .crest {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      border-radius: 11px;
+      color: #0b0f10;
+      font-weight: 950;
+      font-size: 0.78rem;
+      letter-spacing: -0.05em;
+      background: linear-gradient(135deg, var(--lime), #d7e1ce);
+      box-shadow: inset 0 -10px 22px rgba(0,0,0,0.16);
+    }
+
+    .crest.alt { background: linear-gradient(135deg, var(--blue), #e8f5ff); }
+    .crest.warn { background: linear-gradient(135deg, var(--amber), #fff1cf); }
+    .crest.danger { background: linear-gradient(135deg, var(--red), #ffe0e7); }
+    .crest.clean { background: linear-gradient(135deg, #d7dfd4, #8e9690); }
+
+    .team-line strong {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 1.05rem;
+    }
+
+    .team-line .rank {
+      color: var(--faint);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .scorebox {
+      justify-self: center;
+      text-align: center;
+    }
+
+    .score {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 1.35rem;
+      font-weight: 950;
+      letter-spacing: -0.06em;
+    }
+
+    .maps {
+      margin-top: 8px;
+      color: var(--faint);
+      font-size: 0.77rem;
+      text-transform: uppercase;
+      letter-spacing: 0.11em;
+    }
+
+    .highlight {
+      color: #d8dfd6;
+      font-size: 0.96rem;
+      line-height: 1.45;
+    }
+
+    .highlight b {
+      color: var(--amber);
+    }
+
+    .tagline {
+      display: inline-flex;
+      margin-bottom: 9px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      color: var(--lime);
+      background: rgba(198,255,107,0.08);
+      font-size: 0.7rem;
+      font-weight: 900;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .clip-row {
+      display: grid;
+      grid-template-columns: 108px minmax(0, 1fr) 108px;
+      gap: 18px;
+      align-items: center;
+      padding: 18px clamp(18px, 3vw, 26px);
+      transition: background 180ms ease, transform 180ms ease;
+    }
+
+    .clip-row:hover,
+    .story-row:hover,
+    .schedule-row:hover {
+      background: rgba(255,255,255,0.045);
+    }
+
+    .thumb {
+      position: relative;
+      height: 68px;
+      border-radius: 17px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.09);
+      background:
+        linear-gradient(135deg, rgba(198,255,107,0.28), transparent 42%),
+        linear-gradient(315deg, rgba(255,109,58,0.23), transparent 48%),
+        #172223;
+    }
+
+    .thumb::before {
+      content: "▶";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      color: #0b0f10;
+      background: rgba(237,242,232,0.9);
+      font-size: 0.72rem;
+      text-indent: 2px;
+    }
+
+    .thumb::after {
+      content: "A SITE";
+      position: absolute;
+      right: 8px;
+      bottom: 7px;
+      color: rgba(255,255,255,0.58);
+      font-size: 0.58rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+    }
+
+    .clip-text h3,
+    .story-main h3,
+    .news-headline h3,
+    .content-drop h3 {
+      margin: 0;
+      font-size: clamp(1rem, 1.8vw, 1.2rem);
+      line-height: 1.2;
+      letter-spacing: -0.035em;
+    }
+
+    .clip-text p,
+    .story-main p,
+    .news-headline p,
+    .content-drop p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.91rem;
+    }
+
+    .score-pill {
+      justify-self: end;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .score-pill b {
+      color: var(--lime);
+      font-size: 1.05rem;
+    }
+
+    .score-pill span {
+      color: var(--faint);
+      font-size: 0.76rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .story-row {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr);
+      gap: 17px;
+      padding: 20px clamp(18px, 3vw, 27px);
+    }
+
+    .avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      color: #0b0f10;
+      background: linear-gradient(135deg, var(--lime), var(--amber));
+      font-weight: 950;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.2);
+    }
+
+    .avatar.blue { background: linear-gradient(135deg, var(--blue), #e9f5ff); }
+    .avatar.red { background: linear-gradient(135deg, var(--red), #ffe0e7); }
+    .avatar.gray { background: linear-gradient(135deg, #e1e7df, var(--concrete)); }
+
+    .handle {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      color: var(--faint);
+      font-size: 0.8rem;
+    }
+
+    .handle b {
+      color: var(--text);
+      font-size: 0.94rem;
+    }
+
+    .verified {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      color: #07100b;
+      background: var(--blue);
+      font-size: 0.7rem;
+      font-weight: 950;
+    }
+
+    .news-ribbon {
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+    }
+
+    .news-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: 132px minmax(0, 1fr);
+      gap: 18px;
+      align-items: stretch;
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025)),
+        var(--panel);
+      box-shadow: 0 14px 34px rgba(0,0,0,0.18);
+      overflow: hidden;
+    }
+
+    .news-item::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 5px;
+      background: var(--lime);
+      opacity: 0.84;
+    }
+
+    .news-item.trade::after { background: var(--amber); }
+    .news-item.alert::after { background: var(--red); }
+
+    .news-type {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 116px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .news-type b {
+      color: var(--lime);
+      font-size: 0.76rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .news-type span {
+      color: var(--faint);
+      font-size: 0.8rem;
+    }
+
+    .schedule-stack {
+      background:
+        linear-gradient(180deg, rgba(20,30,31,0.92), rgba(13,18,19,0.92));
+    }
+
+    .schedule-row {
+      display: grid;
+      grid-template-columns: 122px minmax(0, 1fr) 172px;
+      gap: 18px;
+      align-items: center;
+      padding: 19px clamp(18px, 3vw, 27px);
+    }
+
+    .time {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      color: var(--text);
+      font-weight: 950;
+      font-size: 1.06rem;
+    }
+
+    .time span {
+      color: var(--faint);
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .fixture {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      font-size: 1.06rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+
+    .vs {
+      color: var(--faint);
+      font-weight: 700;
+      font-size: 0.82rem;
+      letter-spacing: 0.1em;
+    }
+
+    .tournament {
+      justify-self: end;
+      color: var(--muted);
+      font-size: 0.86rem;
+      text-align: right;
+      line-height: 1.35;
+    }
+
+    .drops {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .content-drop {
+      position: relative;
+      min-height: 130px;
+      padding: 22px 24px 22px 100px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(90deg, rgba(109,184,255,0.11), transparent 48%),
+        rgba(20,30,31,0.78);
+      overflow: hidden;
+    }
+
+    .content-drop::before {
+      content: attr(data-kind);
+      position: absolute;
+      left: 20px;
+      top: 22px;
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      border-radius: 20px;
+      color: #091011;
+      background: var(--blue);
+      font-size: 0.72rem;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+    }
+
+    .content-drop.video::before { background: var(--amber); }
+    .content-drop.longform::before { background: var(--lime); }
+
+    .drop-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 13px;
+      color: var(--faint);
+      font-size: 0.82rem;
+    }
+
+    .drop-meta span {
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.055);
+    }
+
+    .patch-panel {
+      display: grid;
+      grid-template-columns: minmax(230px, 0.5fr) minmax(0, 1fr);
+      background:
+        linear-gradient(135deg, rgba(198,255,107,0.09), transparent 46%),
+        rgba(20,30,31,0.88);
+    }
+
+    .patch-title {
+      padding: 28px;
+      border-right: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.025);
+    }
+
+    .patch-title .version {
+      display: inline-flex;
+      margin-bottom: 15px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      color: var(--lime);
+      background: rgba(198,255,107,0.08);
+      font-size: 0.76rem;
+      font-weight: 900;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .patch-title h3 {
+      margin: 0 0 12px;
+      font-size: clamp(1.35rem, 3vw, 2.15rem);
+      line-height: 0.98;
+      letter-spacing: -0.065em;
+    }
+
+    .patch-title p {
+      color: var(--muted);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .patch-list {
+      margin: 0;
+      padding: 24px 28px;
+      list-style: none;
+    }
+
+    .patch-list li {
+      position: relative;
+      padding: 15px 0 15px 31px;
+      color: #dbe2da;
+      line-height: 1.5;
+    }
+
+    .patch-list li + li {
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .patch-list li::before {
+      content: "";
+      position: absolute;
+      left: 1px;
+      top: 21px;
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      background: var(--lime);
+      box-shadow: 0 0 16px rgba(198,255,107,0.24);
+    }
+
+    .history-panel {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(260px, 0.56fr) minmax(0, 1fr);
+      min-height: 300px;
+      background:
+        linear-gradient(90deg, rgba(246,180,75,0.12), transparent 48%),
+        rgba(20,30,31,0.88);
+    }
+
+    .history-visual {
+      position: relative;
+      min-height: 300px;
+      border-right: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at 46% 40%, rgba(246,180,75,0.28), transparent 28%),
+        linear-gradient(145deg, rgba(255,255,255,0.08), transparent 55%),
+        #121b1c;
+      overflow: hidden;
+    }
+
+    .history-visual::before {
+      content: "1v4";
+      position: absolute;
+      left: 22px;
+      bottom: 12px;
+      font-size: clamp(5rem, 10vw, 9rem);
+      font-weight: 950;
+      letter-spacing: -0.12em;
+      color: rgba(255,255,255,0.08);
+    }
+
+    .history-visual::after {
+      content: "B SHORT / 2016";
+      position: absolute;
+      left: 24px;
+      top: 24px;
+      color: rgba(237,242,232,0.74);
+      font-size: 0.75rem;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+    }
+
+    .crosshair {
+      position: absolute;
+      left: 50%;
+      top: 44%;
+      width: 94px;
+      height: 94px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 1px solid rgba(198,255,107,0.34);
+    }
+
+    .crosshair::before,
+    .crosshair::after {
+      content: "";
+      position: absolute;
+      background: rgba(198,255,107,0.72);
+    }
+
+    .crosshair::before {
+      left: 50%;
+      top: -22px;
+      bottom: -22px;
+      width: 1px;
+    }
+
+    .crosshair::after {
+      top: 50%;
+      left: -22px;
+      right: -22px;
+      height: 1px;
+    }
+
+    .history-copy {
+      padding: clamp(24px, 4vw, 42px);
+      align-self: center;
+    }
+
+    .history-copy .date {
+      color: var(--amber);
+      font-weight: 950;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+    }
+
+    .history-copy h3 {
+      margin: 13px 0 13px;
+      font-size: clamp(1.8rem, 4vw, 3.45rem);
+      line-height: 0.96;
+      letter-spacing: -0.08em;
+    }
+
+    .history-copy p {
+      margin: 0;
+      color: #d8dfd6;
+      line-height: 1.6;
+      max-width: 590px;
+    }
+
+    .footer {
+      padding: 28px 0 52px;
+      color: var(--faint);
+      text-align: center;
+      font-size: 0.82rem;
+    }
+
+    .jumpbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .jumpbar a {
+      padding: 8px 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.035);
+      font-size: 0.78rem;
+      transition: color 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .jumpbar a:hover {
+      color: var(--text);
+      border-color: rgba(198,255,107,0.36);
+      background: rgba(198,255,107,0.06);
+    }
+
+    @media (max-width: 940px) {
+      .hero-shell,
+      .section,
+      .patch-panel,
+      .history-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .section-label {
+        position: relative;
+        top: auto;
+      }
+
+      .briefing::before {
+        left: 37px;
+      }
+
+      .match-row,
+      .schedule-row {
+        grid-template-columns: 1fr;
+      }
+
+      .scorebox,
+      .tournament {
+        justify-self: start;
+        text-align: left;
+      }
+
+      .patch-title,
+      .history-visual {
+        border-right: 0;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+    }
+
+    @media (max-width: 660px) {
+      .wrap {
+        width: min(100% - 22px, var(--max));
+      }
+
+      .nav {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .datebox {
+        text-align: left;
+      }
+
+      .briefing-main,
+      .route-panel {
+        border-radius: 22px;
+      }
+
+      .section-label {
+        padding-left: 43px;
+      }
+
+      .clip-row,
+      .news-item {
+        grid-template-columns: 1fr;
+      }
+
+      .thumb {
+        width: 100%;
+        height: 118px;
+      }
+
+      .score-pill {
+        justify-self: start;
+        align-items: flex-start;
+      }
+
+      .story-row {
+        grid-template-columns: 1fr;
+      }
+
+      .content-drop {
+        padding-left: 22px;
+        padding-top: 96px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="wrap nav">
+      <a class="brand" href="#top" aria-label="Overpass home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>
+          <h1>Overpass</h1>
+          <p>CS2 Daily Briefing</p>
+        </span>
+      </a>
+      <div class="datebox">
+        <span class="pulse" aria-hidden="true"></span>
+        <span><strong id="today">Today</strong><br />Filed 08:15 CET · Personal edition</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="wrap hero-shell">
+        <div class="briefing-main">
+          <span class="eyebrow">Morning Route</span>
+          <h2>Utility, upsets, and one filthy connector ace.</h2>
+          <p class="editorial"><strong>Vitality survive G2 in overtime, Falcons reshuffle around kyxsan, and PGL Bucharest opens with two banana-heavy best-of-threes.</strong> Today’s briefing is built for the first coffee and the second monitor.</p>
+          <div class="hero-meta">
+            <span class="chip"><b>14</b> stories scanned</span>
+            <span class="chip"><b>4</b> match results</span>
+            <span class="chip"><b>5</b> clips queued</span>
+            <span class="chip"><b>3</b> roster notes</span>
+          </div>
+          <nav class="jumpbar" aria-label="Jump to briefing sections">
+            <a href="#results">Results</a>
+            <a href="#clips">Clips</a>
+            <a href="#social">Social</a>
+            <a href="#news">Roster</a>
+            <a href="#upcoming">Upcoming</a>
+            <a href="#content">Drops</a>
+            <a href="#patch">Patch</a>
+            <a href="#history">History</a>
+          </nav>
+        </div>
+
+        <aside class="route-panel" aria-label="Briefing route overview">
+          <h3>Route through the day</h3>
+          <div class="route-stop">
+            <span class="route-dot hot" aria-hidden="true"></span>
+            <span><b>Opening duel</b><span>Vitality close a 19–17 Ancient after three straight B retakes.</span></span>
+          </div>
+          <div class="route-stop">
+            <span class="route-dot" aria-hidden="true"></span>
+            <span><b>Mid control</b><span>Reddit is all in on “smoke gap cinema” after an accidental one-way on Overpass.</span></span>
+          </div>
+          <div class="route-stop">
+            <span class="route-dot" aria-hidden="true"></span>
+            <span><b>Connector noise</b><span>Two orgs tease new academy call-ups before the weekend qualifiers.</span></span>
+          </div>
+          <div class="route-stop">
+            <span class="route-dot" aria-hidden="true"></span>
+            <span><b>Exit frag</b><span>Valve’s latest build trims subtick edge cases and polishes water audio.</span></span>
+          </div>
+        </aside>
+      </div>
+      <div class="wrap ticker" aria-hidden="true">
+        <div class="ticker-track">
+          <span>Overpass returned to the veto in three fictional scrim leaks</span>
+          <span>m0NESY denies “role swap” rumor with one skull emoji</span>
+          <span>HLTV desk predicts a slow AWP market before Cologne</span>
+          <span>Cache remake rumors stay completely unconfirmed</span>
+          <span>Overpass returned to the veto in three fictional scrim leaks</span>
+          <span>m0NESY denies “role swap” rumor with one skull emoji</span>
+          <span>HLTV desk predicts a slow AWP market before Cologne</span>
+          <span>Cache remake rumors stay completely unconfirmed</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="briefing">
+      <div class="wrap">
+        <section class="section" id="results">
+          <div class="section-label" data-index="01">
+            <h2>Match Results</h2>
+            <p>Last 24h, filtered for teams you follow and matches with actual storyline weight.</p>
+          </div>
+          <div class="content-lane result-stack">
+            <article class="match-row">
+              <div class="teams">
+                <div class="team-line"><span class="crest">VIT</span><strong>Vitality</strong><span class="rank">#2</span></div>
+                <div class="team-line"><span class="crest alt">G2</span><strong>G2 Esports</strong><span class="rank">#5</span></div>
+              </div>
+              <div class="scorebox">
+                <div class="score">2 <span>:</span> 1</div>
+                <div class="maps">Nuke · Mirage · Ancient</div>
+              </div>
+              <p class="highlight"><span class="tagline">OT thriller</span><br /><b>flameZ posts 31</b> on Ancient while G2 lose three late 5v4s after taking fountain control.</p>
+            </article>
+            <article class="match-row">
+              <div class="teams">
+                <div class="team-line"><span class="crest warn">MOUZ</span><strong>MOUZ</strong><span class="rank">#3</span></div>
+                <div class="team-line"><span class="crest clean">BIG</span><strong>BIG</strong><span class="rank">#18</span></div>
+              </div>
+              <div class="scorebox">
+                <div class="score">13 <span>:</span> 8</div>
+                <div class="maps">Inferno · Bo1</div>
+              </div>
+              <p class="highlight"><span class="tagline">Clean close</span><br /><b>siuhy calls five straight late-B hits</b>, forcing BIG into permanent save math by round 19.</p>
+            </article>
+            <article class="match-row">
+              <div class="teams">
+                <div class="team-line"><span class="crest danger">FLC</span><strong>Falcons</strong><span class="rank">#9</span></div>
+                <div class="team-line"><span class="crest alt">NIP</span><strong>Ninjas in Pyjamas</strong><span class="rank">#21</span></div>
+              </div>
+              <div class="scorebox">
+                <div class="score">0 <span>:</span> 2</div>
+                <div class="maps">Vertigo · Anubis</div>
+              </div>
+              <p class="highlight"><span class="tagline">Upset watch</span><br /><b>NIP’s double-AWP CT half on Anubis</b> turns a 3–9 start into the most chaotic comeback of the day.</p>
+            </article>
+            <article class="match-row">
+              <div class="teams">
+                <div class="team-line"><span class="crest">NAʼV</span><strong>NAVI</strong><span class="rank">#1</span></div>
+                <div class="team-line"><span class="crest warn">FUR</span><strong>FURIA</strong><span class="rank">#12</span></div>
+              </div>
+              <div class="scorebox">
+                <div class="score">2 <span>:</span> 0</div>
+                <div class="maps">Dust2 · Train</div>
+              </div>
+              <p class="highlight"><span class="tagline">No drama</span><br /><b>w0nderful finishes +24</b> and NAVI concede only two opening deaths across both pistol rounds.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="clips">
+          <div class="section-label" data-index="02">
+            <h2>Top Clips</h2>
+            <p>Reddit moments worth opening before the algorithm buries them under knife polls.</p>
+          </div>
+          <div class="content-lane clip-stack">
+            <article class="clip-row">
+              <div class="thumb"></div>
+              <div class="clip-text">
+                <h3>“ropz just cleared bathrooms like he had the minimap open”</h3>
+                <p>Four kills, zero panic, one perfectly timed silent drop into connector.</p>
+              </div>
+              <div class="score-pill"><b>9.8k</b><span>upvotes</span></div>
+            </article>
+            <article class="clip-row">
+              <div class="thumb"></div>
+              <div class="clip-text">
+                <h3>The accidental monster smoke gap that won three rounds in a row</h3>
+                <p>A misthrown lineup becomes the day’s most copied fake strat.</p>
+              </div>
+              <div class="score-pill"><b>6.4k</b><span>upvotes</span></div>
+            </article>
+            <article class="clip-row">
+              <div class="thumb"></div>
+              <div class="clip-text">
+                <h3>Referee POV: headset survives a full overtime desk slam</h3>
+                <p>The broadcast caught the tiniest bit of chaos behind the coach cam.</p>
+              </div>
+              <div class="score-pill"><b>4.7k</b><span>upvotes</span></div>
+            </article>
+            <article class="clip-row">
+              <div class="thumb"></div>
+              <div class="clip-text">
+                <h3>m0NESY misses the sitter, hits the impossible wallbang two seconds later</h3>
+                <p>Peak CS: the whiff becomes the bait for something objectively illegal-looking.</p>
+              </div>
+              <div class="score-pill"><b>3.9k</b><span>upvotes</span></div>
+            </article>
+            <article class="clip-row">
+              <div class="thumb"></div>
+              <div class="clip-text">
+                <h3>Overpass water sounds create the world’s loudest lurk fail</h3>
+                <p>One step, five swivels, instant regret.</p>
+              </div>
+              <div class="score-pill"><b>2.6k</b><span>upvotes</span></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="social">
+          <div class="section-label" data-index="03">
+            <h2>Social</h2>
+            <p>Notable pro posts, mild bait, and the kind of quote-tweets that become desk segments.</p>
+          </div>
+          <div class="content-lane text-stack">
+            <article class="story-row">
+              <div class="avatar">rpz</div>
+              <div class="story-main">
+                <div class="handle"><b>ropz</b><span class="verified">✓</span><span>@ropz · 22m</span></div>
+                <h3>“Ancient at 18-17 is not a map, it is a personality test.”</h3>
+                <p>Fans are already clipping the post-match fist bump where he looks more relieved than happy.</p>
+              </div>
+            </article>
+            <article class="story-row">
+              <div class="avatar blue">mon</div>
+              <div class="story-main">
+                <div class="handle"><b>m0NESY</b><span class="verified">✓</span><span>@m0NESYof · 48m</span></div>
+                <h3>“No role swap. Just bad coffee today 😭”</h3>
+                <p>Short, useful, and probably still not enough to stop the Reddit theory thread.</p>
+              </div>
+            </article>
+            <article class="story-row">
+              <div class="avatar red">cad</div>
+              <div class="story-main">
+                <div class="handle"><b>cadiaN</b><span class="verified">✓</span><span>@caspercadiaN · 1h</span></div>
+                <h3>“You can lose the round and still win the veto. People forget that.”</h3>
+                <p>Cryptic enough to be about practice, obvious enough to be about Falcons.</p>
+              </div>
+            </article>
+            <article class="story-row">
+              <div class="avatar gray">lau</div>
+              <div class="story-main">
+                <div class="handle"><b>launders</b><span class="verified">✓</span><span>@launders · 2h</span></div>
+                <h3>“The current Overpass meta is 40% utility, 40% timing, 20% lying to yourself about bathrooms.”</h3>
+                <p>Instantly screenshotted by every analyst account with a smoke lineup folder.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="news">
+          <div class="section-label" data-index="04">
+            <h2>Roster Moves & News</h2>
+            <p>Team changes, management hints, and announcement smoke before the roster fire.</p>
+          </div>
+          <div class="content-la
