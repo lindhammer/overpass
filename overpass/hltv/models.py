@@ -83,3 +83,4 @@ class HLTVMatchDetail(HLTVMatchResult):
     maps: list[HLTVMatchMapResult] = Field(default_factory=list)
     veto: list[HLTVMatchVetoEntry] = Field(default_factory=list)
     player_stats: list[HLTVMatchPlayerStat] = Field(default_factory=list)
+    source_fallback: str | None = None

@@ -141,7 +141,9 @@ class HLTVMatchesCollector(BaseCollector):
                     listing_item=listing_item,
                     base_url=self._base_url,
                 )
-            except ValueError:
+            except ValueError as headless_error:
+                if self._liquipedia_client is not None:
+                    return await self._maybe_fallback_or_raise(listing_item, headless_error)
                 if not getattr(self._browser_client, "headless", False):
                     return await self._maybe_fallback_or_raise(listing_item, first_error)
 
@@ -226,6 +228,7 @@ class HLTVMatchesCollector(BaseCollector):
                 )
                 for m in liq_match.maps
             ],
+            source_fallback="liquipedia",
         )
 
     async def _relevant_team_names(self, listing_items: list[HLTVMatchResult]) -> set[str]:
@@ -294,23 +297,27 @@ class HLTVMatchesCollector(BaseCollector):
 
     @staticmethod
     def _to_collector_item(match: HLTVMatchDetail) -> CollectorItem:
+        metadata = {
+            "external_id": match.external_id,
+            "team1_name": match.team1_name,
+            "team2_name": match.team2_name,
+            "team1_score": match.team1_score,
+            "team2_score": match.team2_score,
+            "winner_name": match.winner_name,
+            "event_name": match.event_name,
+            "format": match.format,
+            "maps": [map_result.model_dump() for map_result in match.maps],
+            "veto": [veto_entry.model_dump() for veto_entry in match.veto],
+            "player_stats": [player_stat.model_dump() for player_stat in match.player_stats],
+        }
+        if match.source_fallback is not None:
+            metadata["source_fallback"] = match.source_fallback
+
         return CollectorItem(
             source="hltv",
             type="match",
             title=f"{match.team1_name} vs {match.team2_name}",
             url=match.url,
             timestamp=match.played_at or datetime.now(tz=timezone.utc),
-            metadata={
-                "external_id": match.external_id,
-                "team1_name": match.team1_name,
-                "team2_name": match.team2_name,
-                "team1_score": match.team1_score,
-                "team2_score": match.team2_score,
-                "winner_name": match.winner_name,
-                "event_name": match.event_name,
-                "format": match.format,
-                "maps": [map_result.model_dump() for map_result in match.maps],
-                "veto": [veto_entry.model_dump() for veto_entry in match.veto],
-                "player_stats": [player_stat.model_dump() for player_stat in match.player_stats],
-            },
+            metadata=metadata,
         )

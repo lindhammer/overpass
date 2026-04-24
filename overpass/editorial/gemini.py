@@ -43,7 +43,7 @@ class GeminiProvider(BaseLLMProvider):
             for attempt in range(1, _MAX_ATTEMPTS + 1):
                 resp = await client.post(
                     url,
-                    params={"key": self._api_key},
+                    headers={"x-goog-api-key": self._api_key},
                     json=body,
                 )
                 if resp.status_code in _TRANSIENT_STATUSES and attempt < _MAX_ATTEMPTS:

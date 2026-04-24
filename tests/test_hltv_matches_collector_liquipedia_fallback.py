@@ -82,6 +82,8 @@ def test_collector_uses_liquipedia_when_hltv_detail_parse_fails() -> None:
     assert detail.team1_score == 2
     assert detail.team2_score == 0
     assert [m.name for m in detail.maps] == ["Nuke", "Mirage"]
+    item = collector._to_collector_item(detail)
+    assert item.metadata["source_fallback"] == "liquipedia"
 
 
 def test_collector_drops_match_when_liquipedia_also_fails() -> None:
