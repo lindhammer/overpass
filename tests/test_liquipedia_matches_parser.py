@@ -44,6 +44,73 @@ def test_parser_normalises_team_name_suffixes() -> None:
     assert match.team1_score == EXPECTED_T1_SCORE
 
 
+def test_parser_matches_known_liquipedia_abbreviations() -> None:
+    html = """\
+    <div class="brkts-match">
+      <div class="brkts-opponent-entry">
+        <span class="name">Walczaki</span>
+        <span class="brkts-opponent-score-inner">2</span>
+      </div>
+      <div class="brkts-opponent-entry">
+        <span class="name">EYE</span>
+        <span class="brkts-opponent-score-inner">1</span>
+      </div>
+    </div>
+    """
+
+    match = parse_match_from_tournament_page(html, "Walczaki", "EYEBALLERS")
+
+    assert match is not None
+    assert match.team1_name == "Walczaki"
+    assert match.team2_name == "EYE"
+
+
+def test_parser_matches_sponsor_short_name_to_liquipedia_team_name() -> None:
+    html = """\
+    <div class="brkts-match">
+      <div class="brkts-opponent-entry">
+        <span class="name">Monte</span>
+        <span class="brkts-opponent-score-inner">2</span>
+      </div>
+      <div class="brkts-opponent-entry">
+        <span class="name">Apogee Esports</span>
+        <span class="brkts-opponent-score-inner">0</span>
+      </div>
+    </div>
+    """
+
+    match = parse_match_from_tournament_page(html, "Monte", "Betclic")
+
+    assert match is not None
+    assert match.team1_name == "Monte"
+    assert match.team2_name == "Apogee Esports"
+
+
+def test_parser_reads_matchlist_layout_with_separate_score_cells() -> None:
+    html = """\
+    <div class="brkts-matchlist-match">
+      <div class="brkts-matchlist-opponent">
+        <span class="name">Walczaki</span>
+      </div>
+      <div class="brkts-matchlist-score">
+        <div class="brkts-matchlist-cell-content">0</div>
+      </div>
+      <div class="brkts-matchlist-score">
+        <div class="brkts-matchlist-cell-content">2</div>
+      </div>
+      <div class="brkts-matchlist-opponent">
+        <span class="name">EYE</span>
+      </div>
+    </div>
+    """
+
+    match = parse_match_from_tournament_page(html, "Walczaki", "EYEBALLERS")
+
+    assert match is not None
+    assert match.team1_score == 0
+    assert match.team2_score == 2
+
+
 def test_parser_returns_none_when_no_match_found() -> None:
     match = parse_match_from_tournament_page(_html(), "Nonexistent A", "Nonexistent B")
     assert match is None

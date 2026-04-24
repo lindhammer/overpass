@@ -26,6 +26,10 @@ class RedditCollector(BaseCollector):
         config = load_config()
         reddit_cfg = config.reddit
 
+        if not reddit_cfg.client_id_env or not reddit_cfg.client_secret_env:
+            self.logger.warning("Reddit client ID or client secret not configured – skipping collection")
+            return []
+
         try:
             token = await self._get_access_token(reddit_cfg)
         except Exception:

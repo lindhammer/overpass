@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import logging
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -136,6 +137,32 @@ async def test_auth_failure_returns_empty_list():
         items = await RedditCollector().collect()
 
     assert items == []
+
+
+@pytest.mark.asyncio
+async def test_missing_credentials_skip_without_auth_attempt(caplog):
+    """Missing Reddit credentials skip collection without logging a traceback."""
+    cfg = AppConfig(
+        reddit=RedditConfig(
+            subreddit="GlobalOffensive",
+            client_id_env="",
+            client_secret_env="",
+        ),
+        telegram={"bot_token_env": "", "chat_id_env": ""},
+    )
+
+    auth_mock = AsyncMock()
+    with (
+        patch("overpass.collectors.reddit.load_config", return_value=cfg),
+        patch.object(RedditCollector, "_get_access_token", auth_mock),
+        caplog.at_level(logging.WARNING, logger="overpass.collectors.reddit"),
+    ):
+        items = await RedditCollector().collect()
+
+    assert items == []
+    auth_mock.assert_not_awaited()
+    assert "Reddit client ID or client secret not configured" in caplog.text
+    assert not [record for record in caplog.records if record.exc_info]
 
 
 @pytest.mark.asyncio

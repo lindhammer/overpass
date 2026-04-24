@@ -23,9 +23,7 @@ youtube:
 
 podcasts:
   - name: "HLTV Confirmed"
-    feed_url: "https://feeds.simplecast.com/j_vFR3oS"
-  - name: "Dust2 Podcast"
-    feed_url: "https://example.com/dust2.xml"
+    feed_url: "https://anchor.fm/s/8bb1860/podcast/rss"
 
 reddit:
   subreddit: "GlobalOffensive"

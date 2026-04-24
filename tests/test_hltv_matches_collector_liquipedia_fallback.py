@@ -8,7 +8,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from overpass.collectors.hltv_matches import HLTVMatchesCollector
+from overpass.collectors.hltv_matches import (
+    HLTVMatchesCollector,
+    _liquipedia_page_title_candidates,
+)
 from overpass.hltv.models import HLTVMatchResult
 from overpass.liquipedia.models import LiquipediaMap, LiquipediaMatch
 
@@ -111,3 +114,29 @@ def test_collector_without_liquipedia_client_raises_as_today() -> None:
     )
     with pytest.raises(Exception):
         asyncio.run(collector._collect_match_detail(listing))
+
+
+def test_liquipedia_page_title_candidates_include_betboom_part_from_season() -> None:
+    listing = _listing_item()
+
+    candidates = _liquipedia_page_title_candidates(
+        listing,
+        found_title="BetBoom/RUSH B! Summit/2026/Part Deux",
+    )
+
+    assert candidates[:2] == [
+        "BetBoom/RUSH B! Summit/2026/Part Deux",
+        "BetBoom/RUSH B! Summit/2026/Part Three",
+    ]
+
+
+def test_liquipedia_page_title_candidates_include_online_stage_sibling() -> None:
+    listing = _listing_item()
+    listing.event_name = "Tipsport Conquest of Prague 2026"
+
+    candidates = _liquipedia_page_title_candidates(
+        listing,
+        found_title="PLAYzone/Conquest of Prague/2026",
+    )
+
+    assert "PLAYzone/Conquest of Prague/2026/Online Stage" in candidates

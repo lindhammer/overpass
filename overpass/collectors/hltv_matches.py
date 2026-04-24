@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
@@ -14,6 +15,19 @@ from overpass.liquipedia.client import LiquipediaClient
 from overpass.liquipedia.matches import parse_match_from_tournament_page
 from overpass.liquipedia.models import LiquipediaMatch
 from overpass.liquipedia.pages import find_match_page
+
+_NUMBER_WORDS = {
+    "1": "One",
+    "2": "Two",
+    "3": "Three",
+    "4": "Four",
+    "5": "Five",
+    "6": "Six",
+    "7": "Seven",
+    "8": "Eight",
+    "9": "Nine",
+    "10": "Ten",
+}
 
 
 class HLTVMatchesCollector(BaseCollector):
@@ -175,21 +189,24 @@ class HLTVMatchesCollector(BaseCollector):
             raise original_error
 
         try:
-            page_title = await find_match_page(self._liquipedia_client, listing_item.event_name or "")
-            if page_title is None:
+            found_title = await find_match_page(self._liquipedia_client, listing_item.event_name or "")
+            page_titles = _liquipedia_page_title_candidates(listing_item, found_title)
+            if not page_titles:
                 raise original_error
 
-            html = await self._liquipedia_client.parse_page(page_title)
-            if not html:
-                raise original_error
+            for page_title in page_titles:
+                html = await self._liquipedia_client.parse_page(page_title)
+                if not html:
+                    continue
 
-            liq_match = parse_match_from_tournament_page(
-                html, listing_item.team1_name, listing_item.team2_name
-            )
-            if liq_match is None:
-                raise original_error
+                liq_match = parse_match_from_tournament_page(
+                    html, listing_item.team1_name, listing_item.team2_name
+                )
+                if liq_match is None:
+                    continue
 
-            return self._liquipedia_match_to_hltv_detail(listing_item, liq_match)
+                return self._liquipedia_match_to_hltv_detail(listing_item, liq_match)
+            raise original_error
         except Exception:
             self.logger.exception(
                 "Liquipedia fallback failed for %s; dropping match",
@@ -321,3 +338,45 @@ class HLTVMatchesCollector(BaseCollector):
             timestamp=match.played_at or datetime.now(tz=timezone.utc),
             metadata=metadata,
         )
+
+
+def _liquipedia_page_title_candidates(
+    listing_item: HLTVMatchResult,
+    found_title: str | None,
+) -> list[str]:
+    candidates: list[str] = []
+
+    def add(title: str | None) -> None:
+        if title and title not in candidates:
+            candidates.append(title)
+
+    add(found_title)
+
+    season_word = _season_word(listing_item.event_name or "")
+    if found_title and season_word is not None:
+        add(re.sub(r"/Part [^/]+$", f"/Part {season_word}", found_title))
+
+    if found_title and re.search(r"/\d{4}$", found_title):
+        add(f"{found_title}/Online Stage")
+
+    if listing_item.played_at is not None and season_word is not None:
+        event_base = re.sub(
+            r"\s+Season\s+\d+\b",
+            "",
+            listing_item.event_name or "",
+            flags=re.IGNORECASE,
+        ).strip()
+        parts = event_base.split(maxsplit=1)
+        if len(parts) == 2:
+            series, rest = parts
+            rest = rest.replace("RUSH B Summit", "RUSH B! Summit")
+            add(f"{series}/{rest}/{listing_item.played_at.year}/Part {season_word}")
+
+    return candidates
+
+
+def _season_word(event_name: str) -> str | None:
+    match = re.search(r"\bSeason\s+(\d{1,2})\b", event_name, flags=re.IGNORECASE)
+    if match is None:
+        return None
+    return _NUMBER_WORDS.get(match.group(1))

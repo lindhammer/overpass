@@ -91,8 +91,8 @@ class LiquipediaClient:
         return html
 
     async def search_page_titles(self, query: str, limit: int = 5) -> list[str]:
-        """Return opensearch title suggestions, or [] on any failure."""
-        cache_key = f"opensearch:{query}:{limit}"
+        """Return title suggestions, or [] on any failure."""
+        cache_key = f"search:v2:{query}:{limit}"
         cached = self._cache.get(cache_key)
         if cached is not None:
             try:
@@ -100,16 +100,34 @@ class LiquipediaClient:
             except ValueError:
                 pass
 
-        params = {
+        opensearch_params = {
             "action": "opensearch",
             "search": query,
             "limit": str(limit),
             "format": "json",
         }
-        body = await self._fetch_json(params)
-        if not isinstance(body, list) or len(body) < 2 or not isinstance(body[1], list):
-            return []
-        titles = [t for t in body[1] if isinstance(t, str)]
+        body = await self._fetch_json(opensearch_params)
+        titles: list[str] = []
+        if isinstance(body, list) and len(body) >= 2 and isinstance(body[1], list):
+            titles = [t for t in body[1] if isinstance(t, str)]
+
+        if not titles:
+            search_params = {
+                "action": "query",
+                "list": "search",
+                "srsearch": query,
+                "srlimit": str(limit),
+                "format": "json",
+            }
+            body = await self._fetch_json(search_params)
+            search_results = body.get("query", {}).get("search", []) if isinstance(body, dict) else []
+            if isinstance(search_results, list):
+                titles = [
+                    item.get("title")
+                    for item in search_results
+                    if isinstance(item, dict) and isinstance(item.get("title"), str)
+                ]
+
         self._cache.set(cache_key, json.dumps(titles))
         return titles
 

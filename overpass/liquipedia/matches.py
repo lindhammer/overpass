@@ -12,7 +12,9 @@ from overpass.liquipedia.models import LiquipediaMap, LiquipediaMatch
 
 logger = logging.getLogger("overpass.liquipedia.matches")
 
-_MATCH_NODE_SELECTORS = ".brkts-match, .bracket-game, .matchlist .match-row"
+_MATCH_NODE_SELECTORS = (
+    ".brkts-match, .brkts-matchlist-match, .bracket-game, .matchlist .match-row"
+)
 _OPPONENT_ENTRY_SELECTORS = (
     ".brkts-opponent-entry, .bracket-popup-body-element, .matchlist-opponent"
 )
@@ -33,6 +35,10 @@ _MAP_NAME_LINK_SELECTORS = (
 _MAP_MAIN_SCORE_SELECTORS = ".brkts-popup-body-detailed-scores-main-score"
 _MAP_SCORE_PATTERN = re.compile(r"(\d+)\s*[-:\u2013]\s*(\d+)")
 _SUFFIXES_TO_STRIP = ("esports", "gaming", "team", "club")
+_TEAM_ALIASES = {
+    "betclic": "apogee",
+    "eyeballers": "eye",
+}
 
 
 def parse_match_from_tournament_page(
@@ -66,6 +72,9 @@ def parse_match_from_tournament_page(
 
 
 def _parse_match_node(node: Tag) -> LiquipediaMatch | None:
+    if "brkts-matchlist-match" in (node.get("class") or []):
+        return _parse_matchlist_node(node)
+
     entries = node.select(_OPPONENT_ENTRY_SELECTORS)
     if len(entries) < 2:
         return None
@@ -101,6 +110,50 @@ def _parse_match_node(node: Tag) -> LiquipediaMatch | None:
         team2_score=s2,
         winner_name=winner,
         maps=maps,
+    )
+
+
+def _parse_matchlist_node(node: Tag) -> LiquipediaMatch | None:
+    opponent_cells = node.find_all(
+        class_="brkts-matchlist-opponent",
+        recursive=False,
+    )
+    score_cells = node.find_all(
+        class_="brkts-matchlist-score",
+        recursive=False,
+    )
+    if len(opponent_cells) < 2 or len(score_cells) < 2:
+        return None
+
+    team_names: list[str] = []
+    for cell in (opponent_cells[0], opponent_cells[-1]):
+        name_node = cell.select_one(_TEAM_NAME_SELECTORS_PER_ENTRY)
+        if name_node is None:
+            return None
+        name = _clean(name_node.get_text(" ", strip=True))
+        if not name:
+            return None
+        team_names.append(name)
+
+    scores: list[int] = []
+    for cell in (score_cells[0], score_cells[-1]):
+        text = _clean(cell.get_text(" ", strip=True))
+        try:
+            scores.append(int(text))
+        except ValueError:
+            return None
+
+    raw_t1, raw_t2 = team_names[0], team_names[1]
+    s1, s2 = scores[0], scores[1]
+    winner = raw_t1 if s1 > s2 else raw_t2 if s2 > s1 else None
+
+    return LiquipediaMatch(
+        team1_name=raw_t1,
+        team2_name=raw_t2,
+        team1_score=s1,
+        team2_score=s2,
+        winner_name=winner,
+        maps=_parse_maps(node),
     )
 
 
@@ -174,6 +227,7 @@ def _normalize(name: str) -> str:
     for suffix in _SUFFIXES_TO_STRIP:
         if n.endswith(f" {suffix}"):
             n = n[: -(len(suffix) + 1)]
+    n = _TEAM_ALIASES.get(n, n)
     return n.strip()
 
 
