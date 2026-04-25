@@ -336,8 +336,23 @@ class HLTVMatchesCollector(BaseCollector):
         lowered_html = html.lower()
         return any(marker in lowered_html for marker in cls._CHALLENGE_MARKERS)
 
-    @staticmethod
-    def _to_collector_item(match: HLTVMatchDetail) -> CollectorItem:
+    def _to_collector_item(self, match: HLTVMatchDetail) -> CollectorItem:
+        flags: list[str] = []
+        winner = (match.winner_name or "").casefold()
+        if winner and winner in self._watchlist_teams:
+            flags.append("watch")
+        t1r, t2r = match.team1_rank, match.team2_rank
+        if (
+            winner
+            and t1r is not None
+            and t2r is not None
+            and t1r != t2r
+        ):
+            winner_rank = t1r if winner == match.team1_name.casefold() else t2r
+            loser_rank = t2r if winner == match.team1_name.casefold() else t1r
+            if winner_rank > loser_rank:
+                flags.append("upset")
+
         metadata = {
             "external_id": match.external_id,
             "team1_name": match.team1_name,
@@ -350,6 +365,7 @@ class HLTVMatchesCollector(BaseCollector):
             "maps": [map_result.model_dump() for map_result in match.maps],
             "veto": [veto_entry.model_dump() for veto_entry in match.veto],
             "player_stats": [player_stat.model_dump() for player_stat in match.player_stats],
+            "flags": flags,
         }
         if match.source_fallback is not None:
             metadata["source_fallback"] = match.source_fallback
