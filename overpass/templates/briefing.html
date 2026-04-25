@@ -246,7 +246,8 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
 
       :root[data-palette="dark"] {
         /* Near-black with cool blue cast */
-        --bg: oklch(0.15 0.005 255); /* page ground */
+        --bg: oklch(0.14 0.006 255); /* page ground */
+        --bg-elev: oklch(0.17 0.008 255); /* hero / elevated zones */
         --surface: oklch(0.2 0.005 255); /* card body */
         --surface-2: oklch(0.23 0.005 255); /* card hover */
         --rule: oklch(0.3 0.005 255); /* hairline border */
@@ -257,10 +258,20 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         --ink-mute: oklch(0.6 0.005 255); /* metadata, slugs */
         --ink-dim: oklch(0.42 0.005 255); /* disabled, faint */
 
-        --primary: oklch(0.72 0.18 45); /* warm amber/orange */
+        /* Editorial accent — reserved for the lead, live signals,
+           section numbering and a few high-signal moments. Used sparingly.
+           Desaturated muted amber so it reads as ink-with-warmth rather
+           than a brand color shouting for attention. */
+        --primary: oklch(0.74 0.13 55); /* muted amber */
         --primary-ink: oklch(0.15 0.005 255);
-        --primary-soft: oklch(0.72 0.18 45 / 0.1);
-        --primary-line: oklch(0.72 0.18 45 / 0.35);
+        --primary-soft: oklch(0.74 0.13 55 / 0.1);
+        --primary-line: oklch(0.74 0.13 55 / 0.35);
+
+        /* Structural accent — chrome, sidebars, secondary highlights.
+           Cool desaturated steel so it reads as architecture, not signal. */
+        --accent: oklch(0.7 0.05 235); /* steel blue */
+        --accent-soft: oklch(0.7 0.05 235 / 0.1);
+        --accent-line: oklch(0.7 0.05 235 / 0.35);
 
         --signal: oklch(0.85 0.15 95); /* yellow-green: upvotes only */
         --live: oklch(0.66 0.22 25); /* red, used for "alert" news */
@@ -356,12 +367,14 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         background: var(--bg);
         border-bottom: 1px solid var(--rule);
       }
+      /* Short editorial stub instead of a full-width orange line — keeps the
+         brand mark anchored without flooding the masthead with accent. */
       .topbar::after {
         content: "";
         position: absolute;
         left: 0;
-        right: 0;
-        bottom: -3px;
+        bottom: -1px;
+        width: 64px;
         height: 2px;
         background: var(--primary);
       }
@@ -410,7 +423,27 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
 
       /* ── HERO ─────────────────────────────────────────────────────────── */
       .hero {
-        padding: clamp(40px, 6vw, 80px) 0 36px;
+        position: relative;
+        padding: clamp(40px, 6vw, 80px) 0 44px;
+        background: var(--bg-elev);
+        border-bottom: 1px solid var(--rule);
+      }
+      /* Faint editorial fold below the hero — readers know "this is the
+         briefing front page, the stories start below". */
+      .hero::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          var(--primary) 0,
+          var(--primary) 64px,
+          transparent 64px,
+          transparent 100%
+        );
       }
       .hero-grid {
         display: grid;
@@ -473,20 +506,35 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         border-left: 1px solid var(--rule);
       }
       .meta-row .stat {
+        position: relative;
         flex: 1 1 auto;
         min-width: 120px;
         padding: 14px 18px;
         border-right: 1px solid var(--rule);
         border-bottom: 1px solid var(--rule);
       }
+      /* First stat (Stories Scanned) gets the editorial tick — the rest
+         stay quiet so the cluster reads as one instrument, not eight. */
+      .meta-row .stat:first-child::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 14px;
+        bottom: 14px;
+        width: 2px;
+        background: var(--primary);
+      }
       .meta-row .stat b {
         display: block;
         font-family: "Bebas Neue", sans-serif;
         font-weight: 400;
         font-size: 1.8rem;
-        color: var(--primary);
+        color: var(--ink);
         line-height: 1;
         letter-spacing: 0.02em;
+      }
+      .meta-row .stat:first-child b {
+        color: var(--primary);
       }
       .meta-row .stat span {
         display: block;
@@ -498,11 +546,13 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         color: var(--ink-mute);
       }
 
-      /* Route panel — editorial sidebar with timeline */
+      /* Route panel — editorial sidebar with timeline. Uses the cool steel
+         accent so it sits next to the orange-anchored lead without
+         competing for the eye. */
       .route {
-        background: oklch(0.2 0.005 255 / 0.5);
+        background: oklch(0.18 0.006 255 / 0.6);
         border: 1px solid var(--rule);
-        border-left: 4px solid var(--primary);
+        border-left: 3px solid var(--accent);
         padding: 24px;
       }
       .route h3 {
@@ -633,7 +683,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         justify-content: space-between;
         gap: 24px;
         margin-bottom: 8px;
-        border-left: 4px solid var(--primary);
+        border-left: 3px solid var(--accent);
         padding-left: 20px;
       }
       .section-head .title-row {
@@ -668,7 +718,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         text-align: right;
       }
       .section-meta b {
-        color: var(--primary);
+        color: var(--ink);
         font-weight: 600;
       }
       @media (max-width: 720px) {
