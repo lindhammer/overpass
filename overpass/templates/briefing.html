@@ -371,8 +371,6 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         justify-content: space-between;
         gap: 18px;
         padding: 18px 0;
-        border-left: 4px solid var(--primary);
-        padding-left: 20px;
       }
       .brand h1 {
         margin: 0;
@@ -406,27 +404,8 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         color: var(--ink);
         font-weight: 700;
       }
-      .pulse {
-        width: 11px;
-        height: 11px;
-        background: var(--primary);
-        box-shadow: 0 0 0 0 var(--primary-line);
-        animation: ping 1.8s 3;
-        flex: 0 0 auto;
-      }
       .datebox > span:last-child {
         color: var(--ink-2);
-      }
-      @keyframes ping {
-        0% {
-          box-shadow: 0 0 0 0 oklch(0.72 0.18 45 / 0.5);
-        }
-        72% {
-          box-shadow: 0 0 0 12px oklch(0.72 0.18 45 / 0);
-        }
-        100% {
-          box-shadow: 0 0 0 0 oklch(0.72 0.18 45 / 0);
-        }
       }
 
       /* ── HERO ─────────────────────────────────────────────────────────── */
@@ -801,9 +780,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
           animation: none;
           transform: none;
         }
-        .pulse {
-          animation: none;
-        }
+
       }
 
       /* ── CRESTS ───────────────────────────────────────────────────────── */
@@ -1828,7 +1805,6 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
           </span>
         </a>
         <div class="datebox">
-          <span class="pulse" aria-hidden="true"></span>
           <span>
             <strong>{{ date | fmt_date(DATE_FMT_HEADER) | upper }}</strong><br />
             Filed {{ generated_at | fmt_date(DATE_FMT_TIME) }} {{ tz_label }} · Personal Edition
