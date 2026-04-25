@@ -384,7 +384,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
           oklch(0.55 0.005 255 / 0.3) 6px,
           oklch(0.55 0.005 255 / 0.3) 7px
         );
-        opacity: 0.05;
+        opacity: 0.08;
       }
 
       main,
@@ -620,6 +620,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
         padding: 24px;
+        isolation: isolate;
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -692,6 +693,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         border: 1px solid var(--rule);
         border-radius: var(--radius);
         overflow: hidden;
+        isolation: isolate;
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
@@ -772,13 +774,21 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         transform: translateY(-50%);
         box-shadow: 0 0 8px var(--live);
       }
-      .featured-badge--upset,
+      .featured-badge--upset {
+        background: oklch(0.5 0.15 25 / 0.15);
+        color: oklch(0.6 0.2 25);
+        border-color: oklch(0.6 0.2 25 / 0.4);
+      }
+      .featured-badge--next-up {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-color: var(--accent-line);
+      }
       .featured-badge--clean-sweep,
       .featured-badge--decider,
       .featured-badge--close-call,
       .featured-badge--one-sided,
-      .featured-badge--featured,
-      .featured-badge--next-up {
+      .featured-badge--featured {
         /* All inherit primary by default; explicit list documents the set. */
       }
 
@@ -831,7 +841,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         display: flex;
         align-items: center;
         justify-content: center;
-        background: oklch(0.22 0.006 255);
+        background: oklch(0.92);
         border: 1px solid var(--rule);
         border-radius: 4px;
         padding: 8px;
@@ -1001,7 +1011,6 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         color: var(--ink);
       }
       .route-strip-stop span {
-        display: block;
         margin-top: 4px;
         font-size: 0.78rem;
         line-height: 1.4;
@@ -1066,6 +1075,17 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       .ticker-track .live::before {
         background: var(--live);
       }
+      @keyframes pulse-live {
+        0% { opacity: 1; box-shadow: 0 0 8px var(--live); }
+        50% { opacity: 0.5; box-shadow: 0 0 16px var(--live); }
+        100% { opacity: 1; box-shadow: 0 0 8px var(--live); }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .featured-badge--live::before,
+        .ticker-track .live::before {
+          animation: pulse-live 2s ease-in-out infinite;
+        }
+      }
       .ticker-track .up::before,
       .ticker-track .amber::before {
         background: var(--primary);
@@ -1096,7 +1116,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         justify-content: space-between;
         gap: 24px;
         margin-bottom: 8px;
-        border-left: 3px solid var(--accent);
+        border-left: 4px solid var(--accent);
         padding-left: 20px;
       }
       .section-head .title-row {
@@ -1168,7 +1188,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
 
       .lane-intro {
         padding: 16px 20px;
-        border-left: 2px solid var(--primary);
+        border-left: 4px solid var(--primary);
         background: var(--primary-soft);
         color: var(--ink);
         font-size: 0.95rem;
@@ -1452,6 +1472,11 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         line-height: 1;
         color: var(--ink);
         letter-spacing: 0.04em;
+      }
+      @media (max-width: 720px) {
+        .scorebox .score {
+          font-size: 2rem;
+        }
       }
       .scorebox .score .s.win {
         color: var(--ink);
