@@ -309,38 +309,33 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       /* ── DARK TACTICAL BRIEFING / SPORTS WIRE ─────────────────────────── */
 
       :root[data-palette="dark"] {
-        /* Near-black with cool blue cast */
-        --bg: oklch(0.14 0.006 255); /* page ground */
-        --bg-elev: oklch(0.17 0.008 255); /* hero / elevated zones */
-        --surface: oklch(0.2 0.005 255); /* card body */
-        --surface-2: oklch(0.23 0.005 255); /* card hover */
-        --rule: oklch(0.3 0.005 255); /* hairline border */
-        --rule-strong: oklch(0.4 0.005 255); /* emphasized border */
+        /* Deep rich dark mode */
+        --bg: oklch(0.12 0.01 250);
+        --bg-elev: oklch(0.15 0.015 250);
+        --surface: oklch(0.18 0.015 250 / 0.6);
+        --surface-2: oklch(0.22 0.015 250 / 0.8);
+        --rule: oklch(0.8 0.01 250 / 0.08);
+        --rule-strong: oklch(0.8 0.01 250 / 0.15);
 
-        --ink: oklch(0.98 0 0); /* primary text */
-        --ink-2: oklch(0.78 0.005 255); /* secondary text */
-        --ink-mute: oklch(0.6 0.005 255); /* metadata, slugs */
-        --ink-dim: oklch(0.42 0.005 255); /* disabled, faint */
+        --ink: oklch(0.98 0 0);
+        --ink-2: oklch(0.8 0.01 250);
+        --ink-mute: oklch(0.65 0.01 250);
+        --ink-dim: oklch(0.45 0.01 250);
 
-        /* Editorial accent — reserved for the lead, live signals,
-           section numbering and a few high-signal moments. Used sparingly.
-           Desaturated muted amber so it reads as ink-with-warmth rather
-           than a brand color shouting for attention. */
-        --primary: oklch(0.72 0.18 45); /* warm amber/orange */
-        --primary-ink: oklch(0.15 0.005 255);
-        --primary-soft: oklch(0.72 0.18 45 / 0.1);
-        --primary-line: oklch(0.72 0.18 45 / 0.35);
+        --primary: oklch(0.65 0.22 35);
+        --primary-ink: oklch(0.12 0.01 250);
+        --primary-soft: oklch(0.65 0.22 35 / 0.15);
+        --primary-line: oklch(0.65 0.22 35 / 0.4);
 
-        /* Structural accent — chrome, sidebars, secondary highlights.
-           Cool desaturated steel so it reads as architecture, not signal. */
-        --accent: oklch(0.7 0.05 235); /* steel blue */
-        --accent-soft: oklch(0.7 0.05 235 / 0.1);
-        --accent-line: oklch(0.7 0.05 235 / 0.35);
+        --accent: oklch(0.65 0.1 230);
+        --accent-soft: oklch(0.65 0.1 230 / 0.1);
+        --accent-line: oklch(0.65 0.1 230 / 0.35);
 
-        --signal: oklch(0.85 0.15 95); /* yellow-green: upvotes only */
-        --live: oklch(0.66 0.22 25); /* red, used for "alert" news */
+        --signal: oklch(0.85 0.15 95);
+        --live: oklch(0.66 0.22 25);
 
         --max: 1100px;
+        --radius: 12px;
 
         color-scheme: dark;
       }
@@ -488,8 +483,8 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       /* ── HERO ─────────────────────────────────────────────────────────── */
       .hero {
         position: relative;
-        padding: clamp(40px, 6vw, 80px) 0 44px;
-        background: var(--bg-elev);
+        padding: clamp(60px, 8vw, 100px) 0 64px;
+        background: radial-gradient(circle at 50% 0%, oklch(0.25 0.05 250 / 0.4) 0%, var(--bg) 70%), var(--bg);
         border-bottom: 1px solid var(--rule);
       }
       /* Faint editorial fold below the hero — readers know "this is the
@@ -564,18 +559,23 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       .meta-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 0;
+        gap: 12px;
         margin-top: 32px;
-        border-top: 1px solid var(--rule);
-        border-left: 1px solid var(--rule);
+        padding: 16px;
+        background: var(--surface);
+        border-radius: var(--radius);
+        border: 1px solid var(--rule);
+        backdrop-filter: blur(12px);
       }
       .meta-row .stat {
         position: relative;
         flex: 1 1 auto;
-        min-width: 120px;
-        padding: 14px 18px;
+        min-width: 100px;
+        padding: 8px 16px;
         border-right: 1px solid var(--rule);
-        border-bottom: 1px solid var(--rule);
+      }
+      .meta-row .stat:last-child {
+        border-right: none;
       }
       /* First stat (Stories Scanned) gets the editorial tick — the rest
          stay quiet so the cluster reads as one instrument, not eight. */
@@ -614,10 +614,16 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
          accent so it sits next to the orange-anchored lead without
          competing for the eye. */
       .route {
-        background: oklch(0.18 0.006 255 / 0.6);
+        background: var(--surface);
         border: 1px solid var(--rule);
-        border-left: 3px solid var(--accent);
+        border-radius: var(--radius);
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
         padding: 24px;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        border-left: 4px solid var(--accent);
       }
       .route h3 {
         margin: 0 0 18px;
@@ -682,16 +688,18 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
          built from data we already have. Acts as the hero "image". */
       .featured {
         position: relative;
-        background:
-          radial-gradient(
-            120% 100% at 100% 0%,
-            var(--accent-soft) 0%,
-            transparent 60%
-          ),
-          oklch(0.18 0.006 255 / 0.85);
+        background: radial-gradient(100% 100% at 50% 0%, var(--primary-soft) 0%, var(--surface) 100%);
         border: 1px solid var(--rule);
-        border-left: 3px solid var(--primary);
+        border-radius: var(--radius);
         overflow: hidden;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .featured:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 20px var(--primary-soft);
       }
       .featured::before {
         /* Faint scoreboard grid — gives the card a tactile, broadcast feel
@@ -1155,10 +1163,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       .lane {
         display: flex;
         flex-direction: column;
-        gap: 0;
-      }
-      .lane > * + * {
-        border-top: 1px solid var(--rule);
+        gap: 16px;
       }
 
       .lane-intro {
@@ -1261,12 +1266,23 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       /* ── MATCH ROWS ───────────────────────────────────────────────────── */
       .match {
         display: block;
-        border-left: 2px solid transparent;
-        transition: border-left-color 0.15s;
+        border: 1px solid var(--rule);
+        border-left: 4px solid transparent;
+        background: var(--surface);
+        border-radius: var(--radius);
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        transition: border-left-color 0.15s, background 0.15s, transform 0.2s ease, box-shadow 0.2s ease;
       }
       .match:has(.match-link:hover),
       .match:focus-within {
         border-left-color: var(--primary);
+        background: var(--surface-2);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       }
       .match-link {
         display: grid;
@@ -1274,11 +1290,6 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         gap: 28px;
         align-items: center;
         padding: 22px 20px;
-        transition: background 0.15s;
-      }
-      .match-link:hover,
-      .match-link:focus-visible {
-        background: oklch(0.2 0.005 255 / 0.5);
       }
       @media (max-width: 720px) {
         .match-link {
@@ -1497,14 +1508,24 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         gap: 22px;
         align-items: center;
         padding: 18px 36px 18px 20px;
-        border-left: 2px solid transparent;
+        border: 1px solid var(--rule);
+        border-left: 4px solid transparent;
+        background: var(--surface);
+        border-radius: var(--radius);
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         transition:
           background 0.15s,
-          border-left-color 0.15s;
+          border-left-color 0.15s, transform 0.2s ease, box-shadow 0.2s ease;
       }
       .clip:hover {
-        background: oklch(0.2 0.005 255 / 0.5);
+        background: var(--surface-2);
         border-left-color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       }
       @media (max-width: 640px) {
         .clip {
@@ -1710,11 +1731,21 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         grid-template-columns: 56px 1fr;
         gap: 18px;
         padding: 20px;
-        border-left: 2px solid var(--primary);
-        transition: background 0.15s;
+        border: 1px solid var(--rule);
+        border-left: 4px solid var(--primary);
+        background: var(--surface);
+        border-radius: var(--radius);
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        transition: background 0.15s, transform 0.2s ease, box-shadow 0.2s ease;
       }
       .story:hover {
-        background: oklch(0.2 0.005 255 / 0.5);
+        background: var(--surface-2);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       }
       .avatar {
         width: 48px;
@@ -1782,13 +1813,23 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         grid-template-columns: 140px 1fr;
         gap: 24px;
         padding: 20px 36px 20px 20px;
-        border-left: 2px solid var(--primary);
+        border: 1px solid var(--rule);
+        border-left: 4px solid var(--primary);
+        background: var(--surface);
+        border-radius: var(--radius);
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         transition:
           background 0.15s,
-          border-left-color 0.15s;
+          border-left-color 0.15s, transform 0.2s ease, box-shadow 0.2s ease;
       }
       .news:hover {
-        background: oklch(0.2 0.005 255 / 0.5);
+        background: var(--surface-2);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       }
       .news.alert {
         border-left-color: var(--live);
@@ -1862,14 +1903,24 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         gap: 24px;
         align-items: center;
         padding: 18px 36px 18px 20px;
-        border-left: 2px solid transparent;
+        border: 1px solid var(--rule);
+        border-left: 4px solid transparent;
+        background: var(--surface);
+        border-radius: var(--radius);
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         transition:
           background 0.15s,
-          border-left-color 0.15s;
+          border-left-color 0.15s, transform 0.2s ease, box-shadow 0.2s ease;
       }
       .schedule:hover {
-        background: oklch(0.2 0.005 255 / 0.5);
+        background: var(--surface-2);
         border-left-color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       }
       @media (max-width: 640px) {
         .schedule {
@@ -1931,14 +1982,24 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         grid-template-columns: 160px minmax(0, 1fr);
         gap: 20px;
         padding: 20px 36px 20px 20px;
-        border-left: 2px solid transparent;
+        border: 1px solid var(--rule);
+        border-left: 4px solid transparent;
+        background: var(--surface);
+        border-radius: var(--radius);
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         transition:
           background 0.15s,
-          border-left-color 0.15s;
+          border-left-color 0.15s, transform 0.2s ease, box-shadow 0.2s ease;
       }
       .drop:hover {
-        background: oklch(0.2 0.005 255 / 0.5);
+        background: var(--surface-2);
         border-left-color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       }
       @media (max-width: 640px) {
         .drop {
@@ -2082,8 +2143,15 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         grid-template-columns: 280px 1fr;
         gap: 28px;
         padding: 24px;
+        border: 1px solid var(--rule);
         border-left: 4px solid var(--primary);
-        background: oklch(0.2 0.005 255 / 0.4);
+        background: var(--surface);
+        border-radius: var(--radius);
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
       }
       @media (max-width: 720px) {
         .patch {
@@ -2150,6 +2218,14 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         gap: 0;
         border: 1px solid var(--rule);
         border-left: 4px solid var(--primary);
+        background: var(--surface);
+        border-radius: var(--radius);
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
       }
       @media (max-width: 720px) {
         .history {
