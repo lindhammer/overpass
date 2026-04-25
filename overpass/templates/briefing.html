@@ -470,16 +470,14 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         gap: 0;
         margin-top: 32px;
         border-top: 1px solid var(--rule);
-        border-bottom: 1px solid var(--rule);
+        border-left: 1px solid var(--rule);
       }
       .meta-row .stat {
         flex: 1 1 auto;
         min-width: 120px;
         padding: 14px 18px;
         border-right: 1px solid var(--rule);
-      }
-      .meta-row .stat:last-child {
-        border-right: 0;
+        border-bottom: 1px solid var(--rule);
       }
       .meta-row .stat b {
         display: block;
@@ -500,35 +498,6 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         color: var(--ink-mute);
       }
 
-      .jumpbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0;
-        margin-top: 24px;
-      }
-      .jumpbar a {
-        padding: 14px 18px;
-        border: 1px solid var(--rule);
-        border-right: 0;
-        font-family: "Roboto Condensed", sans-serif;
-        font-size: 0.74rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--ink-mute);
-        transition:
-          color 0.15s,
-          background 0.15s,
-          border-color 0.15s;
-      }
-      .jumpbar a:last-child {
-        border-right: 1px solid var(--rule);
-      }
-      .jumpbar a:hover {
-        color: var(--primary);
-        background: var(--primary-soft);
-        border-color: var(--primary-line);
-      }
-
       /* Route panel — editorial sidebar with timeline */
       .route {
         background: oklch(0.2 0.005 255 / 0.5);
@@ -547,23 +516,33 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       }
       .route-stops {
         position: relative;
-        padding-left: 22px;
-        border-left: 2px solid var(--rule);
         display: flex;
         flex-direction: column;
         gap: 18px;
       }
+      /* Vertical timeline line — explicit pseudo-element so the dot
+         and line share the same left reference point. */
+      .route-stops::before {
+        content: "";
+        position: absolute;
+        left: 5px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--rule);
+      }
       .route-stop {
         position: relative;
+        padding-left: 24px;
       }
       .route-stop::before {
         content: "";
         position: absolute;
-        left: -29px;
+        left: 0;
         top: 4px;
         width: 12px;
         height: 12px;
-        background: var(--surface);
+        background: var(--surface-2);
         border: 3px solid var(--rule-strong);
         border-radius: 999px;
       }
@@ -1709,7 +1688,6 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
       /* ── A11Y FOCUS ──────────────────────────────────────────────────── */
       a:focus-visible,
       summary:focus-visible,
-      .jumpbar a:focus-visible,
       .foot nav a:focus-visible {
         outline: 2px solid var(--primary);
         outline-offset: 2px;
@@ -1867,12 +1845,6 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
                 </div>
                 {%- endif -%} {%- endfor %}
               </div>
-
-              <nav class="jumpbar" aria-label="Jump to briefing sections">
-                {%- for b in blocks %}
-                <a href="#{{ b.key | lower }}">{{ b.title }}</a>
-                {%- endfor %}
-              </nav>
             </div>
 
             <aside class="route" aria-label="Briefing route">
