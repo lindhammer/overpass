@@ -24,6 +24,7 @@ this_day | default(none) -%} {%- set route_stops = route_stops | default([]) -%}
 {%- set per_match_blurbs = per_match_blurbs | default({}) -%}
 {%- set blocks = blocks | default([]) -%}
 {%- set section_limits = section_limits | default({}) -%}
+{%- set featured_fixture = featured_fixture | default(none) -%}
 {%- macro crest(name, logo_url) -%}
 <span
   class="crest{% if logo_url %} has-logo{% endif %}"
@@ -208,6 +209,45 @@ bl.highlight }} {%- elif item.metadata.get("event") -%}<span class="dim"
     {%- endif %}
   </div>
 </a>
+{%- endmacro -%}
+{#- All section glyphs: outline-only, 20px viewbox, stroke 1.75, currentColor,
+    round caps/joins. Pick by section "kind". Designed to read at small sizes
+    and stay consistent with each other (no fills mixed in). -#}
+{%- macro section_glyph(kind) -%}
+{%- set _k = (kind or '') | lower -%}
+<svg class="section-glyph" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+{%- if _k == 'matches' -%}
+  {#- crosshair / scope -#}
+  <circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+{%- elif _k == 'clips' -%}
+  {#- play in rounded square (clip-board feel, fits "top clips") -#}
+  <rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M10.5 9.5l5 2.5-5 2.5z"/>
+{%- elif _k == 'social' -%}
+  {#- speech bubble outline -#}
+  <path d="M4 5h16v11H9l-4 3.5V5z"/>
+{%- elif _k == 'news' -%}
+  {#- megaphone -#}
+  <path d="M3.5 10v4l11 4V6zM14.5 8.5h2a3.5 3.5 0 010 7h-2M7 14v3.5a1.5 1.5 0 003 0V15"/>
+{%- elif _k == 'upcoming' -%}
+  {#- calendar -#}
+  <rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>
+{%- elif _k == 'drops' or _k == 'videos' -%}
+  {#- film strip -#}
+  <rect x="3" y="4.5" width="18" height="15" rx="1.5"/><path d="M3 9h3M18 9h3M3 15h3M18 15h3M9 4.5v15M15 4.5v15"/>
+{%- elif _k == 'podcasts' -%}
+  {#- microphone -#}
+  <rect x="9.5" y="3" width="5" height="11" rx="2.5"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21M8.5 21h7"/>
+{%- elif _k == 'patches' -%}
+  {#- wrench -#}
+  <path d="M14.5 3a4.5 4.5 0 014.5 5.6l-9.4 9.4a2.5 2.5 0 01-3.6-3.6l9.4-9.4A4.5 4.5 0 0114.5 3z"/><path d="M9 14l-4.2 4.2"/>
+{%- elif _k == 'history' -%}
+  {#- clock with rewind tick -#}
+  <path d="M3.5 12a8.5 8.5 0 108.5-8.5"/><path d="M3.5 4v4h4"/><path d="M12 7.5V12l3 2"/>
+{%- else -%}
+  {#- fallback dot -#}
+  <circle cx="12" cy="12" r="3"/>
+{%- endif -%}
+</svg>
 {%- endmacro -%}
 {%- macro empty_lane(message) -%}
 <div class="empty-lane">{{ message }}</div>
@@ -613,6 +653,347 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         color: var(--ink-2);
       }
 
+      /* ── FEATURED FIXTURE (hero right column) ─────────────────────────── */
+      /* The single most visual element on the page: a marquee match card
+         built from data we already have. Acts as the hero "image". */
+      .featured {
+        position: relative;
+        background:
+          radial-gradient(
+            120% 100% at 100% 0%,
+            var(--accent-soft) 0%,
+            transparent 60%
+          ),
+          oklch(0.18 0.006 255 / 0.85);
+        border: 1px solid var(--rule);
+        border-left: 3px solid var(--primary);
+        overflow: hidden;
+      }
+      .featured::before {
+        /* Faint scoreboard grid — gives the card a tactile, broadcast feel
+           without resorting to a real backdrop image. */
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(var(--rule) 1px, transparent 1px),
+          linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+        background-size: 32px 32px;
+        opacity: 0.06;
+      }
+      .featured-link {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        padding: 22px 24px 24px;
+        text-decoration: none;
+        color: inherit;
+      }
+      .featured-link:hover .featured-team strong {
+        color: var(--primary);
+      }
+      .featured-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .featured-kicker {
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 0.7rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .featured-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 0.66rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--primary);
+        background: var(--primary-soft);
+        border: 1px solid var(--primary-line);
+      }
+      .featured-badge--live {
+        color: var(--live);
+        background: oklch(0.66 0.22 25 / 0.12);
+        border-color: oklch(0.66 0.22 25 / 0.4);
+        position: relative;
+        padding-left: 20px;
+      }
+      .featured-badge--live::before {
+        content: "";
+        position: absolute;
+        left: 8px;
+        top: 50%;
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: var(--live);
+        transform: translateY(-50%);
+        box-shadow: 0 0 8px var(--live);
+      }
+      .featured-badge--upset,
+      .featured-badge--clean-sweep,
+      .featured-badge--decider,
+      .featured-badge--close-call,
+      .featured-badge--one-sided,
+      .featured-badge--featured,
+      .featured-badge--next-up {
+        /* All inherit primary by default; explicit list documents the set. */
+      }
+
+      .featured-teams {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 14px;
+        padding: 6px 0;
+      }
+      .featured-team {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        text-align: center;
+        min-width: 0;
+      }
+      .featured-team strong {
+        display: block;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 0.92rem;
+        color: var(--ink);
+        letter-spacing: 0.02em;
+        line-height: 1.15;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: color 120ms ease;
+      }
+      .featured-team.is-loser strong {
+        color: var(--ink-mute);
+      }
+      .featured-team.is-loser .featured-crest {
+        opacity: 0.55;
+      }
+      .featured-rank {
+        display: inline-block;
+        margin-top: 2px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.06em;
+        color: var(--ink-mute);
+      }
+      .featured-crest {
+        width: 72px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: oklch(0.22 0.006 255);
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        padding: 8px;
+      }
+      .featured-crest img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0 2px 4px oklch(0 0 0 / 0.4));
+      }
+      .featured-crest > span {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 1.6rem;
+        letter-spacing: 0.04em;
+        color: var(--ink);
+      }
+
+      .featured-score {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        min-width: 90px;
+      }
+      .featured-score-line {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 8px;
+        font-family: "Bebas Neue", sans-serif;
+        font-weight: 400;
+        font-size: clamp(2.6rem, 4.8vw, 3.4rem);
+        line-height: 1;
+        color: var(--ink-mute);
+        letter-spacing: 0.02em;
+      }
+      .featured-score-line span {
+        color: var(--ink-2);
+      }
+      .featured-score-line span.win {
+        color: var(--ink);
+      }
+      .featured-score-line em {
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 1.1rem;
+        font-style: normal;
+        color: var(--ink-dim);
+        font-weight: 400;
+        position: relative;
+        top: -0.4em;
+      }
+      .featured-score-line--vs em {
+        font-size: 1.6rem;
+        top: 0;
+        text-transform: lowercase;
+        letter-spacing: 0.1em;
+      }
+      .featured-format {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.66rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+
+      .featured-maps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--rule);
+      }
+      .featured-map {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        background: oklch(0.22 0.006 255);
+        border: 1px solid var(--rule);
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.74rem;
+        letter-spacing: 0.04em;
+        color: var(--ink-2);
+      }
+      .featured-map b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .featured-map span {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        color: var(--ink-mute);
+      }
+
+      .featured-tagline {
+        margin: 0;
+        font-family: "Roboto", sans-serif;
+        font-size: 0.95rem;
+        line-height: 1.45;
+        color: var(--ink);
+      }
+      .featured-event {
+        margin: 0;
+        font-family: "Roboto Condensed", sans-serif;
+        font-size: 0.74rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+
+      @media (max-width: 540px) {
+        .featured-crest {
+          width: 56px;
+          height: 56px;
+          padding: 6px;
+        }
+        .featured-team strong {
+          font-size: 0.82rem;
+        }
+        .featured-score-line {
+          font-size: 2.4rem;
+        }
+      }
+
+      /* ── ROUTE STRIP (horizontal under hero, A2 layout) ───────────────── */
+      .route-strip {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        margin-top: 32px;
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+      }
+      .route-strip-label {
+        flex: 0 0 auto;
+        align-self: center;
+        padding: 14px 18px 14px 0;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 0.7rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .route-strip-stops {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        flex: 1 1 auto;
+        border-left: 1px solid var(--rule);
+      }
+      .route-strip-stop {
+        padding: 14px 18px;
+        border-right: 1px solid var(--rule);
+        min-width: 0;
+      }
+      .route-strip-stop:last-child {
+        border-right: none;
+      }
+      .route-strip-stop b {
+        display: block;
+        font-family: "Roboto Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+        color: var(--ink);
+      }
+      .route-strip-stop span {
+        display: block;
+        margin-top: 4px;
+        font-size: 0.78rem;
+        line-height: 1.4;
+        color: var(--ink-mute);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      @media (max-width: 720px) {
+        .route-strip {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .route-strip-label {
+          padding: 12px 18px 0;
+        }
+        .route-strip-stops {
+          border-left: none;
+          border-top: 1px solid var(--rule);
+        }
+      }
+
       /* ── TICKER ───────────────────────────────────────────────────────── */
       .ticker {
         margin-top: 48px;
@@ -696,6 +1077,16 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
         font-size: 0.72rem;
         letter-spacing: 0.14em;
         color: var(--primary);
+      }
+      /* Per-section landmark icon. Outline-only, currentColor, sized to
+         optically match the cap-height of the Bebas Neue h2 next to it.
+         Tinted to the steel accent so it sits with the chrome, not the
+         editorial signal. */
+      .section-head .section-glyph {
+        flex: 0 0 auto;
+        width: 22px;
+        height: 22px;
+        color: var(--accent);
       }
       .section-head h2 {
         margin: 0;
@@ -1897,6 +2288,88 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
               </div>
             </div>
 
+            {%- if featured_fixture %}
+            {%- set ff = featured_fixture %}
+            {%- set _t1 = ff.team1 %}
+            {%- set _t2 = ff.team2 %}
+            <aside class="featured featured--{{ ff.kind }}" aria-label="Featured fixture">
+              <a class="featured-link" href="{{ ff.url or '#' }}"{% if ff.url %} target="_blank" rel="noopener"{% endif %}>
+                <header class="featured-head">
+                  <span class="featured-kicker">
+                    {%- if ff.kind == 'upcoming' -%}Next On The Card
+                    {%- else -%}Match Of The Day{%- endif -%}
+                  </span>
+                  <span class="featured-badge featured-badge--{{ ff.badge | lower | replace(' ', '-') }}">{{ ff.badge }}</span>
+                </header>
+
+                <div class="featured-teams">
+                  <div class="featured-team {% if _t1.is_winner %}is-winner{% elif _t2.is_winner %}is-loser{% endif %}">
+                    <div class="featured-crest" data-team="{{ _t1.name | team_code }}">
+                      {%- if _t1.logo_url -%}
+                        <img src="{{ _t1.logo_url }}" alt="{{ _t1.name }} logo" loading="lazy" decoding="async" />
+                      {%- else -%}
+                        <span>{{ _t1.name | team_code }}</span>
+                      {%- endif -%}
+                    </div>
+                    <div class="featured-team-meta">
+                      <strong>{{ _t1.name }}</strong>
+                      {%- if _t1.rank %}<span class="featured-rank">#{{ _t1.rank }}</span>{%- endif %}
+                    </div>
+                  </div>
+
+                  <div class="featured-score">
+                    {%- if ff.kind == 'result' and _t1.score is not none and _t2.score is not none %}
+                    <div class="featured-score-line">
+                      <span class="{% if _t1.is_winner %}win{% endif %}">{{ _t1.score }}</span>
+                      <em>—</em>
+                      <span class="{% if _t2.is_winner %}win{% endif %}">{{ _t2.score }}</span>
+                    </div>
+                    {%- if ff.format %}<span class="featured-format">{{ ff.format }}</span>{%- endif %}
+                    {%- elif ff.kind == 'upcoming' %}
+                    <div class="featured-score-line featured-score-line--vs"><em>vs</em></div>
+                    {%- if ff.starts_at %}
+                    <span class="featured-format">{{ ff.starts_at | fmt_date('%H:%M') }} {{ tz_label }}</span>
+                    {%- endif %}
+                    {%- endif %}
+                  </div>
+
+                  <div class="featured-team featured-team--right {% if _t2.is_winner %}is-winner{% elif _t1.is_winner %}is-loser{% endif %}">
+                    <div class="featured-crest" data-team="{{ _t2.name | team_code }}">
+                      {%- if _t2.logo_url -%}
+                        <img src="{{ _t2.logo_url }}" alt="{{ _t2.name }} logo" loading="lazy" decoding="async" />
+                      {%- else -%}
+                        <span>{{ _t2.name | team_code }}</span>
+                      {%- endif -%}
+                    </div>
+                    <div class="featured-team-meta">
+                      <strong>{{ _t2.name }}</strong>
+                      {%- if _t2.rank %}<span class="featured-rank">#{{ _t2.rank }}</span>{%- endif %}
+                    </div>
+                  </div>
+                </div>
+
+                {%- if ff.kind == 'result' and ff.maps %}
+                <div class="featured-maps">
+                  {%- for m in ff.maps %}
+                  <span class="featured-map">
+                    <b>{{ m.name }}</b>
+                    {%- if m.team1_score is not none and m.team2_score is not none %}
+                    <span>{{ m.team1_score }}–{{ m.team2_score }}</span>
+                    {%- endif %}
+                  </span>
+                  {%- endfor %}
+                </div>
+                {%- endif %}
+
+                {%- if ff.tagline %}
+                <p class="featured-tagline">{{ ff.tagline }}</p>
+                {%- endif %}
+                {%- if ff.event %}
+                <p class="featured-event">{{ ff.event }}</p>
+                {%- endif %}
+              </a>
+            </aside>
+            {%- else %}
             <aside class="route" aria-label="Briefing route">
               <h3>Route Through The Day</h3>
               <div class="route-stops">
@@ -1908,7 +2381,22 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
                 {%- endfor %}
               </div>
             </aside>
+            {%- endif %}
           </div>
+
+          {%- if featured_fixture and route_stops %}
+          <nav class="route-strip" aria-label="Route through the day">
+            <span class="route-strip-label">Route ›</span>
+            <ol class="route-strip-stops">
+              {%- for stop in route_stops %}
+              <li class="route-strip-stop">
+                <b>{{ stop.title }}</b>
+                <span>{{ stop.body }}</span>
+              </li>
+              {%- endfor %}
+            </ol>
+          </nav>
+          {%- endif %}
 
           {%- if ticker_chips %}
           <div class="ticker" aria-hidden="true">
@@ -1934,6 +2422,7 @@ ns3.total = ns3.total + (sec.items | length) -%}{%- endfor -%}
             <header class="section-head">
               <div class="title-row">
                 <span class="num">{{ "%02d" | format(loop.index) }} /</span>
+                {{ section_glyph(b.kind) }}
                 <h2>{{ b.title | upper }}</h2>
               </div>
               {%- if _section_count %}

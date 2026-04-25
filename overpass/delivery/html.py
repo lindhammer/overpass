@@ -510,6 +510,158 @@ def _history_entry_to_dict(entry: HistoryEntry, briefing_date: date) -> dict[str
     }
 
 
+def _featured_badge(md: dict[str, Any]) -> str:
+    """Pick the editorial badge for the hero fixture card.
+
+    Priority: LIVE > UPSET > series-shape badge (CLEAN SWEEP / DECIDER) >
+    single-map shape (CLOSE CALL / ONE-SIDED) > FEATURED. Mirrors the
+    fallback_tagline macro in the template so the hero feels consistent
+    with the match list below.
+    """
+    flags = md.get("flags") or []
+    if "live" in flags:
+        return "LIVE"
+    if "upset" in flags:
+        return "UPSET"
+    s1, s2 = md.get("team1_score"), md.get("team2_score")
+    if s1 is None or s2 is None:
+        return "FEATURED"
+    s1, s2 = int(s1), int(s2)
+    fmt = (md.get("format") or "").upper()
+    if "1" in fmt:  # BO1 / single map
+        diff = abs(s1 - s2)
+        if diff <= 2:
+            return "CLOSE CALL"
+        if diff >= 8:
+            return "ONE-SIDED"
+        return "FEATURED"
+    # Series (BO3/BO5/BO7). Series scores are small integers.
+    target = max(s1, s2)
+    if min(s1, s2) == 0 and target >= 2:
+        return "CLEAN SWEEP"
+    if abs(s1 - s2) == 1:
+        return "DECIDER"
+    return "FEATURED"
+
+
+def _featured_from_match(
+    item: CollectorItem,
+    per_match_blurbs: dict[str, Any],
+) -> dict[str, Any]:
+    """Flatten a finished/live match into the hero fixture dict shape."""
+    md = item.metadata or {}
+    s1_raw, s2_raw = md.get("team1_score"), md.get("team2_score")
+    has_score = s1_raw is not None and s2_raw is not None
+    s1 = int(s1_raw) if has_score else None
+    s2 = int(s2_raw) if has_score else None
+    blurb = per_match_blurbs.get(item.url)
+    tagline = getattr(blurb, "tagline", None) if blurb else None
+    highlight = getattr(blurb, "highlight", None) if blurb else None
+    return {
+        "kind": "result",
+        "url": item.url,
+        "team1": {
+            "name": md.get("team1_name") or "TBD",
+            "logo_url": md.get("team1_logo_url"),
+            "rank": md.get("team1_rank"),
+            "score": s1,
+            "is_winner": bool(has_score and s1 > s2),
+        },
+        "team2": {
+            "name": md.get("team2_name") or "TBD",
+            "logo_url": md.get("team2_logo_url"),
+            "rank": md.get("team2_rank"),
+            "score": s2,
+            "is_winner": bool(has_score and s2 > s1),
+        },
+        "event": md.get("event"),
+        "format": md.get("format"),
+        "tagline": tagline,
+        "highlight": highlight,
+        "badge": _featured_badge(md),
+        "maps": md.get("maps") or [],
+        "starts_at": None,
+    }
+
+
+def _featured_from_upcoming(up: dict[str, Any]) -> dict[str, Any]:
+    """Flatten an upcoming match dict into the hero fixture shape (E2 fallback)."""
+    return {
+        "kind": "upcoming",
+        "url": up.get("hltv_url"),
+        "team1": {
+            "name": up.get("team1") or "TBD",
+            "logo_url": up.get("team1_logo_url"),
+            "rank": None, "score": None, "is_winner": False,
+        },
+        "team2": {
+            "name": up.get("team2") or "TBD",
+            "logo_url": up.get("team2_logo_url"),
+            "rank": None, "score": None, "is_winner": False,
+        },
+        "event": up.get("event"),
+        "format": up.get("format"),
+        "tagline": None,
+        "highlight": None,
+        "badge": "NEXT UP",
+        "maps": [],
+        "starts_at": up.get("starts_at"),
+    }
+
+
+def _pick_featured_fixture(
+    digest: DigestOutput,
+    upcoming_matches: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Choose the hero fixture using rule F4 with E2-then-E1 fallback.
+
+    Order of preference among finished matches:
+      1. Biggest rank-based upset (largest loser_rank - winner_rank gap)
+      2. Highest combined ranking (smallest team1_rank + team2_rank)
+      3. First match in the results lane (editorial order)
+
+    If no matches are present, fall back to the next upcoming fixture (E2);
+    if neither is available, return None and the hero collapses to its
+    text-only layout (E1).
+    """
+    matches_section = digest.sections.get("Matches")
+    items = matches_section.items if matches_section else []
+
+    if items:
+        def _upset_gap(it: CollectorItem) -> int:
+            md = it.metadata or {}
+            r1, r2 = md.get("team1_rank"), md.get("team2_rank")
+            s1, s2 = md.get("team1_score"), md.get("team2_score")
+            if r1 is None or r2 is None or s1 is None or s2 is None:
+                return -1
+            winner_rank = r1 if s1 > s2 else r2
+            loser_rank = r2 if s1 > s2 else r1
+            return max(0, int(winner_rank) - int(loser_rank))
+
+        upsets = [it for it in items if "upset" in ((it.metadata or {}).get("flags") or [])]
+        if upsets:
+            chosen = max(upsets, key=_upset_gap)
+        else:
+            ranked = [
+                it for it in items
+                if (it.metadata or {}).get("team1_rank") is not None
+                and (it.metadata or {}).get("team2_rank") is not None
+            ]
+            if ranked:
+                chosen = min(
+                    ranked,
+                    key=lambda it: int(it.metadata["team1_rank"]) + int(it.metadata["team2_rank"]),
+                )
+            else:
+                chosen = items[0]
+        return _featured_from_match(chosen, digest.per_match_blurbs)
+
+    if upcoming_matches:
+        return _featured_from_upcoming(upcoming_matches[0])
+
+    return None
+
+
 def render_briefing(
     digest: DigestOutput,
     briefing_date: date,
@@ -541,6 +693,7 @@ def render_briefing(
     )
     blocks = _build_blocks(digest, social_posts, upcoming_matches, this_day)
     route_stops = _build_route_stops(blocks)
+    featured_fixture = _pick_featured_fixture(digest, upcoming_matches)
     generated_at = datetime.now()
     context: dict[str, Any] = {
         "digest": digest,
@@ -555,6 +708,7 @@ def render_briefing(
         "this_day": this_day_ctx,
         "blocks": blocks,
         "route_stops": route_stops,
+        "featured_fixture": featured_fixture,
         "section_limits": _SECTION_LIMITS,
         "DATE_FMT_HEADER": _DATE_FMT_HEADER,
         "DATE_FMT_FOOTER": _DATE_FMT_FOOTER,
