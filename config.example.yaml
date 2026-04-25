@@ -8,6 +8,7 @@ watchlist_teams:
   - Spirit
 
 hltv_top_n: 30
+web_base_url: "https://briefs.example.com"
 
 hltv:
   base_url: "https://www.hltv.org"

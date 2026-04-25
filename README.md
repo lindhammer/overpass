@@ -143,7 +143,6 @@ Overpass is a three-layer pipeline: **Collectors** pull raw data from external s
 - Briefing archive UI
 - Historical stats for LLM context
 - Twitter/X integration (evaluating options)
-- Docker deployment config for self-hosting
 
 **Not started:**
 
@@ -171,3 +170,38 @@ Contributions are welcome. For anything beyond small fixes, please open an issue
 
 [AGPL-3.0-or-later](LICENSE)
 
+## Homeserver Deployment
+
+Overpass can run as an always-on Docker Compose deployment. The Python worker stays private and generates static HTML into a shared volume. Caddy serves that volume publicly over HTTPS.
+
+Set `web_base_url` in `config.yaml` to the public Caddy origin:
+
+```yaml
+web_base_url: "https://briefs.example.com"
+```
+
+Caddy serves generated briefings from the shared output volume. Replace `briefs.example.com` in `deploy/Caddyfile` and `config.yaml` with the real domain that points to the homeserver.
+
+Start the services:
+
+```bash
+docker compose up -d
+```
+
+Watch worker logs:
+
+```bash
+docker compose logs -f overpass-worker
+```
+
+Force one briefing run immediately and bypass the existing-output check:
+
+```bash
+docker compose run --rm overpass-worker overpass-worker --run-now
+```
+
+Run the original one-shot CLI inside the container:
+
+```bash
+docker compose run --rm overpass-worker overpass
+```

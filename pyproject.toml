@@ -23,6 +23,7 @@ dependencies = [
 
 [project.scripts]
 overpass = "overpass.main:main"
+overpass-worker = "overpass.worker:main"
 
 [project.optional-dependencies]
 dev = [

@@ -720,6 +720,11 @@ def render_briefing(
     return template.render(**context)
 
 
+def briefing_path_for_date(briefing_date: date) -> Path:
+    """Return the static output path for one briefing date."""
+    return _OUTPUT_DIR / f"{briefing_date.isoformat()}.html"
+
+
 def save_briefing(html: str, briefing_date: date) -> Path:
     """Write rendered briefing HTML to the static output directory.
 
@@ -731,6 +736,6 @@ def save_briefing(html: str, briefing_date: date) -> Path:
         Path to output/briefings/{YYYY-MM-DD}.html.
     """
     _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    path = _OUTPUT_DIR / f"{briefing_date.isoformat()}.html"
+    path = briefing_path_for_date(briefing_date)
     path.write_text(html, encoding="utf-8")
     return path

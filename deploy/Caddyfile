@@ -1,0 +1,4 @@
+briefs.example.com {
+    root * /srv/overpass
+    file_server
+}

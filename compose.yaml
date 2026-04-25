@@ -1,0 +1,30 @@
+services:
+  overpass-worker:
+    build: .
+    command: overpass-worker
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - overpass-output:/app/output
+      - overpass-cache:/app/.cache
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - overpass-output:/srv/overpass:ro
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  overpass-output:
+  overpass-cache:
+  caddy-data:
+  caddy-config:
