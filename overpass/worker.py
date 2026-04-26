@@ -87,6 +87,10 @@ async def async_main(argv: list[str] | None = None) -> None:
 
 def main() -> None:
     """Sync wrapper for the worker CLI."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+    )
     asyncio.run(async_main())
 
 
