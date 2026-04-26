@@ -136,13 +136,13 @@ These steps assume a fresh Ubuntu/Debian server and no prior Docker setup.
 5. Set the public briefing origin in `config.yaml`:
 
    ```yaml
-   web_base_url: "https://briefs.example.com"
+   web_base_url: "https://briefs.example.com" # this will affect what link is shown in the telegram message
    ```
 
 6. Set the same domain in `deploy/Caddyfile`:
 
    ```caddyfile
-   briefs.example.com {
+   briefs.example.com { # set to ":2020" e.g. if you want port 2020 to be used
        root * /srv/overpass
        file_server
    }
@@ -296,3 +296,4 @@ HLTV scraping is fragile and can break because of anti-scrape measures, rate lim
 **`docker compose config` shows secrets**
 
 This is expected behavior because Compose resolves environment files and interpolation. Treat the output as sensitive and avoid sharing it publicly.
+
