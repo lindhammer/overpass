@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from overpass.config import load_config
 from overpass.collectors.base import BaseCollector, CollectorItem
-from overpass.hltv.browser import HLTVBrowserClient, _looks_like_challenge
+from overpass.hltv.browser import HLTVBrowserClient, _looks_like_challenge, can_launch_headful_browser
 from overpass.hltv.matches import parse_match_detail, parse_ranked_team_names, parse_results_listing
 from overpass.hltv.models import HLTVMatchDetail, HLTVMatchMapResult, HLTVMatchResult
 from overpass.liquipedia.client import LiquipediaClient
@@ -123,7 +123,7 @@ class HLTVMatchesCollector(BaseCollector):
         if rendered_listing_items or not self._looks_like_challenge_page(rendered_results_html):
             return rendered_listing_items
 
-        if not getattr(self._browser_client, "headless", False):
+        if not getattr(self._browser_client, "headless", False) or not can_launch_headful_browser():
             return rendered_listing_items
 
         headful_client = HLTVBrowserClient(
@@ -176,7 +176,7 @@ class HLTVMatchesCollector(BaseCollector):
                 listing_item.url,
             )
 
-        if getattr(self._browser_client, "headless", False):
+        if getattr(self._browser_client, "headless", False) and can_launch_headful_browser():
             headful_client = HLTVBrowserClient(
                 base_url=self._base_url,
                 headless=False,
@@ -299,7 +299,7 @@ class HLTVMatchesCollector(BaseCollector):
         try:
             rankings_client = self._browser_client
             temporary_client: HLTVBrowserClient | None = None
-            if getattr(self._browser_client, "headless", False):
+            if getattr(self._browser_client, "headless", False) and can_launch_headful_browser():
                 temporary_client = HLTVBrowserClient(
                     base_url=self._base_url,
                     headless=False,

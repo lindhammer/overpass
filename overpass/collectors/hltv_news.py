@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from overpass.config import load_config
 from overpass.collectors.base import BaseCollector, CollectorItem
-from overpass.hltv.browser import HLTVBrowserClient, _looks_like_challenge
+from overpass.hltv.browser import HLTVBrowserClient, _looks_like_challenge, can_launch_headful_browser
 from overpass.hltv.models import HLTVNewsArticle
 from overpass.hltv.news import parse_news_article, parse_news_listing
 
@@ -144,7 +144,7 @@ class HLTVNewsCollector(BaseCollector):
         # Cloudflare and the JS challenge never resolves. A headful browser
         # bypasses this reliably, so it is worth the cost on the rare article
         # that triggers a challenge.
-        if cf_blocked and getattr(self._browser_client, "headless", False):
+        if cf_blocked and getattr(self._browser_client, "headless", False) and can_launch_headful_browser():
             hltv_config = load_config().hltv
             headful_client = HLTVBrowserClient(
                 base_url=self._base_url,

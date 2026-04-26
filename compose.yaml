@@ -1,7 +1,6 @@
 services:
   overpass-worker:
     build: .
-    command: overpass-worker
     env_file:
       - path: .env
         required: false
@@ -27,4 +26,3 @@ volumes:
   overpass-cache:
   caddy-data:
   caddy-config:
-

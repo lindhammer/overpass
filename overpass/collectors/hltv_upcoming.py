@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from overpass.collectors.base import BaseCollector, CollectorItem
 from overpass.config import load_config
-from overpass.hltv.browser import HLTVBrowserClient
+from overpass.hltv.browser import HLTVBrowserClient, can_launch_headful_browser
 from overpass.hltv.matches import parse_ranked_team_names
 from overpass.hltv.models import HLTVUpcomingMatch
 from overpass.hltv.upcoming import parse_upcoming_listing
@@ -104,7 +104,7 @@ class HLTVUpcomingCollector(BaseCollector):
         rankings_client = self._browser_client
         temporary_client: HLTVBrowserClient | None = None
         try:
-            if getattr(self._browser_client, "headless", False):
+            if getattr(self._browser_client, "headless", False) and can_launch_headful_browser():
                 temporary_client = HLTVBrowserClient(
                     base_url=self._base_url,
                     headless=False,
@@ -129,7 +129,7 @@ class HLTVUpcomingCollector(BaseCollector):
         if not self._looks_like_challenge_page(rendered):
             return rendered
 
-        if not getattr(self._browser_client, "headless", False):
+        if not getattr(self._browser_client, "headless", False) or not can_launch_headful_browser():
             return rendered
 
         headful = HLTVBrowserClient(

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import os
+import sys
 import time
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -16,6 +18,13 @@ def _async_playwright_factory() -> Any:
     from playwright.async_api import async_playwright
 
     return async_playwright()
+
+
+def can_launch_headful_browser() -> bool:
+    """Return whether the current host can plausibly launch headed Chromium."""
+    if sys.platform.startswith("linux"):
+        return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+    return True
 
 
 # Cloudflare's interactive "Just a moment..." challenge resolves itself in a
