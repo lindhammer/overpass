@@ -127,6 +127,25 @@ Overpass is a three-layer pipeline: **Collectors** pull raw data from external s
 
 ---
 
+## Deployment
+
+Docker Compose runs the private `overpass-worker` service alongside public Caddy static hosting. The worker generates briefings into a shared output volume, and Caddy serves that volume over HTTPS.
+
+For public Telegram links, set `web_base_url` in `config.yaml` and replace the example domain in [`deploy/Caddyfile`](deploy/Caddyfile). Use [`config.example.yaml`](config.example.yaml) as the configuration reference.
+
+Key commands:
+
+```bash
+docker compose build overpass-worker
+docker compose up -d
+docker compose logs -f overpass-worker
+docker compose run --rm overpass-worker overpass-worker --run-now
+```
+
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for full setup, DNS/router requirements, operations, verification, and troubleshooting.
+
+---
+
 ## Project status
 
 **Working:**
@@ -136,6 +155,7 @@ Overpass is a three-layer pipeline: **Collectors** pull raw data from external s
 - Telegram delivery
 - Liquipedia, Reddit, YouTube, Steam, Podcast, and This Day in CS collectors
 - HLTV scraper (brittle — see caveats)
+- Docker Compose homeserver deployment
 
 **In progress / coming:**
 
@@ -169,39 +189,3 @@ Contributions are welcome. For anything beyond small fixes, please open an issue
 ## License
 
 [AGPL-3.0-or-later](LICENSE)
-
-## Homeserver Deployment
-
-Overpass can run as an always-on Docker Compose deployment. The Python worker stays private and generates static HTML into a shared volume. Caddy serves that volume publicly over HTTPS.
-
-Set `web_base_url` in `config.yaml` to the public Caddy origin:
-
-```yaml
-web_base_url: "https://briefs.example.com"
-```
-
-Caddy serves generated briefings from the shared output volume. Replace `briefs.example.com` in `deploy/Caddyfile` and `config.yaml` with the real domain that points to the homeserver.
-
-Start the services:
-
-```bash
-docker compose up -d
-```
-
-Watch worker logs:
-
-```bash
-docker compose logs -f overpass-worker
-```
-
-Force one briefing run immediately and bypass the existing-output check:
-
-```bash
-docker compose run --rm overpass-worker overpass-worker --run-now
-```
-
-Run the original one-shot CLI inside the container:
-
-```bash
-docker compose run --rm overpass-worker overpass
-```
